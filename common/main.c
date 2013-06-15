@@ -1,6 +1,7 @@
 #include "config.h"
 #include "init.h"
 #include "slogger.h"
+#include <unistd.h>
 
 #include <poll.h>
 #include <inttypes.h>
@@ -45,6 +46,8 @@ static deentry *dehead=NULL;
 
 static uint32_t now;
 static uint64_t usecnow;
+
+volatile int exiting;
 
 void main_pollregister (void (*desc)(struct pollfd *,uint32_t *),void (*serve)(struct pollfd *)) {
 	pollentry *aux=(pollentry*)malloc(sizeof(pollentry));
@@ -93,7 +96,7 @@ void mainloop() {
 	uint32_t ndesc;
 	int i;
 
-	while (1){
+	while (!exiting){
 		ndesc=0;
 		for (pollit = pollhead ; pollit != NULL ; pollit = pollit->next) {
 			pollit->desc(pdesc,&ndesc);
@@ -155,14 +158,82 @@ int initialize_late(void) {
 	return ok;
 }
 
+/* signals */
+
+static int termsignal[]={
+	SIGTERM,
+  SIGINT,
+	-1
+};
+
+static int ignoresignal[]={
+	SIGQUIT,
+#ifdef SIGPIPE
+	SIGPIPE,
+#endif
+#ifdef SIGTSTP
+	SIGTSTP,
+#endif
+#ifdef SIGTTIN
+	SIGTTIN,
+#endif
+#ifdef SIGTTOU
+	SIGTTOU,
+#endif
+#ifdef SIGINFO
+	SIGINFO,
+#endif
+#ifdef SIGUSR1
+	SIGUSR1,
+#endif
+#ifdef SIGUSR2
+	SIGUSR2,
+#endif
+#ifdef SIGCHLD
+	SIGCHLD,
+#endif
+#ifdef SIGCLD
+	SIGCLD,
+#endif
+	-1
+};
+
+void termhandle(int signo){
+  exiting = 1;
+}
+
+void set_signal_handlers(){
+  struct sigaction sa;
+  uint32_t i;
+
+#ifdef SA_RESTART
+  sa.sa_flags = SA_RESTART;
+#else
+  sa.sa_flags = 0;
+#endif
+  sigemptyset(&sa.sa_mask);
+
+  sa.sa_handler = termhandle;
+  for (i=0 ; termsignal[i]>0 ; i++) {
+    sigaction(termsignal[i],&sa,(struct sigaction *)0);
+  }
+
+  sa.sa_handler = SIG_IGN;
+  for (i=0 ; ignoresignal[i]>0 ; i++) {
+    sigaction(ignoresignal[i],&sa,(struct sigaction *)0);
+  }
+}
+
+
 int main(int argc,char **argv) {
 	char *wrkdir;
 	int ch;
 	int32_t nicelevel;
 	struct rlimit rls;
 
+  exiting = 0;
 	strerr_init();
-	mycrc32_init();
+  set_signal_handlers();
 
 	if (initialize()) {
 		if (getrlimit(RLIMIT_NOFILE,&rls)==0) {

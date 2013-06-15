@@ -117,7 +117,7 @@ void echo_desc(struct pollfd *pdesc,uint32_t *ndesc) {
 void echo_term(void) {
 	echoserventry *eptr,*eptrn;
 
-	syslog(LOG_NOTICE,"main master server module: closing %s:%s","*",8080);
+	fprintf(stderr,"main master server module: closing %s:%s\n","*","8080");
 	tcpclose(lsock);
 
 	for (eptr = echoservhead ; eptr ; eptr = eptrn) {
@@ -181,7 +181,7 @@ void echo_write(echoserventry *eptr) {
 		len -=i;
 
 		if (len <= 0){
-      fprintf(stderr,"wrote %d from (ip:%u.%u.%u.%u):%s\n",eptr->writelen,(eptr->peerip>>24)&0xFF,(eptr->peerip>>16)&0xFF,(eptr->peerip>>8)&0xFF,eptr->peerip&0xFF);
+      fprintf(stderr,"wrote %d from (ip:%u.%u.%u.%u)\n",eptr->writelen,(eptr->peerip>>24)&0xFF,(eptr->peerip>>16)&0xFF,(eptr->peerip>>8)&0xFF,eptr->peerip&0xFF);
       eptr->writelen = 0;
 			return;
 		}
