@@ -1,7 +1,8 @@
 CC = gcc
 CFLAGS = -m32 -I../common -I. -g
-HEADERS = ../common/config.h    ../common/init.h  ../common/ppfile.h   ../common/sockets.h \
+HEADERS = ../common/config.h    ../common/ppfile.h   ../common/sockets.h \
           ../common/massert.h  ../common/ppcomm.h ../common/random.h   ../common/strerr.h \
           ../common/datapack.h  ../common/md5.h   ../common/ppds.h  ../common/slogger.h
-LIBS = ../common/main.o  ../common/md5.o  ../common/random.o  ../common/sockets.o  ../common/strerr.o
+LIBS = ../common/main.o  ../common/md5.o  ../common/random.o  ../common/sockets.o  ../common/strerr.o\
+       ../common/ppcomm.o
 

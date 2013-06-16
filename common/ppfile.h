@@ -1,28 +1,24 @@
 #ifndef __PPFILE_H__
 #define __PPFILE_H__
 
+#include <sys/stat.h>
 
-typedef struct ppfile{
+typedef struct _attr{
   int mode;
-
-  char* path;
-
   int uid,gid;
   int atime,ctime,mtime;
-
   int link;
+  int size;
+} attr;
+
+typedef struct ppfile{
+  char* path;
+  attr s;
+
   int ref;
 
-  union{
-    struct {
-      linklist* files;
-    } dentry;
-
-    struct {
-      int size;
-    } regfile;
-  } s;
-
+  struct ppfile* next;
+  struct ppfile* child;
 } ppfile;
 
 #endif

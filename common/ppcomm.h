@@ -57,17 +57,17 @@
 #define MDTOMI_GETATTR 0x2001
 #define MITOMD_GETATTR 0x2002
 
-#define MDTOMI_ACCESS
-#define MITOMD_ACCESS
+#define MDTOMI_ACCESS 0x2003
+#define MITOMD_ACCESS 0x2004
 
-#define MDTOMI_OPENDIR
-#define MITOMD_OPENDIR
+#define MDTOMI_OPENDIR 0x2005
+#define MITOMD_OPENDIR 0x2006
 
-#define MDTOMI_READDIR
-#define MITOMD_READDIR
+#define MDTOMI_READDIR 0x2007
+#define MITOMD_READDIR 0x2008
 
-#define MDTOMI_MKDIR
-#define MITOMD_MKDIR
+#define MDTOMI_MKDIR 0x2009
+#define MITOMD_MKDIR 0x2010
 
 #define MDTOMI_RELEASEDIR
 #define MITOMD_RELEASEDIR
@@ -111,13 +111,20 @@
 #define CLTOCS_xxx
 #define CSTOCL_xxx
 
-typedef struct pppacket{
+#define HEADER_LEN 8
+
+typedef struct ppacket{
   int size;
   int cmd;
   char* buf;
 
   char* startptr;
-  int byteleft;
-} pppacket;
+  int bytesleft;
+
+  struct ppacket* next;
+} ppacket;
+
+ppacket* createpacket_s(int size,int cmd);
+ppacket* createpacket_r(int size,int cmd);
 
 #endif

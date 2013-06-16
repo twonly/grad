@@ -21,7 +21,7 @@
 #include <stdio.h>
 
 #include "random.h"
-#include "echo.h"
+#include "mis.h"
 
 /* Run Tab */
 typedef int (*runfn)(void);
@@ -30,7 +30,7 @@ struct {
 	char *name;
 } RunTab[]={
 	{rnd_init,"random generator"},
-  {echo_init,"echo server init"},
+  {mis_init,"mis init"},
 	{(runfn)0,"****"}
 },LateRunTab[]={
 	{(runfn)0,"****"}
