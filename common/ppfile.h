@@ -13,12 +13,17 @@ typedef struct _attr{
 
 typedef struct ppfile{
   char* path;
-  attr s;
+  char* name;
+  attr a;
 
   int ref;
 
   struct ppfile* next;
   struct ppfile* child;
 } ppfile;
+
+
+ppfile* new_file(char* path,attr a);
+void free_file(ppfile*);
 
 #endif

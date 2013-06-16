@@ -10,8 +10,8 @@
 #define CLTOMD_OPENDIR 0x1004
 #define MDTOCL_OPENDIR 0x1005
 
-#define CLTOMD_READDIR
-#define MDTOCL_READDIR
+#define CLTOMD_READDIR 0x1006
+#define MDTOCL_READDIR 0x1007
 
 #define CLTOMD_MKDIR
 #define MDTOCL_MKDIR
@@ -111,11 +111,15 @@
 #define CLTOCS_xxx
 #define CSTOCL_xxx
 
-#define HEADER_LEN 8
+#define HEADER_LEN 12
+
+#define MDS_PORT 8124
+#define MIS_PORT 8123
 
 typedef struct ppacket{
   int size;
   int cmd;
+  int id;
   char* buf;
 
   char* startptr;
@@ -124,7 +128,7 @@ typedef struct ppacket{
   struct ppacket* next;
 } ppacket;
 
-ppacket* createpacket_s(int size,int cmd);
-ppacket* createpacket_r(int size,int cmd);
+ppacket* createpacket_s(int size,int cmd,int id);
+ppacket* createpacket_r(int size,int cmd,int id);
 
 #endif

@@ -37,6 +37,7 @@ void sendpacket(int sockfd,ppacket* p){
   }
 
   printf("%d bytes sent\n",len);
+  printf("size=%d,cmd=%X,id=%d\n",p->size,p->cmd,p->id);
 }
 
 ppacket* receivepacket(int sockfd){
@@ -46,7 +47,7 @@ ppacket* receivepacket(int sockfd){
   int i,hleft;
   ppacket* p;
 
-  hleft = 8;
+  hleft = HEADER_LEN;
   startptr = headbuf;
   while(hleft){
     i = read(sockfd,startptr,hleft);
@@ -66,13 +67,14 @@ ppacket* receivepacket(int sockfd){
     startptr += i;
   }
 
-  int size,cmd;
+  int size,cmd,id;
   ptr = headbuf;
   size = get32bit(&ptr);
   cmd = get32bit(&ptr);
+  id = get32bit(&ptr);
 
-  printf("got packet:size=%d,cmd=%X\n",size,cmd);
-  p = createpacket_r(size,cmd);
+  printf("got packet:size=%d,cmd=%X,id=%d\n",size,cmd,id);
+  p = createpacket_r(size,cmd,id);
   
   while(p->bytesleft){
     i = read(sockfd,p->startptr,p->bytesleft);
@@ -117,21 +119,25 @@ void print_attr(const attr* a){
 
 int main(void){
   int sockfd = socket(AF_INET,SOCK_STREAM,0);
-  int i;
+  int i,ip;
   struct sockaddr_in servaddr;
   char path[100],cmd[100],buf[200];
 
   memset(&servaddr,0,sizeof(servaddr));
   servaddr.sin_family = AF_INET;
   inet_pton(AF_INET,"127.0.0.1",&servaddr.sin_addr);
-  servaddr.sin_port = htons(8123);
-  connect(sockfd,(struct sockaddr*)&servaddr,sizeof(servaddr));
+  inet_pton(AF_INET,"127.0.0.1",&ip);
+  servaddr.sin_port = htons(MDS_PORT);
+  if(connect(sockfd,(struct sockaddr*)&servaddr,sizeof(servaddr)) != 0){
+    perror("cannot connect to mds");
+    exit(1);
+  }
 
   printf(">>>");
   while(scanf("%s%s",cmd,path)!=EOF){
     if(!strcmp(cmd,"getattr")){
-      ppacket* p = createpacket_s(4+strlen(path),MDTOMI_GETATTR);
-      uint8_t* ptr = p->startptr + 8;
+      ppacket* p = createpacket_s(4+strlen(path),CLTOMD_GETATTR,ip);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
       put32bit(&ptr,strlen(path));
       memcpy(ptr,path,strlen(path));
       sendpacket(sockfd,p);
@@ -154,8 +160,8 @@ int main(void){
       }
     }
     if(!strcmp(cmd,"readdir")){
-      ppacket* p = createpacket_s(4+strlen(path),MDTOMI_READDIR);
-      uint8_t* ptr = p->startptr + 8;
+      ppacket* p = createpacket_s(4+strlen(path),CLTOMD_READDIR,ip);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
       put32bit(&ptr,strlen(path));
       memcpy(ptr,path,strlen(path));
       sendpacket(sockfd,p);

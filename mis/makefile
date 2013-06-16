@@ -1,7 +1,7 @@
 include ../make.defines
 
-mis: mis.c mis.h ${LIBS} ${HEADERS}
-	${CC} ${CFLAGS} $< ${LIBS} -o $@
+mis: mis.c mis.h mis_fs.c mis_fs.h ${LIBS} ${HEADERS}
+	${CC} ${CFLAGS} mis.c mis_fs.c ${LIBS} -o $@
 
 clean:
 	rm -rf ../common/*.o

@@ -211,6 +211,7 @@ int tcpnumconnect(int sock,uint32_t ip,uint16_t port) {
 	if (connect(sock,(struct sockaddr *)&sa,sizeof(struct sockaddr_in)) >= 0) {
 		return 0;
 	}
+
 	if (errno == EINPROGRESS) {
 		return 1;
 	}

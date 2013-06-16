@@ -1,10 +1,39 @@
 #include "mis.h"
 #include "datapack.h"
+#include "mis_fs.h"
 
 misserventry* misservhead = NULL;
 
 int lsock;
 int lsockpdescpos;
+
+ppfile* root;
+
+#define ROOT_DIR_FILES 4
+char* root_test[] = {"/a","/b","/c","/d"};
+
+void mis_fs_demo_init(void){
+  attr a;
+  int i;
+
+  a.uid = a.gid = 0;
+  a.atime = a.ctime = a.mtime = time(NULL);
+  a.link = 1;
+  a.size = 12345;
+
+  a.mode = 0777 | S_IFDIR;
+  root = new_file("/",a);
+  add_file(root);
+  
+  for(i=0;i<ROOT_DIR_FILES;i++){
+    a.mode = 0777 | S_IFREG;
+    ppfile* f = new_file(root_test[i],a);
+    add_file(f);
+
+    f->next = root->child;
+    root->child = f;
+  }
+}
 
 int mis_init(void){
   lsock = tcpsocket();
@@ -26,10 +55,12 @@ int mis_init(void){
 		return -1;
 	}
   
-  fprintf(stderr,"listening on port 8080\n");
+  fprintf(stderr,"listening on port 8123\n");
 
 	main_destructregister(mis_term);
 	main_pollregister(mis_desc,mis_serve);
+
+  mis_fs_demo_init();
 
   return 0;
 }
@@ -58,8 +89,10 @@ void mis_serve(struct pollfd *pdesc) {
 
       eptr->inpacket = NULL;
       eptr->outpacket = NULL;
-      eptr->bytesleft = 8;
+      eptr->bytesleft = HEADER_LEN;
       eptr->startptr = eptr->headbuf;
+
+      fprintf(stderr,"mds(ip:%u.%u.%u.%u) connected\n",(eptr->peerip>>24)&0xFF,(eptr->peerip>>16)&0xFF,(eptr->peerip>>8)&0xFF,eptr->peerip&0xFF);
 		}
 	}
 
@@ -122,7 +155,7 @@ void mis_desc(struct pollfd *pdesc,uint32_t *ndesc) {
 void mis_term(void) {
 	misserventry *eptr,*eptrn;
 
-	fprintf(stderr,"main master server module: closing %s:%s\n","*","8080");
+	fprintf(stderr,"main master server module: closing %s:%s\n","*","8123");
 	tcpclose(lsock);
 
 	for (eptr = misservhead ; eptr ; eptr = eptrn) {
@@ -146,7 +179,7 @@ void mis_term(void) {
 
 void mis_read(misserventry *eptr) {
 	int i;
-  int size,cmd;
+  int size,cmd,id;
 
 	while(1){
     if(eptr->mode == HEADER){
@@ -179,9 +212,10 @@ void mis_read(misserventry *eptr) {
       const uint8_t *pptr = eptr->headbuf;
       size = get32bit(&pptr);
       cmd = get32bit(&pptr);
-      fprintf(stderr,"got packet header,size=%d,cmd=%X\n",size,cmd);
+      id = get32bit(&pptr);
+      fprintf(stderr,"got packet header,size=%d,cmd=%X,id=%d\n",size,cmd,id);
 
-      ppacket* inp = createpacket_r(size,cmd);
+      ppacket* inp = createpacket_r(size,cmd,id);
       inp->next = eptr->inpacket;
       eptr->inpacket = inp;
 
@@ -206,7 +240,7 @@ void mis_read(misserventry *eptr) {
       if(eptr->inpacket == NULL){
         eptr->mode = HEADER;
         eptr->startptr = eptr->headbuf;
-        eptr->bytesleft = 8;
+        eptr->bytesleft = HEADER_LEN;
       }
 
       return;
@@ -217,8 +251,6 @@ void mis_read(misserventry *eptr) {
 
 void mis_write(misserventry *eptr) {
 	int32_t i;
-
-  fprintf(stderr,"holy crap\n");
 
   while(eptr->outpacket){
 		i=write(eptr->sock,eptr->outpacket->startptr,eptr->outpacket->bytesleft);
@@ -246,7 +278,7 @@ void mis_write(misserventry *eptr) {
 }
 
 void mis_gotpacket(misserventry* eptr,ppacket* p){
-  fprintf(stderr,"dispatching packet ,size:%d,cmd:%d\n",p->size,p->cmd);
+  fprintf(stderr,"dispatching packet ,size:%d,cmd:%X\n",p->size,p->cmd);
   switch(p->cmd){
     case MDTOMI_GETATTR:
       mis_getattr(eptr,p);
@@ -257,10 +289,9 @@ void mis_gotpacket(misserventry* eptr,ppacket* p){
   }
 }
 
-#define ROOT_DIR_FILES 4
-char* root_test[] = {"a","b","c","d"};
-
 void mis_getattr(misserventry* eptr,ppacket* inp){
+  fprintf(stderr,"+mis_getattr\n");
+
   char* path;
   int len;
   int i;
@@ -277,42 +308,17 @@ void mis_getattr(misserventry* eptr,ppacket* inp){
 
   printf("path=%s\n",path);
 
-  attr s;
-  s.uid = s.gid = 0;
-  s.atime = s.ctime = s.mtime = time(NULL);
-  s.link = 1;
-  s.size = 12345;
-
-  //just for test
-  if(!strcmp(path,"/")){
-    p = createpacket_s(4+sizeof(attr),MITOMD_GETATTR);
-    uint8_t* ptr = p->startptr + 8;
-
-    put32bit(&ptr,0);//status
-
-    s.mode = 0777 | S_IFDIR;
-    memcpy(ptr,&s,sizeof(attr)); //directory attr
+  ppfile* f = lookup_file(path);
+  if(f == NULL){
+    p = createpacket_s(4,MITOMD_GETATTR,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,-ENOENT);
   } else {
-    for(i=0;i<ROOT_DIR_FILES;i++){
-      if(!strcmp(path+1,root_test[i])){
-        p = createpacket_s(4+sizeof(attr),MITOMD_GETATTR);
-        uint8_t *ptr = p->startptr + 8;
-
-        put32bit(&ptr,0); //status
-        s.mode = 0777 | S_IFREG;
-        memcpy(ptr,&s,sizeof(attr));
-        break;
-      }
-    }
-
-    if(i == 4){ //unknown file
-      p = createpacket_s(4,MITOMD_GETATTR);
-      uint8_t *ptr = p->startptr + 8;
-
-      put32bit(&ptr,-ENOENT);
-    }
+    p = createpacket_s(4+sizeof(attr),MITOMD_GETATTR,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,0);
+    memcpy(ptr,&f->a,sizeof(attr));
   }
-
 
   p->next = eptr->outpacket;
   eptr->outpacket = p;
@@ -335,43 +341,38 @@ void mis_readdir(misserventry* eptr,ppacket* inp){
 
   printf("path=%s\n",path);
 
-  if(!strcmp(path,"/")){
-    int totsize = 8;
-
-    for(i=0;i<ROOT_DIR_FILES;i++){
-      totsize += 4;
-      totsize += strlen(root_test[i]);
-    }
-
-    fprintf(stderr,"readdir send total size:%d\n",totsize);
-
-    p = createpacket_s(totsize,MITOMD_READDIR);
-    uint8_t *ptr = p->startptr + 8;
-    put32bit(&ptr,0); //status
-
-    put32bit(&ptr,ROOT_DIR_FILES); //number of files
-
-    for(i=0;i<ROOT_DIR_FILES;i++){
-      put32bit(&ptr,strlen(root_test[i]));
-      memcpy(ptr,root_test[i],strlen(root_test[i]));
-      ptr += strlen(root_test[i]);
-    }
+  ppfile* f = lookup_file(path);
+  if(f == NULL){
+    p = createpacket_s(4,MITOMD_READDIR,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,-ENOENT);
   } else {
-    for(i=0;i<ROOT_DIR_FILES;i++){
-      if(!strcmp(path+1,root_test[i])){
-        p = createpacket_s(4,MITOMD_READDIR);
-        uint8_t *ptr = p->startptr+8;
+    if(S_ISDIR(f->a.mode)){
+      ppfile* cf;
+      int totsize = 8;
+      int nfiles = 0;
 
-        put32bit(&ptr,-ENOTDIR);
-        break;
+      for(cf = f->child;cf;cf = cf->next){
+        totsize += 4 + strlen(cf->name);
+        nfiles++;
       }
-    }
 
-    if(i == 4){ //unknown file
-      p = createpacket_s(4,MITOMD_GETATTR);
-      uint8_t *ptr = p->startptr + 8;
+      p = createpacket_s(totsize,MITOMD_READDIR,inp->id);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
+      put32bit(&ptr,0);
+      put32bit(&ptr,nfiles);
 
-      put32bit(&ptr,-ENOENT);
+      for(cf = f->child;cf;cf = cf->next){
+        int len = strlen(cf->name);
+
+        put32bit(&ptr,len);
+        memcpy(ptr,cf->name,len);
+        ptr += len;
+      }
+    } else {
+      p = createpacket_s(4,MITOMD_READDIR,inp->id);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
+      put32bit(&ptr,-ENOTDIR);
     }
   }
 
