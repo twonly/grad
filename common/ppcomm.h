@@ -13,44 +13,44 @@
 #define CLTOMD_READDIR 0x1006
 #define MDTOCL_READDIR 0x1007
 
-#define CLTOMD_MKDIR
-#define MDTOCL_MKDIR
+#define CLTOMD_MKDIR 0x1008
+#define MDTOCL_MKDIR 0x1009
 
-#define CLTOMD_RELEASEDIR
-#define MDTOCL_RELEASEDIR
+#define CLTOMD_RELEASEDIR 0x100A
+#define MDTOCL_RELEASEDIR 0x100B
 
-#define CLTOMD_RMDIR
-#define MDTOCL_RMDIR
+#define CLTOMD_RMDIR 0x100C
+#define MDTOCL_RMDIR 0x100D
 
-//#define CLTOMD_CREATE
-//#define MDTOCL_CREATE
+#define CLTOMD_CREATE 0x100E
+#define MDTOCL_CREATE 0x100F
 
-//#define CLTOMD_OPEN
-//#define MDTOCL_OPEN
+#define CLTOMD_OPEN 0x1010
+#define MDTOCL_OPEN 0x1011
 
-//#define CLTOMD_READ
-//#define MDTOCL_READ
+#define CLTOMD_READ 0x1012
+#define MDTOCL_READ 0x1013
 
-//#define CLTOMD_WRITE
-//#define MDTOCL_WRITE
+#define CLTOMD_WRITE 0x1014
+#define MDTOCL_WRITE 0x1015
 
-//#define CLTOMD_RELEASE
-//#define MDTOCL_RELEASE
+#define CLTOMD_RELEASE 0x1016
+#define MDTOCL_RELEASE 0x1017
 
-#define CLTOMD_RENAME
-#define MDTOCL_RENAME
+#define CLTOMD_RENAME 0x1018
+#define MDTOCL_RENAME 0x1019
 
-#define CLTOMD_CHMOD
-#define MDTOCL_CHMOD
+#define CLTOMD_CHMOD 0x101A
+#define MDTOCL_CHMOD 0x101B
 
-#define CLTOMD_CHOWN
-#define MDTOCL_CHOWN
+#define CLTOMD_CHOWN 0x101C
+#define MDTOCL_CHOWN 0x101D
 
-#define CLTOMD_CHGRP
-#define MDTOCL_CHGRP
+#define CLTOMD_CHGRP 0x101E
+#define MDTOCL_CHGRP 0x101F
 
-#define CLTOMD_UNLINK
-#define MDTOCL_UNLINK
+#define CLTOMD_UNLINK 0x1020
+#define MDTOCL_UNLINK 0x1021
 
 //======================================================================================
 
@@ -67,37 +67,37 @@
 #define MITOMD_READDIR 0x2008
 
 #define MDTOMI_MKDIR 0x2009
-#define MITOMD_MKDIR 0x2010
+#define MITOMD_MKDIR 0x200A
 
-#define MDTOMI_RELEASEDIR
-#define MITOMD_RELEASEDIR
+#define MDTOMI_RELEASEDIR 0x200B
+#define MITOMD_RELEASEDIR 0x200C
 
-#define MDTOMI_RMDIR
-#define MITOMD_RMDIR
+#define MDTOMI_RMDIR 0x200D
+#define MITOMD_RMDIR 0x200E
 
-//#define MDTOMI_CREATE
-//#define MITOMD_CREATE
+#define MDTOMI_CREATE 0x200F
+#define MITOMD_CREATE 0x2010
 
-//#define MDTOMI_OPEN
-//#define MITOMD_OPEN
+#define MDTOMI_OPEN 0x2011
+#define MITOMD_OPEN 0x2012
 
-//#define MDTOMI_RELEASE
-//#define MITOMD_RELEASE
+#define MDTOMI_RELEASE 0x2013
+#define MITOMD_RELEASE 0x2014
 
-#define MDTOMI_RENAME
-#define MITOMD_RENAME
+#define MDTOMI_RENAME 0x2015
+#define MITOMD_RENAME 0x2016
 
-#define MDTOMI_CHMOD
-#define MITOMD_CHMOD
+#define MDTOMI_CHMOD 0x2017
+#define MITOMD_CHMOD 0x2018
 
-#define MDTOMI_CHOWN
-#define MITOMD_CHOWN
+#define MDTOMI_CHOWN 0x2019
+#define MITOMD_CHOWN 0x2020
 
-#define MDTOMI_CHGRP
-#define MITOMD_CHGRP
+#define MDTOMI_CHGRP 0x2021
+#define MITOMD_CHGRP 0x2022
 
-#define MDTOMI_UNLINK
-#define MITOMD_UNLINK
+#define MDTOMI_UNLINK 0x2023
+#define MITOMD_UNLINK 0x2024
 
 //===============================================================
 
@@ -105,11 +105,38 @@
 
 //===============================================================
 
-#define MDTOCS_xxx
-#define CSTOMD_xxx
+#define CSTOMD_REGISTER 0x3000
 
-#define CLTOCS_xxx
-#define CSTOCL_xxx
+#define MDTOCS_CREATE 0x3001
+#define CSTOMD_CREATE 0x3002
+
+#define MDTOCS_DELETE 0x3003
+#define CSTOMD_DELETE 0x3004
+
+#define MDTOCS_CHUNKOP 0x3005
+#define CSTOMD_CHUNKOP 0x3006
+
+//===============================================================
+
+#define CLTOCS_READ 0x4001
+#define CSTOCL_READ 0x4002
+
+#define CLTOCS_READ_STATUS 0x4003
+#define CSTOCL_READ_STATUS 0x4004
+
+#define CLTOCS_WRITE 0x4005
+#define CSTOCL_WRITE 0x4006
+
+//not needed for now...
+#define CLTOCS_WRITE_DONE 0x4007
+#define CSTOCL_WRITE_DONE 0x4008
+
+//=================================================================
+
+//for synchronization in the case of replication, not supported yet
+
+#define CSTOCS_GET_CHUNK_BLOCKS 0x4009
+#define CSTOCS_GET_CHUNK_STATUS 0x4010
 
 #define HEADER_LEN 12
 
