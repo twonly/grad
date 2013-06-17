@@ -9,9 +9,6 @@ int lsockpdescpos;
 
 ppfile* root;
 
-#define ROOT_DIR_FILES 4
-char* root_test[] = {"/a","/b","/c","/d"};
-
 void mis_fs_demo_init(void){
   attr a;
   int i;
@@ -19,20 +16,11 @@ void mis_fs_demo_init(void){
   a.uid = a.gid = 0;
   a.atime = a.ctime = a.mtime = time(NULL);
   a.link = 1;
-  a.size = 12345;
+  a.size = 1;
 
   a.mode = 0777 | S_IFDIR;
   root = new_file("/",a);
   add_file(root);
-  
-  for(i=0;i<ROOT_DIR_FILES;i++){
-    a.mode = 0777 | S_IFREG;
-    ppfile* f = new_file(root_test[i],a);
-    add_file(f);
-
-    f->next = root->child;
-    root->child = f;
-  }
 }
 
 int mis_init(void){
@@ -50,12 +38,12 @@ int mis_init(void){
 	if (tcpsetacceptfilter(lsock)<0 && errno!=ENOTSUP) {
 		mfs_errlog_silent(LOG_NOTICE,"main master server module: can't set accept filter");
 	}
-	if (tcpstrlisten(lsock,"*","8123",100)<0) {
+	if (tcpstrlisten(lsock,"*",MIS_PORT_STR,100)<0) {
 		mfs_errlog(LOG_ERR,"main master server module: can't listen on socket");
 		return -1;
 	}
   
-  fprintf(stderr,"listening on port 8123\n");
+  fprintf(stderr,"listening on port %s\n",MIS_PORT_STR);
 
 	main_destructregister(mis_term);
 	main_pollregister(mis_desc,mis_serve);
@@ -155,7 +143,7 @@ void mis_desc(struct pollfd *pdesc,uint32_t *ndesc) {
 void mis_term(void) {
 	misserventry *eptr,*eptrn;
 
-	fprintf(stderr,"main master server module: closing %s:%s\n","*","8123");
+	fprintf(stderr,"main master server module: closing %s:%s\n","*",MIS_PORT_STR);
 	tcpclose(lsock);
 
 	for (eptr = misservhead ; eptr ; eptr = eptrn) {
@@ -286,7 +274,30 @@ void mis_gotpacket(misserventry* eptr,ppacket* p){
     case MDTOMI_READDIR:
       mis_readdir(eptr,p);
       break;
+    case MDTOMI_CREATE:
+      mis_create(eptr,p);
+      break;
+    case MDTOMI_ACCESS:
+      mis_access(eptr,p);
+      break;
+    case MDTOMI_OPEN:
+      mis_open(eptr,p);
+      break;
+    case MDTOMI_UPDATE_ATTR:
+      mis_update_attr(eptr,p);
+      break;
+    case MDTOMI_CHMOD:
+      mis_chmod(eptr,p);
+      break;
+    case MDTOMI_CHGRP:
+      mis_chgrp(eptr,p);
+      break;
+    case MDTOMI_CHOWN:
+      mis_chown(eptr,p);
+      break;
   }
+
+  fprintf(stderr,"\n\n");
 }
 
 void mis_getattr(misserventry* eptr,ppacket* inp){
@@ -320,6 +331,7 @@ void mis_getattr(misserventry* eptr,ppacket* inp){
     memcpy(ptr,&f->a,sizeof(attr));
   }
 
+  free(path);
   p->next = eptr->outpacket;
   eptr->outpacket = p;
 }
@@ -376,6 +388,366 @@ void mis_readdir(misserventry* eptr,ppacket* inp){
     }
   }
 
+  free(path);
   p->next = eptr->outpacket;
   eptr->outpacket = p;
 }
+
+void mis_create(misserventry* eptr,ppacket* inp){
+  fprintf(stderr,"+mis_create\n");
+
+  ppacket* p;
+  char* path;
+  int len;
+  const uint8_t* inptr;
+  int i;
+
+  inptr = inp->startptr;
+  len = get32bit(&inptr);
+  printf("plen=%d\n",len);
+
+  path = (char*)malloc((len+10)*sizeof(char));
+  memcpy(path,inptr,len*sizeof(char));
+  path[len] = 0;
+
+  printf("path=%s\n",path);
+
+  ppfile* f = lookup_file(path);
+  if(f){
+    fprintf(stderr,"file exists\n");
+
+    p = createpacket_s(4,MITOMD_CREATE,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,-EEXIST);
+
+    goto end;
+  } else {
+    char* dir;
+    if(len > 1){
+      dir = &path[len-1];
+      while(dir >= path && *dir != '/') dir--;
+
+      int dirlen = dir - path+1;
+      dir = strdup(path);
+      dir[dirlen] = 0;
+    } else {
+      dir = strdup("/");
+    }
+
+
+    printf("dir=%s\n",dir);
+    f = lookup_file(dir);
+    if(!f){
+      p = createpacket_s(4,MITOMD_CREATE,inp->id);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
+      put32bit(&ptr,-ENOENT);
+      
+      free(dir);
+      goto end;
+    } else {
+      if(!S_ISDIR(f->a.mode)){
+        p = createpacket_s(4,MITOMD_CREATE,inp->id);
+        uint8_t* ptr = p->startptr + HEADER_LEN;
+        put32bit(&ptr,-ENOTDIR);
+
+        free(dir);
+        goto end;
+      }
+    }
+
+    attr a;
+
+    a.uid = a.gid = 0;
+    a.atime = a.ctime = a.mtime = time(NULL);
+    a.link = 1;
+    a.size = 0;
+
+    a.mode = 0777 | S_IFREG;
+
+    ppfile* nf = new_file(path,a);
+    add_file(nf);
+    nf->next = f->child;
+    f->child = nf;
+
+    nf->srcip = eptr->peerip;
+
+    p = createpacket_s(4,MITOMD_CREATE,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,0);
+
+    free(dir);
+  }
+
+end:
+  free(path);
+  p->next = eptr->outpacket;
+  eptr->outpacket = p;
+}
+
+//need to add access control
+void mis_access(misserventry* eptr,ppacket* inp){
+  ppacket* p;
+  char* path;
+  int len;
+  const uint8_t* inptr;
+  int i;
+
+  inptr = inp->startptr;
+  len = get32bit(&inptr);
+  printf("plen=%d\n",len);
+
+  path = (char*)malloc((len+10)*sizeof(char));
+  memcpy(path,inptr,len*sizeof(char));
+  path[len] = 0;
+
+  printf("path=%s\n",path);
+
+  ppfile* f = lookup_file(path);
+  if(!f){
+    p = createpacket_s(4,MITOMD_ACCESS,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,-ENOENT);
+  } else {
+    p = createpacket_s(4,MITOMD_ACCESS,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,0);
+  }
+
+end:
+  free(path);
+  p->next = eptr->outpacket;
+  eptr->outpacket = p;
+}
+
+//need to add access control
+void mis_open(misserventry* eptr,ppacket* inp){
+  ppacket* p;
+  char* path;
+  int len;
+  const uint8_t* inptr;
+  int i;
+
+  inptr = inp->startptr;
+  len = get32bit(&inptr);
+  printf("plen=%d\n",len);
+
+  path = (char*)malloc((len+10)*sizeof(char));
+  memcpy(path,inptr,len*sizeof(char));
+  path[len] = 0;
+
+  printf("path=%s\n",path);
+
+  ppfile* f = lookup_file(path);
+  if(!f){
+    p = createpacket_s(4,MITOMD_OPEN,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,-ENOENT);
+  } else {
+    p = createpacket_s(4,MITOMD_OPEN,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,0);
+  }
+
+end:
+  free(path);
+  p->next = eptr->outpacket;
+  eptr->outpacket = p;
+}
+
+void mis_update_attr(misserventry* eptr,ppacket* inp){ //no need to send back
+  fprintf(stderr,"+mis_update_attr\n");
+
+  ppacket* p;
+  char* path;
+  int len;
+  const uint8_t* inptr;
+  int i;
+
+  inptr = inp->startptr;
+  len = get32bit(&inptr);
+  printf("plen=%d\n",len);
+
+  path = (char*)malloc((len+10)*sizeof(char));
+  memcpy(path,inptr,len*sizeof(char));
+  inptr += len;
+  path[len] = 0;
+
+  printf("path=%s\n",path);
+
+  ppfile* f = lookup_file(path);
+  if(f){
+    attr a;
+    memcpy(&a,inptr,sizeof(attr));
+    f->a = a;
+  }
+
+  free(path);
+}
+
+misserventry* mis_entry_from_ip(int ip){ //maybe add a hash?
+  misserventry* eptr = misservhead;
+  while(eptr){
+    if(eptr->peerip == htonl(ip))
+      return eptr;
+
+    eptr = eptr->next;
+  }
+
+  return eptr;
+}
+
+//need to add access control
+void mis_chmod(misserventry* eptr,ppacket* inp){
+  ppacket* p;
+  char* path;
+  int len;
+  const uint8_t* inptr;
+  int i;
+
+  inptr = inp->startptr;
+  len = get32bit(&inptr);
+  printf("plen=%d\n",len);
+
+  path = (char*)malloc((len+10)*sizeof(char));
+  memcpy(path,inptr,len*sizeof(char));
+  inptr += len;
+  path[len] = 0;
+
+  printf("path=%s\n",path);
+
+  ppfile* f = lookup_file(path);
+  if(!f){
+    p = createpacket_s(4,MITOMD_CHMOD,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,-ENOENT);
+  } else {
+    int perm = get32bit(&inptr);
+    f->a.mode ^= (perm & 0777);
+
+    fprintf(stderr,"perm=%o\n",perm);
+
+    p = createpacket_s(4,MITOMD_CHMOD,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,0);
+
+    if(f->srcip != eptr->peerip){//update mds info
+      misserventry* ceptr = mis_entry_from_ip(f->srcip);
+
+      if(eptr){
+        ppacket* outp = createpacket_s(inp->size,CLTOMD_CHMOD,inp->id);
+        memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
+
+        outp->next = ceptr->outpacket;
+        ceptr->outpacket = outp;
+      }
+    }
+  }
+
+end:
+  free(path);
+  p->next = eptr->outpacket;
+  eptr->outpacket = p;
+}
+
+//need to add access control
+void mis_chgrp(misserventry* eptr,ppacket* inp){
+  ppacket* p;
+  char* path;
+  int len;
+  const uint8_t* inptr;
+  int i;
+
+  inptr = inp->startptr;
+  len = get32bit(&inptr);
+  printf("plen=%d\n",len);
+
+  path = (char*)malloc((len+10)*sizeof(char));
+  memcpy(path,inptr,len*sizeof(char));
+  inptr += len;
+  path[len] = 0;
+
+  printf("path=%s\n",path);
+
+  ppfile* f = lookup_file(path);
+  if(!f){
+    p = createpacket_s(4,MITOMD_CHMOD,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,-ENOENT);
+  } else {
+    int gid = get32bit(&inptr);
+    f->a.gid = gid;
+
+    p = createpacket_s(4,MITOMD_CHMOD,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,0);
+
+    if(f->srcip != eptr->peerip){//update mds info
+      misserventry* ceptr = mis_entry_from_ip(f->srcip);
+
+      if(eptr){
+        ppacket* outp = createpacket_s(inp->size,CLTOMD_CHMOD,inp->id);
+        memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
+
+        outp->next = ceptr->outpacket;
+        ceptr->outpacket = outp;
+      }
+    }
+  }
+
+end:
+  free(path);
+  p->next = eptr->outpacket;
+  eptr->outpacket = p;
+}
+
+//need to add access control
+void mis_chown(misserventry* eptr,ppacket* inp){
+  ppacket* p;
+  char* path;
+  int len;
+  const uint8_t* inptr;
+  int i;
+
+  inptr = inp->startptr;
+  len = get32bit(&inptr);
+  printf("plen=%d\n",len);
+
+  path = (char*)malloc((len+10)*sizeof(char));
+  memcpy(path,inptr,len*sizeof(char));
+  inptr += len;
+  path[len] = 0;
+
+  printf("path=%s\n",path);
+
+  ppfile* f = lookup_file(path);
+  if(!f){
+    p = createpacket_s(4,MITOMD_CHMOD,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,-ENOENT);
+  } else {
+    int uid = get32bit(&inptr);
+    f->a.uid = uid;
+
+    p = createpacket_s(4,MITOMD_CHMOD,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,0);
+
+    if(f->srcip != eptr->peerip){//update mds info
+      misserventry* ceptr = mis_entry_from_ip(f->srcip);
+
+      if(eptr){
+        ppacket* outp = createpacket_s(inp->size,CLTOMD_CHMOD,inp->id);
+        memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
+
+        outp->next = ceptr->outpacket;
+        ceptr->outpacket = outp;
+      }
+    }
+  }
+
+end:
+  free(path);
+  p->next = eptr->outpacket;
+  eptr->outpacket = p;
+}
+

@@ -117,6 +117,44 @@ void print_attr(const attr* a){
   printf("\tsize=%d\n",a->size);
 }
 
+static void send_and_receive(int sockfd,int ip,char* path,int cmd){
+  ppacket* p = createpacket_s(4+strlen(path),cmd,ip);
+  uint8_t* ptr = p->startptr + HEADER_LEN;
+  put32bit(&ptr,strlen(path));
+  memcpy(ptr,path,strlen(path));
+  sendpacket(sockfd,p);
+  free(p);
+
+  p = receivepacket(sockfd);
+
+  const uint8_t* ptr2 = p->startptr;
+  int status = get32bit(&ptr2);
+  printf("status:%d\n",status);
+
+  free(p);
+}
+
+static void chxxx(int sockfd,int ip,char* path,int cmd,int opt){
+  int len = strlen(path);
+  ppacket* p = createpacket_s(8+strlen(path),cmd,ip);
+  uint8_t* ptr = p->startptr + HEADER_LEN;
+  put32bit(&ptr,len);
+  memcpy(ptr,path,len);
+  ptr += len;
+  put32bit(&ptr,opt);
+
+  sendpacket(sockfd,p);
+  free(p);
+
+  p = receivepacket(sockfd);
+
+  const uint8_t* ptr2 = p->startptr;
+  int status = get32bit(&ptr2);
+  printf("status:%d\n",status);
+
+  free(p);
+}
+
 int main(void){
   int sockfd = socket(AF_INET,SOCK_STREAM,0);
   int i,ip;
@@ -158,6 +196,8 @@ int main(void){
           printf("\tENOTDIR\n");
         }
       }
+
+      free(p);
     }
     if(!strcmp(cmd,"readdir")){
       ppacket* p = createpacket_s(4+strlen(path),CLTOMD_READDIR,ip);
@@ -191,6 +231,33 @@ int main(void){
           printf("\tENOTDIR\n");
         }
       }
+
+      free(p);
+    }
+    if(!strcmp(cmd,"chmod")){
+      int perm;
+      char perms[10];
+      scanf("%s",perms);
+      perm = (perms[0]-'0')*64 + (perms[1]-'0')*8 + (perms[2]-'0');
+
+      printf("chmod %s %o\n",path,perm);
+      chxxx(sockfd,ip,path,CLTOMD_CHMOD,perm);
+    }
+    if(!strcmp(cmd,"chgrp")){
+      int gid;
+      scanf("%d",&gid);
+      chxxx(sockfd,ip,path,CLTOMD_CHGRP,gid);
+    }
+    if(!strcmp(cmd,"chown")){
+      int uid;
+      scanf("%d",&uid);
+      chxxx(sockfd,ip,path,CLTOMD_CHOWN,uid);
+    }
+    if(!strcmp(cmd,"create")){
+      send_and_receive(sockfd,ip,path,CLTOMD_CREATE);
+    }
+    if(!strcmp(cmd,"open")){
+      send_and_receive(sockfd,ip,path,CLTOMD_OPEN);
     }
 
     printf(">>>");

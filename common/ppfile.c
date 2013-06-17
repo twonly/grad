@@ -14,6 +14,7 @@ char* getbasename(char* path){
 ppfile* new_file(char* path,attr a){
   ppfile* ret = (ppfile*)malloc(sizeof(ppfile));
   ret->path = strdup(path);
+  ret->srcip = 0;
 
   if(!strcmp(path,"/")){
     ret->name = ret->path;

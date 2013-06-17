@@ -11,26 +11,6 @@ mdsserventry* mdtomi = NULL;
 
 char* mishostip = "127.0.0.1";
 
-#define MDS_FILES 2
-char* mds_test[] = {"/a","/b"};
-
-void mds_fs_demo_init(void){
-  attr a;
-  int i;
-  ppfile* f;
-
-  a.uid = a.gid = 0;
-  a.atime = a.ctime = a.mtime = time(NULL);
-  a.link = 1;
-  a.size = 12345;
-  a.mode = 0777 | S_IFDIR;
-
-  for(i=0;i<MDS_FILES;i++){
-    ppfile* f = new_file(mds_test[i],a);
-    add_file(f);
-  }
-}
-
 int mds_init(void){
   int misip,misport;
   int msock;
@@ -50,12 +30,12 @@ int mds_init(void){
 		mfs_errlog_silent(LOG_NOTICE,"mds: can't set accept filter");
 	}
 
-	if (tcpstrlisten(lsock,"*","8124",100)<0) {
+	if (tcpstrlisten(lsock,"*",MDS_PORT_STR,100)<0) {
 		mfs_errlog(LOG_ERR,"mds: can't listen on socket");
 		return -1;
 	}
   
-  fprintf(stderr,"listening on port 8124\n");
+  fprintf(stderr,"listening on port %s\n",MDS_PORT_STR);
 
   inet_pton(AF_INET,mishostip,&misip);
   misip = htonl(misip);
@@ -92,8 +72,6 @@ int mds_init(void){
 	main_destructregister(mds_term);
   main_destructregister(term_fs);
 	main_pollregister(mds_desc,mds_serve);
-
-  mds_fs_demo_init();
 
   return 0;
 }
@@ -234,7 +212,7 @@ void mds_desc(struct pollfd *pdesc,uint32_t *ndesc) {
 void mds_term(void) {
 	mdsserventry *eptr,*eptrn;
 
-	fprintf(stderr,"mds: closing %s:%s\n","*","8124");
+	fprintf(stderr,"mds: closing %s:%s\n","*",MDS_PORT_STR);
 	tcpclose(lsock);
   tcpclose(mdtomi->sock);
 
@@ -311,7 +289,9 @@ void mds_read(mdsserventry *eptr) {
       const uint8_t *pptr = eptr->headbuf;
       size = get32bit(&pptr);
       cmd = get32bit(&pptr);
-      id = get32bit(&pptr);
+      id = eptr->peerip;
+
+      get32bit(&pptr); //discarded
 
       ppacket* inp = createpacket_r(size,cmd,id);
       inp->next = eptr->inpacket;
@@ -319,7 +299,7 @@ void mds_read(mdsserventry *eptr) {
 
       eptr->mode = DATA;
 
-      fprintf(stderr,"got packet header,size=%d,cmd=%X,id=%d,bytesleft=%d\n",size,cmd,id,inp->bytesleft);
+      fprintf(stderr,"got packet header,size=%d,cmd=%X,id=(%u.%u.%u.%u),bytesleft=%d\n",size,cmd,(id>>24)&0xFF,(id>>16)&0xFF,(id>>8)&0xFF,id&0xFF,inp->bytesleft);
       continue;
     } else {
       eptr->inpacket->bytesleft -= i;
@@ -393,13 +373,47 @@ void mds_gotpacket(mdsserventry* eptr,ppacket* p){
     case CLTOMD_READDIR:
       mds_readdir(eptr,p);
       break;
+
+    case CLTOMD_CHMOD:
+      mds_chmod(eptr,p);
+      break;
+    case MITOMD_CHMOD:
+      mds_cl_chmod(eptr,p);
+      break;
+    case CLTOMD_CHOWN:
+      mds_chown(eptr,p);
+      break;
+    case MITOMD_CHOWN:
+      mds_cl_chown(eptr,p);
+      break;
+    case CLTOMD_CHGRP:
+      mds_chgrp(eptr,p);
+      break;
+    case MITOMD_CHGRP:
+      mds_cl_chgrp(eptr,p);
+      break;
+
+    case CLTOMD_CREATE:
+      mds_create(eptr,p);
+      break;
+    case MITOMD_CREATE:
+      mds_cl_create(eptr,p);
+      break;
+    case CLTOMD_OPEN:
+      mds_open(eptr,p);
+      break;
+    case MITOMD_OPEN:
+      mds_cl_open(eptr,p);
+      break;
   }
+
+  fprintf(stderr,"\n\n");
 }
 
 mdsserventry* mds_entry_from_id(int id){ //maybe add a hash?
   mdsserventry* eptr = mdsservhead;
   while(eptr){
-    if(eptr->peerip == htonl(id))
+    if(eptr->peerip == id)
       return eptr;
 
     eptr = eptr->next;
@@ -408,6 +422,43 @@ mdsserventry* mds_entry_from_id(int id){ //maybe add a hash?
   return eptr;
 }
 
+static void mds_direct_pass_cl(mdsserventry* eptr,ppacket* p,int cmd){
+  mdsserventry* ceptr = mds_entry_from_id(p->id);
+
+  if(ceptr){
+    ppacket* outp = createpacket_s(p->size,cmd,p->id);
+    memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
+
+    outp->next = ceptr->outpacket;
+    ceptr->outpacket = outp;
+  }
+}
+
+static void mds_direct_pass_mi(ppacket* p,int cmd){
+  const uint8_t* ptr = p->startptr;
+
+  ppacket* outp = createpacket_s(p->size,cmd,p->id);
+  memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
+
+  outp->next = mdtomi->outpacket;
+  mdtomi->outpacket = outp;
+}
+
+static void mds_update_attr(ppacket* p,ppfile* f){
+  int plen = strlen(f->path);
+  ppacket* outp = createpacket_s(4+plen+sizeof(attr),MDTOMI_UPDATE_ATTR,p->id);
+  uint8_t* ptr2 = outp->startptr + HEADER_LEN;
+
+  put32bit(&ptr2,plen);
+
+  memcpy(ptr2,f->path,plen);
+  ptr2 += plen;
+
+  memcpy(ptr2,&f->a,sizeof(attr));
+
+  outp->next = mdtomi->outpacket;
+  mdtomi->outpacket = outp;
+}
 
 void mds_getattr(mdsserventry* eptr,ppacket* p){
   int plen;
@@ -437,18 +488,12 @@ void mds_getattr(mdsserventry* eptr,ppacket* p){
     outp->next = eptr->outpacket;
     eptr->outpacket = outp;
   }
+
+  free(path);
 }
 
 void mds_cl_getattr(mdsserventry* eptr,ppacket* p){
-  mdsserventry* ceptr = mds_entry_from_id(p->id);
-
-  if(ceptr){
-    ppacket* outp = createpacket_s(p->size,MDTOCL_GETATTR,p->id);
-    memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
-
-    outp->next = ceptr->outpacket;
-    ceptr->outpacket = outp;
-  }
+  mds_direct_pass_cl(eptr,p,MDTOCL_GETATTR);
 }
 
 void mds_readdir(mdsserventry* eptr,ppacket* p){
@@ -479,25 +524,180 @@ void mds_readdir(mdsserventry* eptr,ppacket* p){
     eptr->outpacket = outp;
   }
 
+  free(path);
 }
 
 void mds_cl_readdir(mdsserventry* eptr,ppacket* p){
-  mdsserventry* ceptr = mds_entry_from_id(p->id);
+  mds_direct_pass_cl(eptr,p,MDTOCL_READDIR);
+}
 
+void mds_chmod(mdsserventry* eptr,ppacket* p){
+  fprintf(stderr,"+mds_chmod\n");
+
+  int plen;
   const uint8_t* ptr = p->startptr;
-  int status = get32bit(&ptr);
-  printf("status=%d\n",status);
 
-  if(status == 0){
-    int nfiles = get32bit(&ptr);
-    printf("%d files\n",nfiles);
-  }
+  plen = get32bit(&ptr);
+  printf("plen=%d\n",plen);
 
-  if(ceptr){
-    ppacket* outp = createpacket_s(p->size,MDTOCL_READDIR,p->id);
+  char* path = (char*)malloc(plen+10);
+  memcpy(path,ptr,plen);
+  ptr += plen;
+  path[plen] = 0;
+
+  fprintf(stderr,"path=%s\n",path);
+
+  ppfile* f = lookup_file(path);
+  if(f == NULL){
+    ppacket* outp = createpacket_s(p->size,MDTOMI_CHMOD,p->id);
     memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
 
-    outp->next = ceptr->outpacket;
-    ceptr->outpacket = outp;
+    outp->next = mdtomi->outpacket;
+    mdtomi->outpacket = outp;
+  } else {
+    int perm = get32bit(&ptr);
+    f->a.mode = (perm&0777) | (f->a.mode & (~0777));
+
+    fprintf(stderr,"perm=%d%d%d\n",perm/0100 & 7,
+                                   perm/0010 & 7,
+                                   perm & 7);
+
+    ppacket* outp = createpacket_s(4,MDTOCL_CHMOD,p->id);
+    uint8_t* ptr2 = outp->startptr+HEADER_LEN;
+    
+    put32bit(&ptr2,0);
+
+    outp->next = eptr->outpacket;
+    eptr->outpacket = outp;
+
+    mds_update_attr(p,f);
   }
+
+  free(path);
+}
+
+void mds_cl_chmod(mdsserventry* eptr,ppacket* p){
+  mds_direct_pass_cl(eptr,p,MDTOCL_CHMOD);
+}
+
+void mds_chown(mdsserventry* eptr,ppacket* p){
+  int plen;
+  const uint8_t* ptr = p->startptr;
+
+  plen = get32bit(&ptr);
+  char* path = (char*)malloc(plen+10);
+  memcpy(path,ptr,plen);
+  ptr += plen;
+  path[plen] = 0;
+
+  fprintf(stderr,"path=%s\n",path);
+
+  ppfile* f = lookup_file(path);
+  if(f == NULL){
+    ppacket* outp = createpacket_s(p->size,MDTOMI_CHMOD,p->id);
+    memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
+
+    outp->next = mdtomi->outpacket;
+    mdtomi->outpacket = outp;
+  } else {
+    int uid = get32bit(&ptr);
+    f->a.uid = uid;
+
+    fprintf(stderr,"uid = %u\n",uid);
+
+    ppacket* outp = createpacket_s(4,MDTOCL_CHMOD,p->id);
+    uint8_t* ptr2 = outp->startptr+HEADER_LEN;
+    
+    put32bit(&ptr2,0);
+
+    outp->next = eptr->outpacket;
+    eptr->outpacket = outp;
+
+    mds_update_attr(p,f);
+  }
+
+  free(path);
+}
+
+void mds_cl_chown(mdsserventry* eptr,ppacket* p){
+  mds_direct_pass_cl(eptr,p,MDTOCL_CHOWN);
+}
+
+void mds_chgrp(mdsserventry* eptr,ppacket* p){
+  int plen;
+  const uint8_t* ptr = p->startptr;
+
+  plen = get32bit(&ptr);
+  char* path = (char*)malloc(plen+10);
+  memcpy(path,ptr,plen);
+  ptr += plen;
+  path[plen] = 0;
+
+  fprintf(stderr,"path=%s\n",path);
+
+  ppfile* f = lookup_file(path);
+  if(f == NULL){
+    ppacket* outp = createpacket_s(p->size,MDTOMI_CHMOD,p->id);
+    memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
+
+    outp->next = mdtomi->outpacket;
+    mdtomi->outpacket = outp;
+  } else {
+    int gid = get32bit(&ptr);
+    f->a.gid = gid;
+
+    fprintf(stderr,"gid=%u\n",gid);
+
+    ppacket* outp = createpacket_s(4,MDTOCL_CHMOD,p->id);
+    uint8_t* ptr2 = outp->startptr+HEADER_LEN;
+    
+    put32bit(&ptr2,0);
+
+    outp->next = eptr->outpacket;
+    eptr->outpacket = outp;
+
+    mds_update_attr(p,f);
+  }
+
+  free(path);
+}
+
+void mds_cl_chgrp(mdsserventry* eptr,ppacket* inp){
+  mds_direct_pass_cl(eptr,inp,MDTOCL_CHGRP);
+}
+
+void mds_create(mdsserventry* eptr,ppacket* p){
+  int plen;
+  const uint8_t* ptr = p->startptr;
+
+  plen = get32bit(&ptr);
+  char* path = (char*)malloc(plen+10);
+  memcpy(path,ptr,plen);
+  path[plen] = 0;
+
+  fprintf(stderr,"path:%s\n",path);
+
+  attr a;
+
+  a.uid = a.gid = 0;
+  a.atime = a.ctime = a.mtime = time(NULL);
+  a.link = 1;
+  a.size = 0;
+
+  a.mode = 0777 | S_IFREG;
+  add_file(new_file(path,a));
+
+  mds_direct_pass_mi(p,MDTOMI_CREATE);
+}
+
+void mds_cl_create(mdsserventry* eptr,ppacket* inp){
+  mds_direct_pass_cl(eptr,inp,MDTOCL_CREATE);
+}
+
+void mds_open(mdsserventry* eptr,ppacket* inp){
+  mds_direct_pass_mi(inp,MDTOMI_OPEN);
+}
+
+void mds_cl_open(mdsserventry* eptr,ppacket* inp){
+  mds_direct_pass_cl(eptr,inp,MDTOCL_OPEN);
 }

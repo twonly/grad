@@ -64,9 +64,20 @@ void mds_opendir(mdsserventry* eptr,ppacket* p);
 void mds_mkdir(mdsserventry* eptr,ppacket* p);
 void mds_releasedir(mdsserventry* eptr,ppacket* p);
 void mds_rename(mdsserventry* eptr,ppacket* p);
+
 void mds_chmod(mdsserventry* eptr,ppacket* p);
+void mds_cl_chmod(mdsserventry* eptr,ppacket* p);
 void mds_chown(mdsserventry* eptr,ppacket* p);
+void mds_cl_chown(mdsserventry* eptr,ppacket* p);
 void mds_chgrp(mdsserventry* eptr,ppacket* p);
+void mds_cl_chgrp(mdsserventry* eptr,ppacket* p);
+
+void mds_create(mdsserventry* eptr,ppacket* inp);
+void mds_cl_create(mdsserventry* eptr,ppacket* inp);
+
+void mds_open(mdsserventry* eptr,ppacket* inp);
+void mds_cl_open(mdsserventry* eptr,ppacket* inp);
+
 void mds_unlink(mdsserventry* eptr,ppacket* p);
 void mds_noop(mdsserventry* eptr,ppacket* p);
 
