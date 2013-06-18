@@ -2,12 +2,12 @@
 #include "datapack.h"
 #include "mis_fs.h"
 
-misserventry* misservhead = NULL;
+static misserventry* misservhead = NULL;
 
-int lsock;
-int lsockpdescpos;
+static int lsock;
+static int lsockpdescpos;
 
-ppfile* root;
+static ppfile* root;
 
 void mis_fs_demo_init(void){
   attr a;
@@ -294,6 +294,13 @@ void mis_gotpacket(misserventry* eptr,ppacket* p){
       break;
     case MDTOMI_CHOWN:
       mis_chown(eptr,p);
+      break;
+
+    case MDTOMI_READ_CHUNK_INFO:
+      mis_fw_read_chunk_info(eptr,p);
+      break;
+    case MDTOCL_READ_CHUNK_INFO:
+      mis_rfw_read_chunk_info(eptr,p);
       break;
   }
 
@@ -633,7 +640,7 @@ void mis_chmod(misserventry* eptr,ppacket* inp){
     if(f->srcip != eptr->peerip){//update mds info
       misserventry* ceptr = mis_entry_from_ip(f->srcip);
 
-      if(eptr){
+      if(ceptr){
         ppacket* outp = createpacket_s(inp->size,CLTOMD_CHMOD,inp->id);
         memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
 
@@ -684,7 +691,7 @@ void mis_chgrp(misserventry* eptr,ppacket* inp){
     if(f->srcip != eptr->peerip){//update mds info
       misserventry* ceptr = mis_entry_from_ip(f->srcip);
 
-      if(eptr){
+      if(ceptr){
         ppacket* outp = createpacket_s(inp->size,CLTOMD_CHMOD,inp->id);
         memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
 
@@ -735,7 +742,7 @@ void mis_chown(misserventry* eptr,ppacket* inp){
     if(f->srcip != eptr->peerip){//update mds info
       misserventry* ceptr = mis_entry_from_ip(f->srcip);
 
-      if(eptr){
+      if(ceptr){
         ppacket* outp = createpacket_s(inp->size,CLTOMD_CHMOD,inp->id);
         memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
 
@@ -751,3 +758,60 @@ end:
   eptr->outpacket = p;
 }
 
+void mis_fw_read_chunk_info(misserventry* eptr,ppacket* p){
+  int plen,mdsid,i;
+  const uint8_t* ptr = p->startptr;
+  ppacket* outp = NULL;
+
+  plen = get32bit(&ptr);
+  char* path = (char*)malloc(plen+10);
+  memcpy(path,ptr,plen);
+  ptr += plen;
+
+  ppfile* f = lookup_file(path);
+  if(f == NULL){
+    outp = createpacket_s(4,MITOMD_READ_CHUNK_INFO,p->id);
+    uint8_t* ptr2 = outp->startptr + HEADER_LEN;
+    put32bit(&ptr2,-ENOENT);
+
+    outp->next = eptr->outpacket;
+    eptr->outpacket = outp;
+  } else {
+    misserventry* ceptr = mis_entry_from_ip(f->srcip);
+
+    if(ceptr){
+      outp = createpacket_s(p->size+4,CLTOMD_READ_CHUNK_INFO,p->id);
+      memcpy(outp->startptr + HEADER_LEN,p->startptr,p->size);
+      uint8_t* ptr2 = outp->startptr + HEADER_LEN + p->size;
+      put32bit(&ptr2,eptr->peerip);
+
+      outp->next = ceptr->outpacket;
+      ceptr->outpacket = outp;
+    } else {
+      //@TODO: add error handling
+    }
+  }
+}
+
+void mis_rfw_read_chunk_info(misserventry* eptr,ppacket* p){
+  const uint8_t* ptr = p->startptr + p->size - 4;
+  uint32_t ip = get32bit(&ptr);
+
+  misserventry* ceptr = mis_entry_from_ip(ip);
+
+  if(!ceptr){
+    //@TODO: add error handling
+  }
+
+  ppacket* outp = createpacket_s(p->size-4,MITOMD_READ_CHUNK_INFO,p->id);
+  memcpy(outp->startptr + HEADER_LEN,p->startptr,p->size-4);
+  ptr = p->startptr;
+  int status = get32bit(&ptr);
+  if(status == 0){
+    uint8_t* ptr2 = p->startptr + 4;
+    put32bit(&ptr2,eptr->peerip);//remote mds
+  }
+
+  outp->next = ceptr->outpacket;
+  ceptr->outpacket = outp;
+}

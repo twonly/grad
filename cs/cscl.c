@@ -1,10 +1,12 @@
-#include "cs_cl.h"
+#include "cscl.h"
 #include "datapack.h"
 
-csclserventry* csclservhead = NULL;
+enum {KILL,HEADER,DATA};
 
-int lsock;
-int lsockpdescpos;
+static csclserventry* csclservhead = NULL;
+
+static int lsock;
+static int lsockpdescpos;
 
 int cscl_init(void){
   lsock = tcpsocket();
@@ -247,3 +249,21 @@ void cscl_write(csclserventry *eptr) {
 	}
 }
 
+void cscl_gotpacket(csclserventry* eptr,ppacket* p){
+  switch(p->cmd){
+    case CLTOCS_READ_CHUNK:
+      cscl_read_chunk(eptr,p);
+      break;
+    case CLTOCS_WRITE_CHUNK:
+      cscl_write_chunk(eptr,p);
+      break;
+  }
+}
+
+void cscl_read_chunk(csclserventry* eptr,ppacket* p){
+  //@TODO
+}
+
+void cscl_write_chunk(csclserventry* eptr,ppacket* p){
+  //@TODO
+}

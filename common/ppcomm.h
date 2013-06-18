@@ -31,11 +31,11 @@
 #define CLTOMD_READ_CHUNK_INFO 0x1012
 #define MDTOCL_READ_CHUNK_INFO 0x1013
 
-#define CLTOMA_READ_CHUNK 0x1014
-#define MATOCL_READ_CHUNK 0x1015
+#define CLTOMD_LOOKUP_CHUNK 0x1014
+#define MDTOCL_LOOKUP_CHUNK 0x1015
 
-#define CLTOMD_WRITE_CHUNK 0x1016
-#define MDTOCL_WRITE_CHUNK 0x1017
+#define CLTOMD_APPEND_CHUNK 0x1016
+#define MDTOCL_APPEND_CHUNK 0x1017
 
 #define CLTOMD_RELEASE 0x1018
 #define MDTOCL_RELEASE 0x1019
@@ -108,11 +108,12 @@
 #define MDTOMI_READ_CHUNK_INFO 0x2027
 #define MITOMD_READ_CHUNK_INFO 0x2028
 
-#define MDTOMI_READ_CHUNK 0x2029
-#define MITOMD_READ_CHUNK 0x202A
+#define MDTOMI_LOOKUP_CHUNK 0x2029
+#define MITOMD_LOOKUP_CHUNK 0x202A
 
-#define MDTOMI_WRITE_CHUNK 0x202B
-#define MITOMD_WRITE_CHUNK 0x202C
+#define MDTOMI_APPEND_CHUNK 0x202B
+#define MITOMD_APPEND_CHUNK 0x202C
+
 
 //===============================================================
 
@@ -121,26 +122,23 @@
 //===============================================================
 
 #define CSTOMD_REGISTER 0x3000
+#define MDTOCS_REGISTER 0x3001
 
-#define MDTOCS_CREATE 0x3001
-#define CSTOMD_CREATE 0x3002
+#define MDTOCS_CREATE 0x3002
+#define MDTOCS_DELETE 0x3004
 
-#define MDTOCS_DELETE 0x3003
-#define CSTOMD_DELETE 0x3004
+#define CSTOMD_UPDATE_STATUS 0x3005
 
 //#define MDTOCS_CHUNKOP 0x3005
 //#define CSTOMD_CHUNKOP 0x3006
 
 //===============================================================
 
-#define CLTOCS_READ 0x4001
-#define CSTOCL_READ 0x4002
+#define CLTOCS_READ_CHUNK 0x4001
+#define CSTOCL_READ_CHUNK 0x4002
 
-#define CLTOCS_READ_STATUS 0x4003
-#define CSTOCL_READ_STATUS 0x4004
-
-#define CLTOCS_WRITE 0x4005
-#define CSTOCL_WRITE 0x4006
+#define CLTOCS_WRITE_CHUNK 0x4003
+#define CSTOCL_WRITE_CHUNK 0x4004
 
 //not needed for now...
 //#define CLTOCS_WRITE_DONE 0x4007
@@ -157,8 +155,8 @@
 
 #define MDS_PORT 8224
 #define MDS_PORT_STR "8224"
-#define MDS_CS_PORT 8225
-#define MDS_CS_PORT_STR "8225"
+#define MDSCS_PORT 8225
+#define MDSCS_PORT_STR "8225"
 
 #define MIS_PORT 8123
 #define MIS_PORT_STR "8123"

@@ -70,4 +70,11 @@ void mis_update_attr(misserventry* eptr,ppacket* p);
 void mis_unlink(misserventry* eptr,ppacket* p);
 void mis_noop(misserventry* eptr,ppacket* p);
 
+void mis_fw_read_chunk_info(misserventry* eptr,ppacket* p);
+void mis_rfw_read_chunk_info(misserventry* eptr,ppacket* p);
+void mis_fw_lookup_chunk(misserventry* eptr,ppacket* p);
+void mis_rfw_lookup_chunk(misserventry* eptr,ppacket* p);
+void mis_fw_append_chunk(misserventry* eptr,ppacket* p);
+void mis_rfw_append_chunk(misserventry* eptr,ppacket* p);
+
 #endif

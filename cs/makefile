@@ -1,9 +1,9 @@
 include ../make.defines
 
-cs: cs_cl.c cs_cl.h cs_mds.c cs_mds.h init.h ${LIBS} ${HEADERS}
-	${CC} ${CFLAGS} cs_cl.c cs_mds.c ${LIBS} -o $@
+cs: clean cscl.c cscl.h csmds.c chunks.c csmds.h chunks.h init.h ${LIBS} ${HEADERS}
+	${CC} ${CFLAGS} cscl.c csmds.c chunks.c ${LIBS} -o $@
 
 clean:
 	rm -rf ../common/*.o
-	rm -rf mds
+	rm -rf cs
 

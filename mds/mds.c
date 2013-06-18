@@ -2,14 +2,16 @@
 #include "datapack.h"
 #include "mds_fs.h"
 
-mdsserventry* mdsserv = NULL;
+enum {KILL,HEADER,DATA};
 
-int lsock;
-int lsockpdescpos;
+static mdsserventry* mdsservhead = NULL;
 
-mdsserventry* mdtomi = NULL;
+static int lsock;
+static int lsockpdescpos;
 
-char* mishostip = "127.0.0.1";
+static mdsserventry* mdtomi = NULL;
+
+static char* mishostip = "127.0.0.1";
 
 int mds_init(void){
   int misip,misport;
@@ -26,9 +28,9 @@ int mds_init(void){
 
   lsockpdescpos = -1;
 
-	if (tcpsetacceptfilter(lsock)<0 && errno!=ENOTSUP) {
-		mfs_errlog_silent(LOG_NOTICE,"mds: can't set accept filter");
-	}
+  if (tcpsetacceptfilter(lsock)<0 && errno!=ENOTSUP) {
+    mfs_errlog_silent(LOG_NOTICE,"mds: can't set accept filter");
+  }
 
 	if (tcpstrlisten(lsock,"*",MDS_PORT_STR,100)<0) {
 		mfs_errlog(LOG_ERR,"mds: can't listen on socket");
@@ -82,7 +84,7 @@ void mds_serve(struct pollfd *pdesc) {
 	if (lsockpdescpos >=0 && (pdesc[lsockpdescpos].revents & POLLIN)) {
 		int ns=tcpaccept(lsock);
 		if (ns<0) {
-			mfs_errlog_silent(LOG_NOTICE,"mds: accept error");
+			fprintf(stderr,"mds: accept error\n");
 		} else {
 			tcpnonblock(ns);
 			tcpnodelay(ns);
@@ -104,6 +106,8 @@ void mds_serve(struct pollfd *pdesc) {
       eptr->startptr = eptr->headbuf;
 
       fprintf(stderr,"client(ip:%u.%u.%u.%u) connected\n",(eptr->peerip>>24)&0xFF,(eptr->peerip>>16)&0xFF,(eptr->peerip>>8)&0xFF,eptr->peerip&0xFF);
+
+      fflush(stderr);
 		}
 	}
 
@@ -289,9 +293,9 @@ void mds_read(mdsserventry *eptr) {
       const uint8_t *pptr = eptr->headbuf;
       size = get32bit(&pptr);
       cmd = get32bit(&pptr);
-      id = eptr->peerip;
-
-      get32bit(&pptr); //discarded
+      id = get32bit(&pptr);
+      if(id == -1) //little hack in order for mis to pretend to be a client forwarding chunk related packets
+        id = eptr->peerip;
 
       ppacket* inp = createpacket_r(size,cmd,id);
       inp->next = eptr->inpacket;
@@ -404,6 +408,24 @@ void mds_gotpacket(mdsserventry* eptr,ppacket* p){
       break;
     case MITOMD_OPEN:
       mds_cl_open(eptr,p);
+      break;
+
+    case CLTOMD_READ_CHUNK_INFO:
+      mds_cl_read_chunk_info(eptr,p);
+      break;
+    case CLTOMD_LOOKUP_CHUNK:
+      mds_cl_lookup_chunk(eptr,p);
+      break;
+    case CLTOMD_APPEND_CHUNK:
+      mds_cl_append_chunk(eptr,p);
+      break;
+
+    case MITOMD_READ_CHUNK_INFO:
+      mds_fw_read_chunk_info(eptr,p);
+      break;
+
+    case CSTOMD_UPDATE_STATUS:
+      //@TODO
       break;
   }
 
@@ -700,4 +722,157 @@ void mds_open(mdsserventry* eptr,ppacket* inp){
 
 void mds_cl_open(mdsserventry* eptr,ppacket* inp){
   mds_direct_pass_cl(eptr,inp,MDTOCL_OPEN);
+}
+
+void mds_cl_read_chunk_info(mdsserventry* eptr,ppacket* p){
+  fprintf(stderr,"+mds_cl_read_chunk_info\n");
+
+  int plen,mdsid,i;
+  const uint8_t* ptr = p->startptr;
+  ppacket* outp = NULL;
+
+  plen = get32bit(&ptr);
+  char* path = (char*)malloc(plen+10);
+  memcpy(path,ptr,plen);
+  ptr += plen;
+  
+  if(mdtomi == eptr)
+    mdsid = get32bit(&ptr);
+
+  path[plen] = 0;
+  fprintf(stderr,"path=%s\n",path);
+  ppfile* f = lookup_file(path);
+  if(f == NULL){
+    if(eptr != mdtomi){//file in another mds!
+      mds_direct_pass_mi(p,MDTOMI_READ_CHUNK_INFO);
+    } else { //no such file
+      outp = createpacket_s(4+4,MDTOCL_READ_CHUNK_INFO,p->id);
+      uint8_t* ptr2 = outp->startptr + HEADER_LEN;
+      put32bit(&ptr2,-ENOENT);
+      put32bit(&ptr2,mdsid);
+    }
+  } else {
+    int totsize = 4+4+4+8*(f->chunks);
+    if(eptr == mdtomi){
+      totsize += 4;
+    }
+
+    outp = createpacket_s(totsize,MDTOCL_READ_CHUNK_INFO,p->id);
+    uint8_t* ptr = outp->startptr + HEADER_LEN;
+    put32bit(&ptr,0);
+
+    put32bit(&ptr,-1);//local mds
+    put32bit(&ptr,f->chunks);
+    for(i=0;i<f->chunks;i++){
+      put64bit(&ptr,f->clist[i]);
+    }
+
+    fprintf(stderr,"chunks=%d\n",f->chunks);
+
+    if(eptr == mdtomi){
+      put32bit(&ptr,mdsid);
+    }
+  }
+
+  if(outp){
+    outp->next = eptr->outpacket;
+    eptr->outpacket = outp;
+  }
+}
+
+void mds_cl_lookup_chunk(mdsserventry* eptr,ppacket* p){
+  fprintf(stderr,"+mds_cl_lookup_chunk\n");
+
+  const uint8_t* ptr = p->startptr;
+  uint64_t chunkid = get64bit(&ptr);
+  int mdsid;
+  ppacket* outp = NULL;
+
+  mdschunk* c = lookup_chunk(chunkid);
+
+  if(c == NULL){
+    outp = createpacket_s(4+4,MDTOCL_LOOKUP_CHUNK,p->id);
+    uint8_t* ptr2 = outp->startptr + HEADER_LEN;
+    put32bit(&ptr2,-ENOENT);
+  } else {
+    int totsize = 4+4;
+
+    outp = createpacket_s(totsize,MDTOCL_LOOKUP_CHUNK,p->id);
+    uint8_t* ptr = outp->startptr + HEADER_LEN;
+    put32bit(&ptr,0);
+    put32bit(&ptr,c->csip);
+  }
+
+  if(outp){
+    outp->next = eptr->outpacket;
+    eptr->outpacket = outp;
+  }
+}
+
+void mds_cl_append_chunk(mdsserventry* eptr,ppacket* p){
+  fprintf(stderr,"+mds_cl_append_chunk\n");
+
+  int plen,mdsid,i;
+  const uint8_t* ptr = p->startptr;
+  ppacket* outp = NULL;
+
+  plen = get32bit(&ptr);
+  char* path = (char*)malloc(plen+10);
+  memcpy(path,ptr,plen);
+  ptr += plen;
+
+  path[plen] = 0;
+  fprintf(stderr,"path=%s\n",path);
+  ppfile* f = lookup_file(path);
+
+  if(f == NULL){
+    outp = createpacket_s(4+4,MDTOCL_APPEND_CHUNK,p->id);
+    uint8_t* ptr2 = outp->startptr + HEADER_LEN;
+    put32bit(&ptr2,-ENOENT);
+    put32bit(&ptr2,mdsid);
+  } else {
+    mdschunk* c;
+    mdscs_new_chunk(&c);
+    int ret = 0;
+    uint64_t chunkid;
+
+    if(c){
+      add_chunk(c);
+
+      ret = mdscs_append_chunk(f,c);
+      chunkid = c->chunkid;
+
+      fprintf(stderr,"mdscs_append_chunk,ret=%d,chunkid=%lld\n",ret,chunkid);
+    }
+
+    if(ret != 0){
+      outp = createpacket_s(4,MDTOCL_APPEND_CHUNK,p->id);
+
+      uint8_t* ptr2 = outp->startptr + HEADER_LEN;
+      put32bit(&ptr2,ret);
+    } else if(c == NULL){
+      outp = createpacket_s(4,MDTOCL_APPEND_CHUNK,p->id);
+
+      uint8_t* ptr2 = outp->startptr + HEADER_LEN;
+      put32bit(&ptr2,-ENOSPC);
+    } else {
+      int totsize = 4+8;
+
+      outp = createpacket_s(totsize,MDTOCL_APPEND_CHUNK,p->id);
+      uint8_t* ptr2 = outp->startptr + HEADER_LEN;
+      put32bit(&ptr2,0);
+      put64bit(&ptr2,chunkid);
+
+      //@TODO: send update_attr to mis
+    }
+  }
+
+  if(outp){
+    outp->next = eptr->outpacket;
+    eptr->outpacket = outp;
+  }
+}
+
+void mds_fw_read_chunk_info(mdsserventry* eptr,ppacket* p){
+  mds_direct_pass_cl(eptr,p,MDTOCL_READ_CHUNK_INFO);
 }

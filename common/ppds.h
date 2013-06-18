@@ -4,6 +4,7 @@
 typedef struct linklist{
   void* data;
   struct linklist* next;
+  struct linklist* prev;
 } linklist;
 
 typedef struct hashnode{

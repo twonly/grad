@@ -1,9 +1,11 @@
 #include "csmds.h"
 #include "datapack.h"
 
-csmdsserventry* csmds = NULL;
+enum {KILL,HEADER,DATA};
 
-char* mdshostip = "127.0.0.1";
+static csmdsserventry* csmds = NULL;
+
+static char* mdshostip = "127.0.0.1";
 
 int csmds_init(void){
   int mdsip,mdsport;
@@ -11,7 +13,7 @@ int csmds_init(void){
 
   inet_pton(AF_INET,mdshostip,&mdsip);
   mdsip = htonl(mdsip);
-  mdsport = MDS_PORT;
+  mdsport = MDSCS_PORT;
 
   msock = tcpsocket();
   if (tcpnodelay(msock)<0) {
@@ -35,9 +37,26 @@ int csmds_init(void){
   eptr->mode = HEADER;
 
   eptr->inpacket = NULL;
-  eptr->outpacket = NULL;
   eptr->bytesleft = HEADER_LEN;
   eptr->startptr = eptr->headbuf;
+
+  int space,availspace,chunks;
+  int i;
+  get_chunk_info(&space,&availspace,&chunks);
+
+  ppacket* regp = createpacket_s(4+4+4+12*chunks,CSTOMD_REGISTER,-1);
+  uint8_t* ptr = regp->startptr + HEADER_LEN;
+  put32bit(&ptr,space);
+  put32bit(&ptr,availspace);
+  put32bit(&ptr,chunks);
+  linklist* n = chunklist;
+  for(;n;n = n->next){
+    put64bit(&ptr,((cschunk*)n->data)->chunkid);
+    put32bit(&ptr,((cschunk*)n->data)->occupy);
+  }
+
+  eptr->outpacket = regp;
+  csmds = eptr;
 
 	main_destructregister(csmds_term);
 	main_pollregister(csmds_desc,csmds_serve);
@@ -209,4 +228,59 @@ void csmds_write(csmdsserventry *eptr) {
     eptr->outpacket = eptr->outpacket->next;
     free(p);
 	}
+}
+
+void csmds_gotpacket(csmdsserventry* eptr,ppacket* p){
+  switch(p->cmd){
+    case MDTOCS_REGISTER:
+      csmds_register(eptr,p);
+      break;
+    case MDTOCS_CREATE:
+      csmds_create(eptr,p);
+      break;
+    case MDTOCS_DELETE:
+      csmds_delete(eptr,p);
+      break;
+  }
+}
+
+void csmds_register(csmdsserventry* eptr,ppacket* p){
+  const uint8_t* ptr = p->startptr;
+
+  int status = get32bit(&ptr);
+
+  if(status == 0){
+    fprintf(stderr,"successfully registered with mds\n");
+  } else { //possibly reconnect?
+    fprintf(stderr,"failed to register with mds\n");
+  }
+}
+
+void csmds_create(csmdsserventry* eptr,ppacket* p){
+  uint64_t chunkid;
+  const uint8_t* ptr = p->startptr;
+
+  chunkid = get64bit(&ptr);
+
+  fprintf(stderr,"+csmds_create,chunkid=%lld\n",chunkid);
+
+  add_chunk(new_chunk(chunkid));
+
+  //@TODO: send update_status to mds
+}
+
+void csmds_delete(csmdsserventry* eptr,ppacket* p){
+  uint64_t chunkid;
+  const uint8_t* ptr = p->startptr;
+
+  chunkid = get64bit(&ptr);
+
+  fprintf(stderr,"+csmds_delete,chunkid=%lld\n",chunkid);
+
+  cschunk* c = lookup_chunk(chunkid);
+
+  remove_chunk(chunkid);
+  free_chunk(c);
+
+  //@TODO: send update_status to mds
 }

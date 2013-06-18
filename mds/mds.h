@@ -18,8 +18,8 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include "chunks.h"
 
-enum {KILL,HEADER,DATA};
 
 #define MAXBUFSIZE 512
 
@@ -80,5 +80,11 @@ void mds_cl_open(mdsserventry* eptr,ppacket* inp);
 
 void mds_unlink(mdsserventry* eptr,ppacket* p);
 void mds_noop(mdsserventry* eptr,ppacket* p);
+
+void mds_cl_read_chunk_info(mdsserventry* eptr,ppacket* p);
+void mds_cl_lookup_chunk(mdsserventry* eptr,ppacket* p);
+void mds_cl_append_chunk(mdsserventry* eptr,ppacket* p);
+
+void mds_fw_read_chunk_info(mdsserventry* eptr,ppacket* p);
 
 #endif

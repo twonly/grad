@@ -157,24 +157,28 @@ static void chxxx(int sockfd,int ip,char* path,int cmd,int opt){
 
 int main(void){
   int sockfd = socket(AF_INET,SOCK_STREAM,0);
-  int i,ip;
+  int i;
   struct sockaddr_in servaddr;
   char path[100],cmd[100],buf[200];
+
+  if (tcpnodelay(sockfd)<0) {
+    fprintf(stderr,"can't set TCP_NODELAY\n");
+  }
 
   memset(&servaddr,0,sizeof(servaddr));
   servaddr.sin_family = AF_INET;
   inet_pton(AF_INET,"127.0.0.1",&servaddr.sin_addr);
-  inet_pton(AF_INET,"127.0.0.1",&ip);
   servaddr.sin_port = htons(MDS_PORT);
   if(connect(sockfd,(struct sockaddr*)&servaddr,sizeof(servaddr)) != 0){
     perror("cannot connect to mds");
     exit(1);
   }
+  printf("connected to 127.0.0.1:%d\n",MDS_PORT);
 
   printf(">>>");
   while(scanf("%s%s",cmd,path)!=EOF){
     if(!strcmp(cmd,"getattr")){
-      ppacket* p = createpacket_s(4+strlen(path),CLTOMD_GETATTR,ip);
+      ppacket* p = createpacket_s(4+strlen(path),CLTOMD_GETATTR,-1);
       uint8_t* ptr = p->startptr + HEADER_LEN;
       put32bit(&ptr,strlen(path));
       memcpy(ptr,path,strlen(path));
@@ -200,7 +204,7 @@ int main(void){
       free(p);
     }
     if(!strcmp(cmd,"readdir")){
-      ppacket* p = createpacket_s(4+strlen(path),CLTOMD_READDIR,ip);
+      ppacket* p = createpacket_s(4+strlen(path),CLTOMD_READDIR,-1);
       uint8_t* ptr = p->startptr + HEADER_LEN;
       put32bit(&ptr,strlen(path));
       memcpy(ptr,path,strlen(path));
@@ -241,23 +245,87 @@ int main(void){
       perm = (perms[0]-'0')*64 + (perms[1]-'0')*8 + (perms[2]-'0');
 
       printf("chmod %s %o\n",path,perm);
-      chxxx(sockfd,ip,path,CLTOMD_CHMOD,perm);
+      chxxx(sockfd,-1,path,CLTOMD_CHMOD,perm);
     }
     if(!strcmp(cmd,"chgrp")){
       int gid;
       scanf("%d",&gid);
-      chxxx(sockfd,ip,path,CLTOMD_CHGRP,gid);
+      chxxx(sockfd,-1,path,CLTOMD_CHGRP,gid);
     }
     if(!strcmp(cmd,"chown")){
       int uid;
       scanf("%d",&uid);
-      chxxx(sockfd,ip,path,CLTOMD_CHOWN,uid);
+      chxxx(sockfd,-1,path,CLTOMD_CHOWN,uid);
     }
     if(!strcmp(cmd,"create")){
-      send_and_receive(sockfd,ip,path,CLTOMD_CREATE);
+      send_and_receive(sockfd,-1,path,CLTOMD_CREATE);
     }
     if(!strcmp(cmd,"open")){
-      send_and_receive(sockfd,ip,path,CLTOMD_OPEN);
+      send_and_receive(sockfd,-1,path,CLTOMD_OPEN);
+    }
+    if(!strcmp(cmd,"read_chunk_info")){
+      ppacket* p = createpacket_s(4+strlen(path),CLTOMD_READ_CHUNK_INFO,-1);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
+      put32bit(&ptr,strlen(path));
+      memcpy(ptr,path,strlen(path));
+      sendpacket(sockfd,p);
+      free(p);
+
+      p = receivepacket(sockfd);
+      const uint8_t* ptr2 = p->startptr;
+      int status = get32bit(&ptr2);
+      printf("status:%d\n",status);
+      if(status == 0){
+        uint32_t ip = get32bit(&ptr2);
+        if(ip == -1){
+          printf("local mds\n");
+        } else {
+          printf("remote mds:%X\n",ip);
+        }
+
+        int chunks = get32bit(&ptr2);
+        printf("chunks=%d\n",chunks);
+        int i;
+        for(i=0;i<chunks;i++){
+          uint64_t chunkid = get64bit(&ptr2);
+          printf("(%d):id=%lld\n",i,chunkid);
+        }
+      }
+    }
+    if(!strcmp(cmd,"append_chunk")){
+      ppacket* p = createpacket_s(4+strlen(path),CLTOMD_APPEND_CHUNK,-1);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
+      put32bit(&ptr,strlen(path));
+      memcpy(ptr,path,strlen(path));
+      sendpacket(sockfd,p);
+      free(p);
+
+      p = receivepacket(sockfd);
+      const uint8_t* ptr2 = p->startptr;
+      int status = get32bit(&ptr2);
+      printf("status:%d\n",status);
+      if(status == 0){
+        uint64_t chunkid = get64bit(&ptr2);
+        printf("chunkid=%lld\n",chunkid);
+      }
+    }
+    if(!strcmp(cmd,"lookup_chunk")){
+      uint64_t chunkid = atoi(path);
+
+      ppacket* p = createpacket_s(8,CLTOMD_LOOKUP_CHUNK,-1);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
+      put64bit(&ptr,chunkid);
+      sendpacket(sockfd,p);
+      free(p);
+
+      p = receivepacket(sockfd);
+      const uint8_t* ptr2 = p->startptr;
+      int status = get32bit(&ptr2);
+      printf("status:%d\n",status);
+      if(status == 0){
+        uint32_t csip = get32bit(&ptr2);
+        printf("csip:%X\n",csip);
+      }
     }
 
     printf(">>>");

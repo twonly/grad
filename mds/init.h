@@ -23,6 +23,8 @@
 #include "random.h"
 #include "mds.h"
 #include "mds_fs.h"
+#include "mdscs.h"
+#include "chunks.h"
 
 /* Run Tab */
 typedef int (*runfn)(void);
@@ -31,6 +33,7 @@ struct {
 	char *name;
 } RunTab[]={
 	{rnd_init,"random generator"},
+  {chunks_init,"mds chunks init"},
   {init_fs, "mds_fs init"},
   {mds_init,"mds init"},
   {mdscs_init,"mdscs init"},

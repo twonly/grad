@@ -2,10 +2,14 @@
 #include "datapack.h"
 #include "mds_fs.h"
 
-mdscsserventry* mdscsservhead = NULL;
+enum {KILL,HEADER,DATA};
 
-int lsock;
-int lsockpdescpos;
+static mdscsserventry* mdscsservhead = NULL;
+
+static int lsock;
+static int lsockpdescpos;
+
+static uint64_t global_chunk_counter;
 
 int mdscs_init(void){
   lsock = tcpsocket();
@@ -19,15 +23,18 @@ int mdscs_init(void){
 
   lsockpdescpos = -1;
 
-	if (tcpsetacceptfilter(lsock)<0 && errno!=ENOTSUP) {
-		mfs_errlog_silent(LOG_NOTICE,"mdscs module: can't set accept filter");
-	}
+  if (tcpsetacceptfilter(lsock)<0 && errno!=ENOTSUP) {
+    mfs_errlog_silent(LOG_NOTICE,"mdscs module: can't set accept filter");
+  }
+
 	if (tcpstrlisten(lsock,"*",MDSCS_PORT_STR,100)<0) {
 		mfs_errlog(LOG_ERR,"mdscs module: can't listen on socket");
 		return -1;
 	}
-  
-  fprintf(stderr,"listening on port %s\n",MDSCS_PORT_STR);
+
+  fprintf(stderr,"mdscs listening on port %s\n",MDSCS_PORT_STR);
+
+  global_chunk_counter = 1;
 
 	main_destructregister(mdscs_term);
 	main_pollregister(mdscs_desc,mdscs_serve);
@@ -59,9 +66,11 @@ void mdscs_serve(struct pollfd *pdesc) {
 
       eptr->inpacket = NULL;
       eptr->outpacket = NULL;
-      eptr->clist = NULL;
       eptr->bytesleft = HEADER_LEN;
       eptr->startptr = eptr->headbuf;
+
+      eptr->clist = NULL;
+      eptr->chunks = eptr->availspace = eptr->space = -1;
 
       fprintf(stderr,"cs(ip:%u.%u.%u.%u) connected\n",(eptr->peerip>>24)&0xFF,(eptr->peerip>>16)&0xFF,(eptr->peerip>>8)&0xFF,eptr->peerip&0xFF);
 		}
@@ -120,13 +129,14 @@ void mdscs_desc(struct pollfd *pdesc,uint32_t *ndesc) {
 		}
 		pos++;
 	}
+
 	*ndesc = pos;
 }
 
 void mdscs_term(void) {
 	mdscsserventry *eptr,*eptrn;
 
-	fprintf(stderr,"mdscs module: closing %s:%s\n","*",mdscs_PORT_STR);
+	fprintf(stderr,"mdscs module: closing %s:%s\n","*",MDSCS_PORT_STR);
 	tcpclose(lsock);
 
 	for (eptr = mdscsservhead ; eptr ; eptr = eptrn) {
@@ -248,3 +258,110 @@ void mdscs_write(mdscsserventry *eptr) {
 	}
 }
 
+void mdscs_gotpacket(mdscsserventry* eptr,ppacket* p){
+  switch(p->cmd){
+    case CSTOMD_REGISTER:
+      mdscs_register(eptr,p);
+      break;
+  }
+}
+
+mdscsserventry* mdscs_find_serventry(uint64_t chunkid){
+  mdschunk* c = lookup_chunk(chunkid);
+  if(c == NULL) return NULL;
+  
+  mdscsserventry* eptr = mdscsservhead;
+  for(;eptr;eptr = eptr->next)
+    if(eptr->peerip == c->csip)
+      return eptr;
+
+  return NULL;
+}
+
+void mdscs_new_chunk(mdschunk** c){
+  mdscsserventry* eptr;
+
+  for(eptr = mdscsservhead;eptr;eptr = eptr->next){
+    if(eptr->mode == KILL) continue;
+
+    if(eptr->availspace >= CHUNKSIZE){// not considering spatial load balancing among cs servers
+      mdschunk* ret = new_chunk(global_chunk_counter++,eptr->peerip,0);
+      ppacket *outp = createpacket_s(8,MDTOCS_CREATE,0);
+      uint8_t* ptr = outp->startptr + HEADER_LEN;
+      put64bit(&ptr,ret->chunkid);
+
+      outp->next = eptr->outpacket;
+      eptr->outpacket = outp; //just hope this packet gets to cs server first
+
+      *c = ret;
+      return;
+    }
+  }
+
+  *c = NULL;
+}
+
+void mdscs_delete_chunk(uint64_t chunkid){
+  mdscsserventry* eptr;
+  mdschunk* c = lookup_chunk(chunkid);
+  if(c == NULL) return;
+
+  remove_chunk(chunkid);
+  free_chunk(c);
+
+  for(eptr = mdscsservhead;eptr;eptr = eptr->next){
+    if(eptr->mode == KILL) continue;
+
+    if(eptr->peerip == c->csip){
+      ppacket* outp = createpacket_s(8,MDTOCS_DELETE,0);
+      uint8_t* ptr = outp->startptr + HEADER_LEN;
+      put64bit(&ptr,chunkid);
+
+      outp->next = eptr->outpacket;
+      eptr->outpacket = outp;
+
+      return;
+    }
+  }
+}
+
+int mdscs_append_chunk(ppfile* f,mdschunk* c){
+  return file_append_chunk(f,c->chunkid);
+}
+
+void mdscs_register(mdscsserventry* eptr,ppacket* p){
+  ppacket* outp;
+  const uint8_t* ptr = p->startptr;
+  int i;
+
+  eptr->space = get32bit(&ptr);
+  eptr->availspace = get32bit(&ptr);
+  eptr->chunks = get32bit(&ptr);
+
+  for(i=0;i<eptr->chunks;i++){
+    uint64_t chunkid;
+    int occupy;
+
+    chunkid = get64bit(&ptr);
+    occupy = get32bit(&ptr);
+
+    mdschunk* c = new_chunk(chunkid,eptr->peerip,occupy);
+    add_chunk(c);
+
+    linklist* l = (linklist*)malloc(sizeof(linklist));
+    l->next = eptr->clist;
+    l->data = c;
+
+    eptr->clist = l;
+
+    if(c->chunkid > global_chunk_counter)
+      global_chunk_counter = c->chunkid + 1;
+  }
+
+  outp = createpacket_s(4,MDTOCS_REGISTER,p->id);
+  uint8_t* ptr2 = outp->startptr + HEADER_LEN;
+  put32bit(&ptr2,0);
+
+  outp->next = eptr->outpacket;
+  eptr->outpacket = outp;
+}

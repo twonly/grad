@@ -12,13 +12,9 @@ typedef struct _attr{
   int size;
 } attr;
 
-typedef struct chunk{
-  uint64_t chunkid;
-  uint32_t servip;
+#define CHUNKSIZE 4096
 
-  int blocks;
-  int blocksize;
-} chunk;
+#define FILE_MAXCHUNKS 10000
 
 typedef struct ppfile{
   char* path;
@@ -29,7 +25,9 @@ typedef struct ppfile{
 
   int srcip; //where this file is located
 
-  chunk* clist;
+  uint64_t* clist;
+  int chunks;
+  int alloced;
 
   struct ppfile* next;
   struct ppfile* child;
@@ -38,5 +36,7 @@ typedef struct ppfile{
 
 ppfile* new_file(char* path,attr a);
 void free_file(ppfile*);
+
+int file_append_chunk(ppfile* f,uint64_t id);
 
 #endif

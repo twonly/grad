@@ -17,8 +17,8 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include "chunks.h"
 
-enum {KILL,HEADER,DATA};
 
 typedef struct _csmdsserventry{
   int sock; 
@@ -42,7 +42,13 @@ void csmds_term(void);
 void csmds_desc(struct pollfd *pdesc,uint32_t *ndesc);
 void csmds_serve(struct pollfd *pdesc);
 
+void csmds_gotpacket(csmdsserventry* eptr,ppacket* p);
+
 void csmds_write(csmdsserventry *eptr);
 void csmds_read(csmdsserventry *eptr);
+
+void csmds_register(csmdsserventry* eptr,ppacket* p);
+void csmds_create(csmdsserventry* eptr,ppacket* p);
+void csmds_delete(csmdsserventry* eptr,ppacket* p);
 
 #endif

@@ -14,10 +14,6 @@
 #include "massert.h"
 #include "ppcomm.h"
 
-enum {KILL,HEADER,DATA};
-
-#define MAXBUFSIZE 512
-
 typedef struct _csclserventry{
   int sock; 
 	uint32_t peerip;
@@ -44,5 +40,8 @@ void cscl_write(csclserventry *eptr);
 void cscl_read(csclserventry *eptr);
 
 void cscl_gotpacket(csclserventry* eptr,ppacket* p);
+
+void cscl_read_chunk(csclserventry* eptr,ppacket* p);
+void cscl_write_chunk(csclserventry* eptr,ppacket* p);
 
 #endif

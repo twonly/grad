@@ -23,6 +23,7 @@
 #include "random.h"
 #include "cscl.h"
 #include "csmds.h"
+#include "chunks.h"
 
 /* Run Tab */
 typedef int (*runfn)(void);
@@ -31,6 +32,7 @@ struct {
 	char *name;
 } RunTab[]={
 	{rnd_init,"random generator"},
+  {chunks_init,"chunks init"},
   {cscl_init,"cscl init"},
   {csmds_init,"csmds init"},
 	{(runfn)0,"****"}
