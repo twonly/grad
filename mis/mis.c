@@ -26,7 +26,7 @@ void mis_fs_demo_init(void){
 int mis_init(void){
   lsock = tcpsocket();
   if (lsock<0) {
-    mfs_errlog(LOG_ERR,"main master server module: can't create socket");
+    mfs_errlog(LOG_ERR,"mis module: can't create socket");
     return -1;
   }
   tcpnonblock(lsock);
@@ -36,10 +36,10 @@ int mis_init(void){
   lsockpdescpos = -1;
 
 	if (tcpsetacceptfilter(lsock)<0 && errno!=ENOTSUP) {
-		mfs_errlog_silent(LOG_NOTICE,"main master server module: can't set accept filter");
+		mfs_errlog_silent(LOG_NOTICE,"mis module: can't set accept filter");
 	}
 	if (tcpstrlisten(lsock,"*",MIS_PORT_STR,100)<0) {
-		mfs_errlog(LOG_ERR,"main master server module: can't listen on socket");
+		mfs_errlog(LOG_ERR,"mis module: can't listen on socket");
 		return -1;
 	}
   
@@ -59,7 +59,7 @@ void mis_serve(struct pollfd *pdesc) {
 	if (lsockpdescpos >=0 && (pdesc[lsockpdescpos].revents & POLLIN)) {
 		int ns=tcpaccept(lsock);
 		if (ns<0) {
-			mfs_errlog_silent(LOG_NOTICE,"main master server module: accept error");
+			mfs_errlog_silent(LOG_NOTICE,"mis module: accept error");
 		} else {
 			tcpnonblock(ns);
 			tcpnodelay(ns);
@@ -143,7 +143,7 @@ void mis_desc(struct pollfd *pdesc,uint32_t *ndesc) {
 void mis_term(void) {
 	misserventry *eptr,*eptrn;
 
-	fprintf(stderr,"main master server module: closing %s:%s\n","*",MIS_PORT_STR);
+	fprintf(stderr,"mis module: closing %s:%s\n","*",MIS_PORT_STR);
 	tcpclose(lsock);
 
 	for (eptr = misservhead ; eptr ; eptr = eptrn) {
@@ -245,7 +245,7 @@ void mis_write(misserventry *eptr) {
 
 		if (i<0) {
 			if (errno!=EAGAIN) {
-				mfs_arg_errlog_silent(LOG_NOTICE,"main master server module: (ip:%u.%u.%u.%u) write error",(eptr->peerip>>24)&0xFF,(eptr->peerip>>16)&0xFF,(eptr->peerip>>8)&0xFF,eptr->peerip&0xFF);
+				mfs_arg_errlog_silent(LOG_NOTICE,"mis module: (ip:%u.%u.%u.%u) write error",(eptr->peerip>>24)&0xFF,(eptr->peerip>>16)&0xFF,(eptr->peerip>>8)&0xFF,eptr->peerip&0xFF);
 				eptr->mode = KILL;
 			}
 			return;

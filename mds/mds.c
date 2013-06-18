@@ -2,7 +2,7 @@
 #include "datapack.h"
 #include "mds_fs.h"
 
-mdsserventry* mdsservhead = NULL;
+mdsserventry* mdsserv = NULL;
 
 int lsock;
 int lsockpdescpos;

@@ -164,6 +164,7 @@
 #define MIS_PORT_STR "8123"
 
 #define CS_PORT 8310
+#define CS_PORT_STR "8310"
 
 typedef struct ppacket{
   int size;

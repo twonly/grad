@@ -21,8 +21,8 @@
 #include <stdio.h>
 
 #include "random.h"
-#include "mds.h"
-#include "mds_fs.h"
+#include "cscl.h"
+#include "csmds.h"
 
 /* Run Tab */
 typedef int (*runfn)(void);
@@ -31,8 +31,8 @@ struct {
 	char *name;
 } RunTab[]={
 	{rnd_init,"random generator"},
-  {init_fs, "mds_fs init"},
-  {mds_init,"mds init"},
+  {cscl_init,"cscl init"},
+  {csmds_init,"csmds init"},
 	{(runfn)0,"****"}
 },LateRunTab[]={
 	{(runfn)0,"****"}

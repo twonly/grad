@@ -1,5 +1,5 @@
-#ifndef __mds_H__
-#define __mds_H__
+#ifndef __MDS_H__
+#define __MDS_H__
 
 #include <syslog.h>
 #include <errno.h>

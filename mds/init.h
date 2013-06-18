@@ -33,6 +33,7 @@ struct {
 	{rnd_init,"random generator"},
   {init_fs, "mds_fs init"},
   {mds_init,"mds init"},
+  {mdscs_init,"mdscs init"},
 	{(runfn)0,"****"}
 },LateRunTab[]={
 	{(runfn)0,"****"}
