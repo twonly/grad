@@ -57,5 +57,19 @@ int file_append_chunk(ppfile* f,uint64_t id){//should set a limit
     f->clist[f->chunks++] = id;
   }
 
+  f->a.size += CHUNKSIZE;
+
+  return 0;
+}
+
+int file_pop_chunk(ppfile* f,uint64_t* id){
+  if(f->clist == NULL || f->chunks == 0){
+    return -1;
+  }
+
+  f->chunks--;
+  *id = f->clist[f->chunks];
+  f->a.size -= CHUNKSIZE;
+
   return 0;
 }

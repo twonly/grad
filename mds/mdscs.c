@@ -264,7 +264,7 @@ void mdscs_gotpacket(mdscsserventry* eptr,ppacket* p){
       mdscs_register(eptr,p);
       break;
     case CSTOMD_UPDATE_STATUS:
-      //@TODO
+      mdscs_update_status(eptr,p);
       break;
   }
 }
@@ -332,6 +332,10 @@ int mdscs_append_chunk(ppfile* f,mdschunk* c){
   return file_append_chunk(f,c->chunkid);
 }
 
+int mdscs_pop_chunk(ppfile* f,uint64_t* id){
+  return file_pop_chunk(f,id);
+}
+
 void mdscs_register(mdscsserventry* eptr,ppacket* p){
   ppacket* outp;
   const uint8_t* ptr = p->startptr;
@@ -367,4 +371,14 @@ void mdscs_register(mdscsserventry* eptr,ppacket* p){
 
   outp->next = eptr->outpacket;
   eptr->outpacket = outp;
+}
+
+void mdscs_update_status(mdscsserventry* eptr,ppacket* p){
+  ppacket* outp;
+  const uint8_t* ptr = p->startptr;
+  int i;
+
+  eptr->space = get32bit(&ptr);
+  eptr->availspace = get32bit(&ptr);
+  eptr->chunks = get32bit(&ptr);
 }

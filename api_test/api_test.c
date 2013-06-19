@@ -155,11 +155,15 @@ static void chxxx(int sockfd,int ip,char* path,int cmd,int opt){
   free(p);
 }
 
+static char* hexdigit = "0123456789ABCDEF";
+
 int main(void){
   int sockfd = socket(AF_INET,SOCK_STREAM,0);
   int i;
   struct sockaddr_in servaddr;
   char path[100],cmd[100],buf[200];
+  uint32_t csip = 0;
+  uint64_t cid = -1;
 
   if (tcpnodelay(sockfd)<0) {
     fprintf(stderr,"can't set TCP_NODELAY\n");
@@ -323,11 +327,122 @@ int main(void){
       int status = get32bit(&ptr2);
       printf("status:%d\n",status);
       if(status == 0){
-        uint32_t csip = get32bit(&ptr2);
+        csip = get32bit(&ptr2);
+        cid = chunkid;
         printf("csip:%X\n",csip);
       }
     }
+    if(!strcmp(cmd,"pop_chunk")){
+      ppacket* p = createpacket_s(4+strlen(path),CLTOMD_POP_CHUNK,-1);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
+      put32bit(&ptr,strlen(path));
+      memcpy(ptr,path,strlen(path));
+      sendpacket(sockfd,p);
+      free(p);
 
+      p = receivepacket(sockfd);
+      const uint8_t* ptr2 = p->startptr;
+      int status = get32bit(&ptr2);
+      printf("status:%d\n",status);
+      if(status == 0){
+        uint64_t chunkid = get64bit(&ptr2);
+        printf("chunkid=%lld\n",chunkid);
+      }
+    }
+    if(!strcmp(cmd,"read_chunk")){
+      int offset,len;
+
+      offset = atoi(path);
+      scanf("%d",&len);
+
+      if(csip == 0 || cid == -1)
+        goto repeat;
+
+      int cssock = tcpsocket();
+      if (tcpnodelay(cssock)<0) {
+        fprintf(stderr,"can't set TCP_NODELAY\n");
+      }
+
+      if(tcpnumconnect(cssock,csip,CS_PORT) < 0){
+        fprintf(stderr,"can't connect to csip:%X\n",csip);
+        tcpclose(cssock);
+        goto repeat;
+      }
+
+      ppacket* p = createpacket_s(8+4+4,CLTOCS_READ_CHUNK,-1);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
+      put64bit(&ptr,cid);
+      put32bit(&ptr,offset);
+      put32bit(&ptr,len);
+
+      sendpacket(cssock,p);
+      free(p);
+
+      p = receivepacket(cssock);
+      const uint8_t* ptr2 = p->startptr;
+      int status = get32bit(&ptr2);
+      printf("status=%d\n",status);
+      if(status == 0){
+        int rlen =  get32bit(&ptr2);
+        printf("rlen=%d\n",rlen);
+
+        if(rlen > 0){
+          int i;
+          for(i=0;i<rlen;i++){
+            uint8_t c = get8bit(&ptr2);
+            printf("%c%c ",hexdigit[c/16],hexdigit[c % 16]);
+          }
+          printf("\n");
+        }
+      }
+
+      tcpclose(cssock);
+    }
+    if(!strcmp(cmd,"write_chunk")){
+      int offset;
+      uint8_t* wbuf;
+      offset = atoi(path);
+      scanf("%s",path);
+      wbuf = path;
+      int len = strlen(wbuf);
+
+      if(csip == 0 || cid == -1)
+        goto repeat;
+
+      int cssock = tcpsocket();
+      if (tcpnodelay(cssock)<0) {
+        fprintf(stderr,"can't set TCP_NODELAY\n");
+      }
+
+      if(tcpnumconnect(cssock,csip,CS_PORT) < 0){
+        fprintf(stderr,"can't connect to csip:%X\n",csip);
+        tcpclose(cssock);
+        goto repeat;
+      }
+
+      ppacket* p = createpacket_s(8+4+4+len,CLTOCS_WRITE_CHUNK,-1);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
+      put64bit(&ptr,cid);
+      put32bit(&ptr,offset);
+      put32bit(&ptr,len);
+      memcpy(ptr,wbuf,len);
+
+      sendpacket(cssock,p);
+      free(p);
+
+      p = receivepacket(cssock);
+      const uint8_t* ptr2 = p->startptr;
+      int status = get32bit(&ptr2);
+      printf("status=%d\n",status);
+      if(status == 0){
+        int wlen =  get32bit(&ptr2);
+        printf("wlen=%d\n",wlen);
+      }
+
+      tcpclose(cssock);
+    }
+
+repeat:
     printf(">>>");
   }
 

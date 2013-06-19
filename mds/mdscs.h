@@ -44,6 +44,7 @@ mdscsserventry* mdscs_find_serventry(uint64_t chunkid);// is this needed?
 void mdscs_new_chunk(mdschunk** c);
 void mdscs_delete_chunk(uint64_t chunkid);
 int mdscs_append_chunk(ppfile* f,mdschunk* id);
+int mdscs_pop_chunk(ppfile* f,uint64_t* id);
 
 int mdscs_init(void);
 void mdscs_term(void);
@@ -56,5 +57,6 @@ void mdscs_read(mdscsserventry *eptr);
 void mdscs_gotpacket(mdscsserventry* eptr,ppacket* p);
 
 void mdscs_register(mdscsserventry* eptr,ppacket* p);
+void mdscs_update_status(mdscsserventry* eptr,ppacket* p);
 
 #endif

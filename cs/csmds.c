@@ -256,6 +256,20 @@ void csmds_register(csmdsserventry* eptr,ppacket* p){
   }
 }
 
+void csmds_update_status(csmdsserventry* eptr,ppacket* p){
+  ppacket* outp = createpacket_s(4*3,CSTOMD_UPDATE_STATUS,p->id);
+  uint8_t* ptr = outp->startptr + HEADER_LEN;
+
+  int space,availspace,chunks;
+  get_chunk_info(&space,&availspace,&chunks);
+  put32bit(&ptr,space);
+  put32bit(&ptr,availspace);
+  put32bit(&ptr,chunks);
+
+  outp->next = eptr->outpacket;
+  eptr->outpacket = outp;
+}
+
 void csmds_create(csmdsserventry* eptr,ppacket* p){
   uint64_t chunkid;
   const uint8_t* ptr = p->startptr;
@@ -266,7 +280,7 @@ void csmds_create(csmdsserventry* eptr,ppacket* p){
 
   add_chunk(new_chunk(chunkid));
 
-  //@TODO: send update_status to mds
+  csmds_update_status(eptr,p);
 }
 
 void csmds_delete(csmdsserventry* eptr,ppacket* p){
@@ -282,5 +296,5 @@ void csmds_delete(csmdsserventry* eptr,ppacket* p){
   remove_chunk(chunkid);
   free_chunk(c);
 
-  //@TODO: send update_status to mds
+  csmds_update_status(eptr,p);
 }

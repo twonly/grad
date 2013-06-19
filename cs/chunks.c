@@ -2,6 +2,8 @@
 
 #define CHUNKTABSIZE 4651
 
+#define min(a,b) ((a)>(b)?(b):(a))
+
 typedef struct cshash{
   uint64_t key;
   cschunk* data;
@@ -35,7 +37,7 @@ int chunks_init(){
 cschunk* new_chunk(uint64_t chunkid){
   cschunk* ret = (cschunk*)malloc(sizeof(cschunk));
   ret->chunkid = chunkid;
-  ret->buf = (uint8_t*)malloc(CHUNKSIZE);
+  ret->buf = (uint8_t*)calloc(CHUNKSIZE,sizeof(uint8_t));
   ret->occupy = 0;
 
   linklist* n = (linklist*)malloc(sizeof(linklist));
@@ -130,4 +132,28 @@ cschunk* lookup_chunk(uint64_t chunkid){
   }
 
   return NULL;
+}
+
+int read_chunk(cschunk* c,uint8_t* buf,int offset,int len){
+  if(offset < 0) return -1;
+  if(offset >= c->occupy) return 0;
+
+  int readlen = min(c->occupy-offset,len);
+  if(buf != NULL){
+    memcpy(buf,c->buf+offset,readlen);
+  }
+
+  return readlen;
+}
+
+int write_chunk(cschunk* c,const uint8_t* buf,int offset,int len){
+  if(offset < 0 || offset >= CHUNKSIZE) return -1;
+
+  int writelen = min(CHUNKSIZE-offset,len);
+  if(offset + writelen > c->occupy) c->occupy = offset + writelen;
+  if(buf != NULL){
+    memcpy(c->buf+offset,buf,writelen);
+  }
+
+  return writelen;
 }

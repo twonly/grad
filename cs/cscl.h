@@ -13,6 +13,7 @@
 #include "slogger.h"
 #include "massert.h"
 #include "ppcomm.h"
+#include "chunks.h"
 
 typedef struct _csclserventry{
   int sock; 

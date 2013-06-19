@@ -5,6 +5,7 @@
 #include "ppds.h"
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 typedef struct cschunk{
   uint64_t chunkid;
@@ -25,5 +26,8 @@ void free_chunk(cschunk* c);
 void add_chunk(cschunk* c);
 void remove_chunk(uint64_t chunkid);
 cschunk* lookup_chunk(uint64_t chunkid);
+
+int read_chunk(cschunk* c,uint8_t* buf,int offset,int len);
+int write_chunk(cschunk* c,const uint8_t* buf,int offset,int len);
 
 #endif

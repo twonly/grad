@@ -84,6 +84,7 @@ void mds_noop(mdsserventry* eptr,ppacket* p);
 void mds_cl_read_chunk_info(mdsserventry* eptr,ppacket* p);
 void mds_cl_lookup_chunk(mdsserventry* eptr,ppacket* p);
 void mds_cl_append_chunk(mdsserventry* eptr,ppacket* p);
+void mds_cl_pop_chunk(mdsserventry* eptr,ppacket* p);
 
 void mds_fw_read_chunk_info(mdsserventry* eptr,ppacket* p);
 

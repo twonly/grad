@@ -261,9 +261,77 @@ void cscl_gotpacket(csclserventry* eptr,ppacket* p){
 }
 
 void cscl_read_chunk(csclserventry* eptr,ppacket* p){
-  //@TODO
+  uint64_t chunkid;
+  int offset,len;
+  const uint8_t* inptr = p->startptr;
+  ppacket* outp = NULL;
+
+  chunkid = get64bit(&inptr);
+  offset = get32bit(&inptr);
+  len = get32bit(&inptr);
+
+  cschunk* c = lookup_chunk(chunkid);
+  if(c == NULL){
+    outp = createpacket_s(4,CSTOCL_READ_CHUNK,p->id);
+    uint8_t* ptr = outp->startptr + HEADER_LEN;
+    put32bit(&ptr,-ENOENT);
+  } else {
+    uint8_t* buf = (uint8_t*)malloc(len);
+    int rlen = read_chunk(c,buf,offset,len);
+    
+    if(rlen >= 0){
+      outp = createpacket_s(4+4+rlen,CSTOCL_READ_CHUNK,p->id);
+      uint8_t* ptr = outp->startptr + HEADER_LEN;
+      put32bit(&ptr,0);
+      put32bit(&ptr,rlen);
+      if(rlen > 0)
+        memcpy(ptr,buf,rlen);
+    } else {
+      outp = createpacket_s(4,CSTOCL_READ_CHUNK,p->id);
+      uint8_t* ptr = outp->startptr + HEADER_LEN;
+      put32bit(&ptr,rlen);
+    }
+
+    free(buf);
+  }
+
+  if(outp){
+    outp->next = eptr->outpacket;
+    eptr->outpacket = outp;
+  }
 }
 
 void cscl_write_chunk(csclserventry* eptr,ppacket* p){
-  //@TODO
+  uint64_t chunkid;
+  int offset,len;
+  const uint8_t* inptr = p->startptr;
+  ppacket* outp = NULL;
+
+  chunkid = get64bit(&inptr);
+  offset = get32bit(&inptr);
+  len = get32bit(&inptr);
+
+  cschunk* c = lookup_chunk(chunkid);
+  if(c == NULL){
+    outp = createpacket_s(4,CSTOCL_WRITE_CHUNK,p->id);
+    uint8_t* ptr = outp->startptr + HEADER_LEN;
+    put32bit(&ptr,-ENOENT);
+  } else {
+    int ret = write_chunk(c,inptr,offset,len);
+    if(ret >= 0){
+      outp = createpacket_s(4+4,CSTOCL_WRITE_CHUNK,p->id);
+      uint8_t* ptr = outp->startptr + HEADER_LEN;
+      put32bit(&ptr,0);
+      put32bit(&ptr,ret);
+    } else {
+      outp = createpacket_s(4,CSTOCL_WRITE_CHUNK,p->id);
+      uint8_t* ptr = outp->startptr + HEADER_LEN;
+      put32bit(&ptr,ret);
+    }
+  }
+
+  if(outp){
+    outp->next = eptr->outpacket;
+    eptr->outpacket = outp;
+  }
 }

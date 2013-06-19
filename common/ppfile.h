@@ -38,5 +38,6 @@ ppfile* new_file(char* path,attr a);
 void free_file(ppfile*);
 
 int file_append_chunk(ppfile* f,uint64_t id);
+int file_pop_chunk(ppfile* f,uint64_t* id);
 
 #endif

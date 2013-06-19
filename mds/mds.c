@@ -425,7 +425,7 @@ void mds_gotpacket(mdsserventry* eptr,ppacket* p){
       break;
 
     case CLTOMD_POP_CHUNK:
-      //@TODO
+      mds_cl_pop_chunk(eptr,p);
       break;
   }
 
@@ -812,7 +812,7 @@ void mds_cl_lookup_chunk(mdsserventry* eptr,ppacket* p){
 void mds_cl_append_chunk(mdsserventry* eptr,ppacket* p){
   fprintf(stderr,"+mds_cl_append_chunk\n");
 
-  int plen,mdsid,i;
+  int plen,i;
   const uint8_t* ptr = p->startptr;
   ppacket* outp = NULL;
 
@@ -826,10 +826,9 @@ void mds_cl_append_chunk(mdsserventry* eptr,ppacket* p){
   ppfile* f = lookup_file(path);
 
   if(f == NULL){
-    outp = createpacket_s(4+4,MDTOCL_APPEND_CHUNK,p->id);
+    outp = createpacket_s(4,MDTOCL_APPEND_CHUNK,p->id);
     uint8_t* ptr2 = outp->startptr + HEADER_LEN;
     put32bit(&ptr2,-ENOENT);
-    put32bit(&ptr2,mdsid);
   } else {
     mdschunk* c;
     mdscs_new_chunk(&c);
@@ -863,7 +862,7 @@ void mds_cl_append_chunk(mdsserventry* eptr,ppacket* p){
       put32bit(&ptr2,0);
       put64bit(&ptr2,chunkid);
 
-      //@TODO: send update_attr to mis
+      mds_update_attr(p,f);
     }
   }
 
@@ -876,4 +875,57 @@ void mds_cl_append_chunk(mdsserventry* eptr,ppacket* p){
 void mds_fw_read_chunk_info(mdsserventry* eptr,ppacket* p){
   fprintf(stderr,"+mds_fw_read_chunk_info\n");
   mds_direct_pass_cl(eptr,p,MDTOCL_READ_CHUNK_INFO);
+}
+
+void mds_cl_pop_chunk(mdsserventry* eptr,ppacket* p){
+  fprintf(stderr,"+mds_cl_pop_chunk\n");
+
+  const uint8_t* ptr = p->startptr;
+  ppacket* outp = NULL;
+
+  int plen = get32bit(&ptr);
+  char* path = (char*)malloc(plen+10);
+  memcpy(path,ptr,plen);
+  ptr += plen;
+
+  path[plen] = 0;
+  fprintf(stderr,"path=%s\n",path);
+  ppfile* f = lookup_file(path);
+
+  if(f == NULL){
+    outp = createpacket_s(4+4,MDTOCL_POP_CHUNK,p->id);
+    uint8_t* ptr2 = outp->startptr + HEADER_LEN;
+    put32bit(&ptr2,-ENOENT);
+  } else {
+    int ret;
+    uint64_t chunkid;
+
+    ret = mdscs_pop_chunk(f,&chunkid);
+
+    fprintf(stderr,"mdscs_pop_chunk,ret=%d,chunkid=%lld\n",ret,chunkid);
+
+    if(ret != 0){
+      outp = createpacket_s(4,MDTOCL_POP_CHUNK,p->id);
+
+      uint8_t* ptr2 = outp->startptr + HEADER_LEN;
+      put32bit(&ptr2,ret);
+    } else {
+      mdscs_delete_chunk(chunkid);
+
+      int totsize = 4+8;
+
+      outp = createpacket_s(totsize,MDTOCL_POP_CHUNK,p->id);
+      uint8_t* ptr2 = outp->startptr + HEADER_LEN;
+      put32bit(&ptr2,0);
+      put64bit(&ptr2,chunkid);
+
+      //send update_attr to mis
+      mds_update_attr(p,f);
+    }
+  }
+
+  if(outp){
+    outp->next = eptr->outpacket;
+    eptr->outpacket = outp;
+  }
 }
