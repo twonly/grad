@@ -424,7 +424,7 @@ void mds_gotpacket(mdsserventry* eptr,ppacket* p){
       mds_fw_read_chunk_info(eptr,p);
       break;
 
-    case CSTOMD_UPDATE_STATUS:
+    case CLTOMD_POP_CHUNK:
       //@TODO
       break;
   }

@@ -263,6 +263,9 @@ void mdscs_gotpacket(mdscsserventry* eptr,ppacket* p){
     case CSTOMD_REGISTER:
       mdscs_register(eptr,p);
       break;
+    case CSTOMD_UPDATE_STATUS:
+      //@TODO
+      break;
   }
 }
 

@@ -55,6 +55,9 @@
 #define CLTOMD_UNLINK 0x1022
 #define MDTOCL_UNLINK 0x1023
 
+#define CLTOMD_POP_CHUNK 0x1024
+#define MDTOCL_POP_CHUNK 0x1025
+
 //======================================================================================
 
 #define MDTOMI_GETATTR 0x2001
