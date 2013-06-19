@@ -773,6 +773,7 @@ void mis_fw_read_chunk_info(misserventry* eptr,ppacket* p){
   plen = get32bit(&ptr);
   char* path = (char*)malloc(plen+10);
   memcpy(path,ptr,plen);
+  path[plen] = 0;
   ptr += plen;
 
   fprintf(stderr,"path=%s\n",path);

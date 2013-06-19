@@ -52,5 +52,6 @@ void csmds_update_status(csmdsserventry* eptr,ppacket* p);
 void csmds_register(csmdsserventry* eptr,ppacket* p);
 void csmds_create(csmdsserventry* eptr,ppacket* p);
 void csmds_delete(csmdsserventry* eptr,ppacket* p);
+void csmds_fill_chunk(csmdsserventry* eptr,ppacket* p);
 
 #endif

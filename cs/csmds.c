@@ -241,6 +241,8 @@ void csmds_gotpacket(csmdsserventry* eptr,ppacket* p){
     case MDTOCS_DELETE:
       csmds_delete(eptr,p);
       break;
+    case MDTOCS_FILL_CHUNK:
+      csmds_fill_chunk(eptr,p);
   }
 }
 
@@ -297,4 +299,16 @@ void csmds_delete(csmdsserventry* eptr,ppacket* p){
   free_chunk(c);
 
   csmds_update_status(eptr,p);
+}
+
+void csmds_fill_chunk(csmdsserventry* eptr,ppacket* p){
+  uint64_t chunkid;
+  const uint8_t* ptr = p->startptr;
+
+  chunkid = get64bit(&ptr);
+
+  fprintf(stderr,"+csmds_fill_chunk,chunkid=%lld\n",chunkid);
+
+  cschunk* c = lookup_chunk(chunkid);
+  c->occupy = CHUNKSIZE;
 }

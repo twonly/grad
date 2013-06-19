@@ -132,8 +132,7 @@
 
 #define CSTOMD_UPDATE_STATUS 0x3005
 
-//#define MDTOCS_CHUNKOP 0x3005
-//#define CSTOMD_CHUNKOP 0x3006
+#define MDTOCS_FILL_CHUNK 0x3007
 
 //===============================================================
 
