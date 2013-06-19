@@ -874,5 +874,6 @@ void mds_cl_append_chunk(mdsserventry* eptr,ppacket* p){
 }
 
 void mds_fw_read_chunk_info(mdsserventry* eptr,ppacket* p){
+  fprintf(stderr,"+mds_fw_read_chunk_info\n");
   mds_direct_pass_cl(eptr,p,MDTOCL_READ_CHUNK_INFO);
 }

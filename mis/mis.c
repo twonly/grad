@@ -593,8 +593,13 @@ void mis_update_attr(misserventry* eptr,ppacket* inp){ //no need to send back
 
 misserventry* mis_entry_from_ip(int ip){ //maybe add a hash?
   misserventry* eptr = misservhead;
+  
+  fprintf(stderr,"+misserventry:ip=%X\n",ip);
+
   while(eptr){
-    if(eptr->peerip == htonl(ip))
+    fprintf(stderr,"peerip=%X\n",eptr->peerip);
+
+    if(eptr->peerip == ip)
       return eptr;
 
     eptr = eptr->next;
@@ -759,6 +764,8 @@ end:
 }
 
 void mis_fw_read_chunk_info(misserventry* eptr,ppacket* p){
+  fprintf(stderr,"+mis_fw_read_chunk_info\n");
+
   int plen,mdsid,i;
   const uint8_t* ptr = p->startptr;
   ppacket* outp = NULL;
@@ -768,8 +775,12 @@ void mis_fw_read_chunk_info(misserventry* eptr,ppacket* p){
   memcpy(path,ptr,plen);
   ptr += plen;
 
+  fprintf(stderr,"path=%s\n",path);
+
   ppfile* f = lookup_file(path);
   if(f == NULL){
+    fprintf(stderr,"no such file\n");
+
     outp = createpacket_s(4,MITOMD_READ_CHUNK_INFO,p->id);
     uint8_t* ptr2 = outp->startptr + HEADER_LEN;
     put32bit(&ptr2,-ENOENT);
@@ -777,9 +788,13 @@ void mis_fw_read_chunk_info(misserventry* eptr,ppacket* p){
     outp->next = eptr->outpacket;
     eptr->outpacket = outp;
   } else {
+    fprintf(stderr,"locating serventry\n");
+
     misserventry* ceptr = mis_entry_from_ip(f->srcip);
 
     if(ceptr){
+      fprintf(stderr,"forwarding to %X\n",f->srcip);
+
       outp = createpacket_s(p->size+4,CLTOMD_READ_CHUNK_INFO,p->id);
       memcpy(outp->startptr + HEADER_LEN,p->startptr,p->size);
       uint8_t* ptr2 = outp->startptr + HEADER_LEN + p->size;
@@ -794,6 +809,8 @@ void mis_fw_read_chunk_info(misserventry* eptr,ppacket* p){
 }
 
 void mis_rfw_read_chunk_info(misserventry* eptr,ppacket* p){
+  fprintf(stderr,"+mis_rfw_read_chunk_info\n");
+
   const uint8_t* ptr = p->startptr + p->size - 4;
   uint32_t ip = get32bit(&ptr);
 
@@ -803,12 +820,13 @@ void mis_rfw_read_chunk_info(misserventry* eptr,ppacket* p){
     //@TODO: add error handling
   }
 
-  ppacket* outp = createpacket_s(p->size-4,MITOMD_READ_CHUNK_INFO,p->id);
-  memcpy(outp->startptr + HEADER_LEN,p->startptr,p->size-4);
+  ppacket* outp = createpacket_s(p->size,MITOMD_READ_CHUNK_INFO,p->id);
+  memcpy(outp->startptr + HEADER_LEN,p->startptr,p->size);
   ptr = p->startptr;
   int status = get32bit(&ptr);
   if(status == 0){
-    uint8_t* ptr2 = p->startptr + 4;
+    uint8_t* ptr2 = outp->startptr + 4 + HEADER_LEN;
+    fprintf(stderr,"forwarding peerip=%X\n",eptr->peerip);
     put32bit(&ptr2,eptr->peerip);//remote mds
   }
 
