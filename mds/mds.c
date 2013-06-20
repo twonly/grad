@@ -32,7 +32,7 @@ int mds_init(void){
     mfs_errlog_silent(LOG_NOTICE,"mds: can't set accept filter");
   }
 
-	if (tcpstrlisten(lsock,"*",MDS_PORT_STR,100)<0) {
+	if (tcpstrlisten(lsock,"*",MDS_PORT_STR,100)<0) { //listen to client
 		mfs_errlog(LOG_ERR,"mds: can't listen on socket");
 		return -1;
 	}
@@ -49,7 +49,7 @@ int mds_init(void){
   }
 
   fprintf(stderr,"connecting to %u.%u.%u.%u:%d\n",(misip>>24)&0xFF,(misip>>16)&0xFF,(misip>>8)&0xFF,misip&0xFF,misport);
-  if (tcpnumconnect(msock,misip,misport)<0) {
+  if (tcpnumconnect(msock,misip,misport)<0) { //connect to mis
     fprintf(stderr,"can't connect to mis (\"%X\":\"%"PRIu16"\")\n",misip,misport);
     tcpclose(msock);
     return -1;
@@ -69,7 +69,7 @@ int mds_init(void){
   eptr->bytesleft = HEADER_LEN;
   eptr->startptr = eptr->headbuf;
 
-  mdtomi = eptr;
+  mdtomi = eptr; //should not be the same link
 
 	main_destructregister(mds_term);
   main_destructregister(term_fs);
@@ -150,26 +150,26 @@ void mds_serve(struct pollfd *pdesc) {
 	}
 
 	mdsserventry** kptr = &mdsservhead;
-	while ((eptr=*kptr)) {
-		if (eptr->mode == KILL) {
-			tcpclose(eptr->sock);
+    while ((eptr=*kptr)) {
+        if (eptr->mode == KILL) {
+            tcpclose(eptr->sock);
 
-      ppacket *pp,*ppn;
-      for( pp = eptr->inpacket; pp; pp = ppn){
-        ppn = pp->next;
-        free(pp);
-      }
-      for( pp = eptr->outpacket; pp; pp = ppn){
-        ppn = pp->next;
-        free(pp);
-      }
+            ppacket *pp,*ppn;
+            for( pp = eptr->inpacket; pp; pp = ppn){
+                ppn = pp->next;
+                free(pp);
+            }
+            for( pp = eptr->outpacket; pp; pp = ppn){
+                ppn = pp->next;
+                free(pp);
+            }
 
-			*kptr = eptr->next;
-			free(eptr);
-		} else {
-			kptr = &(eptr->next);
-		}
-	}
+            *kptr = eptr->next;
+            free(eptr);
+        } else {
+            kptr = &(eptr->next);
+        }
+    }
 
   if(mdtomi->mode == KILL){//Oops
     fprintf(stderr,"connection to mis closed\n");
@@ -485,9 +485,9 @@ static void mds_update_attr(ppacket* p,ppfile* f){
 void mds_getattr(mdsserventry* eptr,ppacket* p){
   int plen;
   const uint8_t* ptr = p->startptr;
-
   plen = get32bit(&ptr);
-  char* path = (char*)malloc(plen+10);
+  syslog(LOG_WARNING, "mds_getattr: %u", plen);
+  char* path = (char*)malloc(plen+1);
   memcpy(path,ptr,plen);
   path[plen] = 0;
 
@@ -689,27 +689,52 @@ void mds_cl_chgrp(mdsserventry* eptr,ppacket* inp){
 }
 
 void mds_create(mdsserventry* eptr,ppacket* p){
-  int plen;
-  const uint8_t* ptr = p->startptr;
+    int plen;
+    const uint8_t* ptr = p->startptr;
 
-  plen = get32bit(&ptr);
-  char* path = (char*)malloc(plen+10);
-  memcpy(path,ptr,plen);
-  path[plen] = 0;
+    plen = get32bit(&ptr);
+    char* path = (char*)malloc(plen+10);
+    memcpy(path,ptr,plen);
+    path[plen] = 0;
+    ptr += plen;
+    mode_t mt = get32bit(&ptr);
 
-  fprintf(stderr,"path:%s\n",path);
+    fprintf(stderr,"path:%s\n",path);
+    ppfile* f = lookup_file(path);
+    if(f == NULL){ //not exist, create
+        attr a;
+        a.uid = a.gid = 0;
+        a.atime = a.ctime = a.mtime = time(NULL);
+        a.link = 1;
+        a.size = 0;
+        //a.mode = 0777 | S_IFREG;
+        a.mode = mt | S_IFREG; //no umask
+        add_file(new_file(path,a));
+        fprintf(stderr,"add file path:%s\n",path);
 
-  attr a;
+        //ppacket* outp = createpacket_s(4, MDTOCL_CREATE,p->id);
+        //uint8_t *ptr2 = outp->startptr + HEADER_LEN;
+        //put32bit(&ptr2,0); //status
+//
+//        outp->next = eptr->outpacket;
+//        eptr->outpacket = outp;
 
-  a.uid = a.gid = 0;
-  a.atime = a.ctime = a.mtime = time(NULL);
-  a.link = 1;
-  a.size = 0;
+        ppacket* outpi = createpacket_s(p->size,MDTOMI_CREATE,p->id);
+        memcpy(outpi->startptr+HEADER_LEN,p->startptr,p->size);
 
-  a.mode = 0777 | S_IFREG;
-  add_file(new_file(path,a));
+        outpi->next = mdtomi->outpacket;
+        mdtomi->outpacket = outpi;
+    } else { //already exist, return EEXIST
+        ppacket* outp2 = createpacket_s(4, MDTOCL_CREATE, p->id);
+        uint8_t *ptr3 = outp2->startptr + HEADER_LEN;
+        put32bit(&ptr3, -EEXIST);
+        fprintf(stderr,"file path:%s exist; status :%d\n",path, -EEXIST);
+        outp2->next = eptr->outpacket;
+        eptr->outpacket = outp2;
+    }
+    free(path);
+    //mds_direct_pass_mi(p,MDTOMI_CREATE);
 
-  mds_direct_pass_mi(p,MDTOMI_CREATE);
 }
 
 void mds_cl_create(mdsserventry* eptr,ppacket* inp){
