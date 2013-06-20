@@ -428,7 +428,7 @@ void mis_create(misserventry* eptr,ppacket* inp){
     put32bit(&ptr,-EEXIST);
 
     goto end;
-  } else {
+  } else { //find the parent directory
     char* dir;
     if(len > 1){
       dir = &path[len-1];
@@ -444,7 +444,7 @@ void mis_create(misserventry* eptr,ppacket* inp){
 
     printf("dir=%s\n",dir);
     f = lookup_file(dir);
-    if(!f){
+    if(!f){ //always can't find f
       p = createpacket_s(4,MITOMD_CREATE,inp->id);
       uint8_t* ptr = p->startptr + HEADER_LEN;
       put32bit(&ptr,-ENOENT);
@@ -452,7 +452,7 @@ void mis_create(misserventry* eptr,ppacket* inp){
       free(dir);
       goto end;
     } else {
-      if(!S_ISDIR(f->a.mode)){
+      if(!S_ISDIR(f->a.mode)){ //exist but not directory
         p = createpacket_s(4,MITOMD_CREATE,inp->id);
         uint8_t* ptr = p->startptr + HEADER_LEN;
         put32bit(&ptr,-ENOTDIR);
@@ -478,9 +478,12 @@ void mis_create(misserventry* eptr,ppacket* inp){
 
     nf->srcip = eptr->peerip;
 
-    p = createpacket_s(4,MITOMD_CREATE,inp->id);
+    p = createpacket_s(4+strlen(path)+4,MITOMD_CREATE,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr,0);
+    put32bit(&ptr,strlen(path));
+    memcpy(ptr, path, strlen(path));
+    ptr += strlen(path);
 
     free(dir);
   }
@@ -640,13 +643,13 @@ void mis_chmod(misserventry* eptr,ppacket* inp){
 
     p = createpacket_s(4,MITOMD_CHMOD,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
-    put32bit(&ptr,0);
+    put32bit(&ptr,0); //status
 
     if(f->srcip != eptr->peerip){//update mds info
       misserventry* ceptr = mis_entry_from_ip(f->srcip);
 
       if(ceptr){
-        ppacket* outp = createpacket_s(inp->size,CLTOMD_CHMOD,inp->id);
+        ppacket* outp = createpacket_s(inp->size,CLTOMD_CHMOD,inp->id); //forward the msg to dest mds
         memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
 
         outp->next = ceptr->outpacket;

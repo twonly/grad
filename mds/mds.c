@@ -701,16 +701,16 @@ void mds_create(mdsserventry* eptr,ppacket* p){
 
     fprintf(stderr,"path:%s\n",path);
     ppfile* f = lookup_file(path);
-    if(f == NULL){ //not exist, create
-        attr a;
-        a.uid = a.gid = 0;
-        a.atime = a.ctime = a.mtime = time(NULL);
-        a.link = 1;
-        a.size = 0;
-        //a.mode = 0777 | S_IFREG;
-        a.mode = mt | S_IFREG; //no umask
-        add_file(new_file(path,a));
-        fprintf(stderr,"add file path:%s\n",path);
+    if(f == NULL){ //not exist, ask MIS
+//        attr a;
+//        a.uid = a.gid = 0;
+//        a.atime = a.ctime = a.mtime = time(NULL);
+//        a.link = 1;
+//        a.size = 0;
+//        //a.mode = 0777 | S_IFREG;
+//        a.mode = mt | S_IFREG; //no umask
+//        add_file(new_file(path,a));
+//        fprintf(stderr,"add file path:%s\n",path);
 
         //ppacket* outp = createpacket_s(4, MDTOCL_CREATE,p->id);
         //uint8_t *ptr2 = outp->startptr + HEADER_LEN;
@@ -718,8 +718,9 @@ void mds_create(mdsserventry* eptr,ppacket* p){
 //
 //        outp->next = eptr->outpacket;
 //        eptr->outpacket = outp;
+        fprintf(stderr,"inquery MIS path:%s\n",path);
 
-        ppacket* outpi = createpacket_s(p->size,MDTOMI_CREATE,p->id);
+        ppacket* outpi = createpacket_s(p->size,MDTOMI_CREATE,p->id); //inquery MIS
         memcpy(outpi->startptr+HEADER_LEN,p->startptr,p->size);
 
         outpi->next = mdtomi->outpacket;
@@ -738,6 +739,33 @@ void mds_create(mdsserventry* eptr,ppacket* p){
 }
 
 void mds_cl_create(mdsserventry* eptr,ppacket* inp){
+    //handle the message
+    const uint8_t *ptr = inp->startptr;
+    int status = get32bit(&ptr);
+    
+    if(status==0) { //create locally
+        int plen = get32bit(&ptr);
+        char *path = (char*)malloc((plen+1)*sizeof(char));
+        memcpy(path, ptr, plen);
+        path[plen] = 0;
+        ptr += plen;
+        fprintf(stderr,"mds create path:%s locally\n",path );
+        attr a;
+        a.uid = a.gid = 0;
+        a.atime = a.ctime = a.mtime = time(NULL);
+        a.link = 1;
+        a.size = 0;
+        a.mode = 0777 | S_IFREG;
+        ppfile* nf = new_file(path,a);
+        add_file(nf);
+        //nf->next = f->child; //should mds maintain the edges?
+        //f->child = nf;
+        nf->srcip = eptr->peerip;
+
+        //p = createpacket_s(4,MITOMD_CREATE,inp->id);
+        //uint8_t* ptr = p->startptr + HEADER_LEN;
+        //put32bit(&ptr,0);
+    }
   mds_direct_pass_cl(eptr,inp,MDTOCL_CREATE);
 }
 
