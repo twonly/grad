@@ -112,8 +112,8 @@ static struct fuse_operations ppfs_oper = {
 	.unlink		= ppfs_unlink,
 	.mkdir		= ppfs_mkdir,
 	.rmdir		= ppfs_rmdir,
-	.symlink	= ppfs_symlink,
-	.readlink	= ppfs_readlink,
+	//.symlink	= ppfs_symlink,
+	//.readlink	= ppfs_readlink,
 	.rename		= ppfs_rename,
 	.link		= ppfs_link,
 	.opendir	= ppfs_opendir,
@@ -122,8 +122,8 @@ static struct fuse_operations ppfs_oper = {
 	.create		= ppfs_create,
 	.open		= ppfs_open, //called before read
 	.release	= ppfs_release,
-	.flush		= ppfs_flush,
-	.fsync		= ppfs_fsync,
+	//.flush		= ppfs_flush,
+	//.fsync		= ppfs_fsync,
 	.read		= ppfs_read,
 	.write		= ppfs_write,
 	.access		= ppfs_access,
@@ -308,6 +308,7 @@ int	ppfs_create (const char *path, mode_t mt, struct fuse_file_info *fi){
     syslog(LOG_WARNING, "ppfs_create path : %s", path);
     
 }
+
 int	ppfs_flush (const char *path, struct fuse_file_info *fi){}
 int	ppfs_fsync (const char *path, int i, struct fuse_file_info *fi){}
 int	ppfs_read (const char * path, char * buf, size_t size, off_t offset, struct fuse_file_info *fi){
