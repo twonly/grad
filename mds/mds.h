@@ -72,6 +72,8 @@ void mds_cl_chown(mdsserventry* eptr,ppacket* p);
 void mds_chgrp(mdsserventry* eptr,ppacket* p);
 void mds_cl_chgrp(mdsserventry* eptr,ppacket* p);
 
+void mds_mkdir(mdsserventry* eptr,ppacket* inp);
+void mds_cl_mkdir(mdsserventry* eptr,ppacket* inp);
 void mds_create(mdsserventry* eptr,ppacket* inp);
 void mds_cl_create(mdsserventry* eptr,ppacket* inp);
 

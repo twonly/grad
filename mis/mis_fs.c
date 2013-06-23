@@ -27,11 +27,14 @@ static void node_free(hashnode* n){
 void add_file(ppfile* f){
   unsigned int k = strhash(f->path) % HASHSIZE;
 
-  if(tab[k] != NULL)
-    if(!strcmp(f->path,tab[k]->key))
-      return;
+  hashnode *it = tab[k];
+  while (it != NULL) {
+    if(!strcmp(f->path,it->key))  //??? path as key
+        return;
+    it = it->next;
+  }
 
-  hashnode* n = node_new(f);
+  hashnode* n = node_new(f); // f as data?
   n->next = tab[k];
   tab[k] = n;
 }

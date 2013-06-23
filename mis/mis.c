@@ -283,6 +283,9 @@ void mis_gotpacket(misserventry* eptr,ppacket* p){
     case MDTOMI_READDIR:
       mis_readdir(eptr,p);
       break;
+    case MDTOMI_MKDIR:
+      mis_mkdir(eptr,p);
+      break;
     case MDTOMI_CREATE:
       mis_create(eptr,p);
       break;
@@ -411,6 +414,106 @@ void mis_readdir(misserventry* eptr,ppacket* inp){
   eptr->outpacket = p;
 }
 
+void mis_mkdir(misserventry* eptr,ppacket* inp){
+  fprintf(stderr,"+mis_mkdir\n");
+
+  ppacket* p;
+  char* path;
+  int len;
+  const uint8_t* inptr;
+  int i;
+
+  inptr = inp->startptr;
+  len = get32bit(&inptr);
+  printf("plen=%d\n",len);
+
+  path = (char*)malloc((len+1)*sizeof(char));
+  memcpy(path,inptr,len*sizeof(char));
+  path[len] = 0;
+  inptr += len;
+  mode_t mt = get32bit(&inptr);
+
+  printf("path=%s\n",path);
+
+  ppfile* f = lookup_file(path);
+  if(f){
+    fprintf(stderr,"directory exists\n");
+
+    p = createpacket_s(4,MITOMD_MKDIR,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,-EEXIST);
+
+    goto end;
+  } else { //find the parent directory
+    char* dir;
+    if(len > 1){
+      dir = &path[len-1];
+      while(dir >= path && *dir != '/') dir--;
+
+      int dirlen = dir - path;
+      if( dirlen==0 ) dirlen+=1; //for /dir
+      dir = strdup(path);
+      dir[dirlen] = 0;
+    } else {
+      dir = strdup("/"); //never pass through here
+    }
+
+
+    printf("dir=%s\n",dir); //parent dir
+    f = lookup_file(dir);
+    if(!f){ //always can't find f
+      p = createpacket_s(4,MITOMD_MKDIR,inp->id);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
+      put32bit(&ptr,-ENOENT);
+      
+      free(dir);
+      goto end;
+    } else {
+      if(!S_ISDIR(f->a.mode)){ //exist but not directory
+        p = createpacket_s(4,MITOMD_MKDIR,inp->id);
+        uint8_t* ptr = p->startptr + HEADER_LEN;
+        put32bit(&ptr,-ENOTDIR);
+
+        free(dir);
+        goto end;
+      }
+    }
+
+    attr a;
+
+    a.uid = a.gid = 0;
+    a.atime = a.ctime = a.mtime = time(NULL);
+    a.link = 2;
+    a.size = 0;
+
+    a.mode = mt; //| S_IFREG; //use mode from client
+    syslog(LOG_WARNING, "mis_mode : %o", mt);
+
+    ppfile* nf = new_file(path,a);
+    add_file(nf); //  like "/dir"
+    nf->next = f->child;
+    f->child = nf;
+
+    nf->srcip = eptr->peerip; //not necessary for dir
+
+    p = createpacket_s(4+strlen(path)+4+4,MITOMD_MKDIR,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,0);
+    put32bit(&ptr,strlen(path));
+    memcpy(ptr, path, strlen(path));
+    ptr += strlen(path);
+    syslog(LOG_WARNING, "mis_mode sent to mds: %o", mt);
+    put32bit(&ptr, mt);
+
+    free(dir);
+  }
+
+end:
+  free(path);
+  p->next = eptr->outpacket;
+  eptr->outpacket = p;
+}
+
 void mis_create(misserventry* eptr,ppacket* inp){
   fprintf(stderr,"+mis_create\n");
 
@@ -447,7 +550,8 @@ void mis_create(misserventry* eptr,ppacket* inp){
       dir = &path[len-1];
       while(dir >= path && *dir != '/') dir--;
 
-      int dirlen = dir - path+1;
+      int dirlen = dir - path;
+      if(dirlen==0) dirlen+=1;
       dir = strdup(path);
       dir[dirlen] = 0;
     } else {

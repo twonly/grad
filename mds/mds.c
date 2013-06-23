@@ -397,6 +397,13 @@ void mds_gotpacket(mdsserventry* eptr,ppacket* p){
       mds_cl_chgrp(eptr,p);
       break;
 
+    case CLTOMD_MKDIR:
+      mds_mkdir(eptr, p);
+      break;
+    case MITOMD_MKDIR:
+      mds_cl_mkdir(eptr, p);
+      break;
+
     case CLTOMD_CREATE:
       mds_create(eptr,p);
       break;
@@ -531,22 +538,31 @@ void mds_readdir(mdsserventry* eptr,ppacket* p){
   fprintf(stderr,"path:%s\n",path);
 
   ppfile* f = lookup_file(path);
-  if(f == NULL){
+  if(f == NULL){ // "/" ?
     fprintf(stderr,"path:%s can't be found\n",path);
     ppacket* outp = createpacket_s(p->size,MDTOMI_READDIR,p->id);
     memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
 
     outp->next = mdtomi->outpacket;
     mdtomi->outpacket = outp;
-  } else {
-    fprintf(stderr,"path:%s is found, but it's not dir\n",path);
-    ppacket* outp = createpacket_s(4,MDTOCL_READDIR,p->id);
-    uint8_t* ptr2 = outp->startptr+HEADER_LEN;
-    
-    put32bit(&ptr2,-ENOTDIR);
+  } else { // find a file instead of a directory
+    if( S_ISDIR((f->a).mode) ) {
+        fprintf(stderr,"dir: %s is found\n",path);
+        ppacket* outp = createpacket_s(p->size,MDTOMI_READDIR,p->id);
+        memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
 
-    outp->next = eptr->outpacket;
-    eptr->outpacket = outp;
+        outp->next = mdtomi->outpacket;
+        mdtomi->outpacket = outp;
+    } else {
+        fprintf(stderr,"file: %s is found\n",path);
+        ppacket* outp = createpacket_s(4,MDTOCL_READDIR,p->id);
+        uint8_t* ptr2 = outp->startptr+HEADER_LEN;
+
+        put32bit(&ptr2,-ENOTDIR);
+
+        outp->next = eptr->outpacket;
+        eptr->outpacket = outp;
+    }
   }
 
   free(path);
@@ -691,6 +707,68 @@ void mds_cl_chgrp(mdsserventry* eptr,ppacket* inp){
   mds_direct_pass_cl(eptr,inp,MDTOCL_CHGRP);
 }
 
+void mds_mkdir(mdsserventry* eptr,ppacket* p){
+    int plen;
+    const uint8_t* ptr = p->startptr;
+
+    plen = get32bit(&ptr);
+    char* path = (char*)malloc(plen+1);
+    memcpy(path,ptr,plen);
+    path[plen] = 0;
+    ptr += plen;
+    mode_t mt = get32bit(&ptr);
+
+    fprintf(stderr,"path:%s\n",path);
+    fprintf(stderr,"mode:%o\n",mt);
+    ppfile* f = lookup_file(path); //find the new dir
+    if(f == NULL){ //not exist, ask MIS
+        fprintf(stderr,"inquery MIS directory:%s\n",path);
+        ppacket* outpi = createpacket_s(p->size,MDTOMI_MKDIR,p->id); //inquery MIS
+        memcpy(outpi->startptr+HEADER_LEN,p->startptr,p->size);
+
+        outpi->next = mdtomi->outpacket;
+        mdtomi->outpacket = outpi;
+    } else { //already exist, return EEXIST
+        ppacket* outp2 = createpacket_s(4, MDTOCL_MKDIR, p->id);
+        uint8_t *ptr3 = outp2->startptr + HEADER_LEN;
+        put32bit(&ptr3, -EEXIST);
+        fprintf(stderr,"directory path:%s exist; status :%d\n",path, -EEXIST);
+        outp2->next = eptr->outpacket;
+        eptr->outpacket = outp2;
+    }
+    free(path);
+}
+
+void mds_cl_mkdir(mdsserventry* eptr,ppacket* inp){
+    //handle the message
+    const uint8_t *ptr = inp->startptr;
+    int status = get32bit(&ptr);
+    
+    if(status==0) { //mkdir locally
+        int plen = get32bit(&ptr);
+        char *path = (char*)malloc((plen+1)*sizeof(char));
+        memcpy(path, ptr, plen);
+        path[plen] = 0;
+        ptr += plen;
+        mode_t mt = get32bit(&ptr);
+        syslog(LOG_WARNING, "mds_cl_mkdir mode : %o", mt);
+        fprintf(stderr,"mds mkdir path:%s locally\n",path );
+        attr a;
+        a.uid = a.gid = 0;
+        a.atime = a.ctime = a.mtime = time(NULL);
+        a.link = 2;
+        a.size = 0;
+        //a.mode = 0777 | S_IFREG;
+        a.mode = mt;
+        ppfile* nf = new_file(path,a);
+        add_file(nf);
+        //nf->next = f->child; //should mds maintain the edges?
+        //f->child = nf;
+        nf->srcip = eptr->peerip;
+    }
+    mds_direct_pass_cl(eptr,inp,MDTOCL_MKDIR);
+}
+
 void mds_create(mdsserventry* eptr,ppacket* p){
     int plen;
     const uint8_t* ptr = p->startptr;
@@ -706,22 +784,6 @@ void mds_create(mdsserventry* eptr,ppacket* p){
     fprintf(stderr,"mode:%o\n",mt);
     ppfile* f = lookup_file(path);
     if(f == NULL){ //not exist, ask MIS
-//        attr a;
-//        a.uid = a.gid = 0;
-//        a.atime = a.ctime = a.mtime = time(NULL);
-//        a.link = 1;
-//        a.size = 0;
-//        //a.mode = 0777 | S_IFREG;
-//        a.mode = mt | S_IFREG; //no umask
-//        add_file(new_file(path,a));
-//        fprintf(stderr,"add file path:%s\n",path);
-
-        //ppacket* outp = createpacket_s(4, MDTOCL_CREATE,p->id);
-        //uint8_t *ptr2 = outp->startptr + HEADER_LEN;
-        //put32bit(&ptr2,0); //status
-//
-//        outp->next = eptr->outpacket;
-//        eptr->outpacket = outp;
         fprintf(stderr,"inquery MIS path:%s\n",path);
 
         ppacket* outpi = createpacket_s(p->size,MDTOMI_CREATE,p->id); //inquery MIS
@@ -739,7 +801,6 @@ void mds_create(mdsserventry* eptr,ppacket* p){
     }
     free(path);
     //mds_direct_pass_mi(p,MDTOMI_CREATE);
-
 }
 
 void mds_cl_create(mdsserventry* eptr,ppacket* inp){
@@ -768,10 +829,6 @@ void mds_cl_create(mdsserventry* eptr,ppacket* inp){
         //nf->next = f->child; //should mds maintain the edges?
         //f->child = nf;
         nf->srcip = eptr->peerip;
-
-        //p = createpacket_s(4,MITOMD_CREATE,inp->id);
-        //uint8_t* ptr = p->startptr + HEADER_LEN;
-        //put32bit(&ptr,0);
     }
   mds_direct_pass_cl(eptr,inp,MDTOCL_CREATE);
 }

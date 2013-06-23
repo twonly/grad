@@ -108,37 +108,21 @@ static struct fuse_operations ppfs_oper = {
 	.init       = ppfs_fsinit, //connect to mds
 	//.statfs		= ppfs_statfs,
 	.getattr	= ppfs_getattr,
-<<<<<<< HEAD
-	//.setattr	= ppfs_setattr,
 	//.mknod		= ppfs_mknod,
-	//.unlink		= ppfs_unlink,
-	//.mkdir		= ppfs_mkdir,
-	//.rmdir		= ppfs_rmdir,
-	//.symlink	= ppfs_symlink, 
-	//.readlink	= ppfs_readlink,
-	//.rename		= ppfs_rename,
-	//.link		= ppfs_link,
-	//.opendir	= ppfs_opendir,
-=======
-	.mknod		= ppfs_mknod,
 	.unlink		= ppfs_unlink,
 	.mkdir		= ppfs_mkdir,
 	.rmdir		= ppfs_rmdir,
 	//.symlink	= ppfs_symlink,
 	//.readlink	= ppfs_readlink,
 	.rename		= ppfs_rename,
-	.link		= ppfs_link,
+	//.link		= ppfs_link,
 	.opendir	= ppfs_opendir,
->>>>>>> 20b3f12daaec2a41ccb8d3dfb37537579ca0470c
 	.readdir	= ppfs_readdir,
 	//.releasedir	= ppfs_releasedir,
 	.create		= ppfs_create, //replace mknod and open
 	.open		= ppfs_open, //called before read
-<<<<<<< HEAD
 	//.release	= ppfs_release,
-=======
 	.release	= ppfs_release,
->>>>>>> 20b3f12daaec2a41ccb8d3dfb37537579ca0470c
 	//.flush		= ppfs_flush,
 	//.fsync		= ppfs_fsync,
 	.read		= ppfs_read,
@@ -203,7 +187,7 @@ int ppfs_getattr(const char* path, struct stat* stbuf){
             } else {
                 syslog(LOG_WARNING, "a->mode: %o", a->mode);
                 stbuf->st_mode = a->mode; //S_IFREG | 0755;
-                stbuf->st_nlink = 1;
+                stbuf->st_nlink = a->link;
                 stbuf->st_size = strlen(hello_str);
             }
             //stbuf->st_mode = a->mode;
@@ -240,7 +224,27 @@ int ppfs_mknod(const char* path, mode_t mt, dev_t dt){
     syslog(LOG_WARNING, "ppfs_mknod path : %s", path);
     return 0;
 }
-int ppfs_mkdir(const char* path, mode_t mt){}
+int ppfs_mkdir(const char* path, mode_t mt){
+    syslog(LOG_WARNING, "ppfs_mkdir path : %s", path);
+    mt |= S_IFDIR;
+    syslog(LOG_WARNING, "ppfs_create mode : %o", mt);
+    ppacket* p = createpacket_s(4+strlen(path)+4,CLTOMD_MKDIR,-1);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,strlen(path));
+    memcpy(ptr,path,strlen(path));
+    ptr += strlen(path);
+    put32bit(&ptr, mt);
+    sendpacket(fd,p);
+    free(p);
+
+    p = receivepacket(fd);
+    const uint8_t* ptr2 = p->startptr;
+    int status = get32bit(&ptr2);
+    printf("status:%d\n",status);
+    syslog(LOG_WARNING, "mkdir status:%d", status);
+    free(p);
+    return status;
+}
 int ppfs_link(const char* path, const char* path2 ){}
 int ppfs_opendir(const char* path, struct fuse_file_info* fi){
     syslog(LOG_WARNING, "ppfs_opendir path : %s", path);
@@ -388,11 +392,7 @@ int	ppfs_flush (const char *path, struct fuse_file_info *fi){
     syslog(LOG_WARNING, "ppfs_flush path : %s", path);
     return 0;
 }
-<<<<<<< HEAD
-=======
 
-int	ppfs_flush (const char *path, struct fuse_file_info *fi){}
->>>>>>> 20b3f12daaec2a41ccb8d3dfb37537579ca0470c
 int	ppfs_fsync (const char *path, int i, struct fuse_file_info *fi){}
 int	ppfs_read (const char * path, char * buf, size_t size, off_t offset, struct fuse_file_info *fi){
     size_t len;
