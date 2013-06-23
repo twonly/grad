@@ -404,6 +404,13 @@ void mds_gotpacket(mdsserventry* eptr,ppacket* p){
       mds_cl_mkdir(eptr, p);
       break;
 
+    case CLTOMD_UNLINK:
+      mds_unlink(eptr,p);
+      break;
+    case MITOMD_UNLINK:
+      mds_cl_unlink(eptr,p);
+      break;
+
     case CLTOMD_CREATE:
       mds_create(eptr,p);
       break;
@@ -545,7 +552,7 @@ void mds_readdir(mdsserventry* eptr,ppacket* p){
 
     outp->next = mdtomi->outpacket;
     mdtomi->outpacket = outp;
-  } else { // find a file instead of a directory
+  } else { 
     if( S_ISDIR((f->a).mode) ) {
         fprintf(stderr,"dir: %s is found\n",path);
         ppacket* outp = createpacket_s(p->size,MDTOMI_READDIR,p->id);
@@ -769,6 +776,42 @@ void mds_cl_mkdir(mdsserventry* eptr,ppacket* inp){
     mds_direct_pass_cl(eptr,inp,MDTOCL_MKDIR);
 }
 
+void mds_unlink(mdsserventry* eptr,ppacket* p){
+    int plen;
+    const uint8_t* ptr = p->startptr;
+
+    plen = get32bit(&ptr);
+    char* path = (char*)malloc(plen+10);
+    memcpy(path,ptr,plen);
+    path[plen] = 0;
+    ptr += plen;
+
+    fprintf(stderr,"path:%s\n",path);
+    ppfile* f = lookup_file(path);
+    if(f == NULL){ //not exist, ask MIS
+        fprintf(stderr,"inquery MIS path:%s\n",path);
+        ppacket* outpi = createpacket_s(p->size,MDTOMI_UNLINK,p->id); //inquery MIS
+        memcpy(outpi->startptr+HEADER_LEN,p->startptr,p->size);
+
+        outpi->next = mdtomi->outpacket;
+        mdtomi->outpacket = outpi;
+    } else { //exist, unlink locally and tell MIS to unlink too
+        remove_file(f); //remove from the path list
+        free_file(f); //free the memory
+        fprintf(stderr,"unlink file path:%s exist; tell MIS\n",path );
+        ppacket* outpi = createpacket_s(p->size,MDTOMI_UNLINK,p->id); //tell MIS
+        memcpy(outpi->startptr+HEADER_LEN,p->startptr,p->size);
+
+        outpi->next = mdtomi->outpacket;
+        mdtomi->outpacket = outpi;
+    }
+    free(path);
+    //mds_direct_pass_mi(p,MDTOMI_CREATE);
+}
+
+void mds_cl_unlink(mdsserventry* eptr,ppacket* inp){
+  mds_direct_pass_cl(eptr,inp,MDTOCL_UNLINK);
+}
 void mds_create(mdsserventry* eptr,ppacket* p){
     int plen;
     const uint8_t* ptr = p->startptr;

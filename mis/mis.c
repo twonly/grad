@@ -286,6 +286,9 @@ void mis_gotpacket(misserventry* eptr,ppacket* p){
     case MDTOMI_MKDIR:
       mis_mkdir(eptr,p);
       break;
+    case MDTOMI_UNLINK:
+      mis_unlink(eptr,p);
+      break;
     case MDTOMI_CREATE:
       mis_create(eptr,p);
       break;
@@ -514,6 +517,99 @@ end:
   eptr->outpacket = p;
 }
 
+void mis_unlink(misserventry* eptr,ppacket* inp){
+  fprintf(stderr,"+mis_unlink\n");
+
+  ppacket* p;
+  char* path;
+  int len;
+  const uint8_t* inptr;
+  int i;
+
+  inptr = inp->startptr;
+  len = get32bit(&inptr);
+  printf("plen=%d\n",len);
+
+  path = (char*)malloc((len+1)*sizeof(char));
+  memcpy(path,inptr,len*sizeof(char));
+  path[len] = 0;
+  inptr += len;
+
+  printf("path=%s\n",path);
+
+  ppfile* f = lookup_file(path);
+  if(f){
+    fprintf(stderr,"file exists, unlink it\n");
+
+    // No need to check the parent dir
+    char* dir;
+    if(len > 1){
+      dir = &path[len-1];
+      while(dir >= path && *dir != '/') dir--;
+
+      int dirlen = dir - path;
+      if(dirlen==0) dirlen+=1;
+      dir = strdup(path);
+      dir[dirlen] = 0;
+    } else {
+      dir = strdup("/");
+    }
+
+    printf("dir=%s\n",dir);
+    ppfile* pf = lookup_file(dir); //must always exist as a directory
+    if(!pf){ //parent dir not exist
+      p = createpacket_s(4,MITOMD_UNLINK,inp->id);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
+      put32bit(&ptr,-ENOENT);
+      free(dir);
+      goto end;
+    } else {
+      if(!S_ISDIR(pf->a.mode)){ //exist but not directory
+        p = createpacket_s(4,MITOMD_UNLINK,inp->id);
+        uint8_t* ptr = p->startptr + HEADER_LEN;
+        put32bit(&ptr,-ENOTDIR);
+        free(dir);
+        goto end;
+      }
+    }
+    //remove_child(pf, f);
+    ppfile *it = pf->child;
+    ppfile *pre = NULL; //pf->child;
+    while( it ) {
+        if(!strcmp(it->path, f->path)) {
+            if(!pre) { //first node
+                pf->child = it->next;
+                remove_file(it);
+                free_file(it);
+            } else {
+                pre->next = it->next;
+                remove_file(it);
+                free_file(it);
+            }
+            break;
+        } else {
+            pre = it;
+            it = it->next;
+        }
+    }
+    p = createpacket_s(4,MITOMD_UNLINK,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr, 0);
+
+    free(dir);
+
+  } else { //not exist
+    fprintf(stderr,"file not exists\n");
+    p = createpacket_s(4,MITOMD_UNLINK,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr, -ENOENT);
+  }
+
+end:
+  free(path);
+  p->next = eptr->outpacket;
+  eptr->outpacket = p;
+}
 void mis_create(misserventry* eptr,ppacket* inp){
   fprintf(stderr,"+mis_create\n");
 

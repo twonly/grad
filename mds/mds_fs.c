@@ -26,11 +26,13 @@ static void node_free(hashnode* n){
 
 void add_file(ppfile* f){
   unsigned int k = strhash(f->path) % HASHSIZE;
+  hashnode *it = tab[k];
 
-  if(tab[k] != NULL)
-    if(!strcmp(f->path,tab[k]->key))
+  while( it!=NULL ) {
+    if(!strcmp(f->path,it->key))
       return;
-
+    it = it->next;
+  }
   hashnode* n = node_new(f);
   n->next = tab[k];
   tab[k] = n;
@@ -45,7 +47,7 @@ void remove_file(ppfile* f){
     if(!strcmp(n->key,f->path)){
       if(np == NULL){ //head of list
         tab[k] = n->next;
-        free(n);
+        free(n); //should return right now?
       } else {
         np->next = n->next;
         free(n);

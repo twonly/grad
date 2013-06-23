@@ -497,7 +497,24 @@ int ppfs_statfs (const char *path, struct statvfs * st){
     return 0;
 }
 int	ppfs_symlink (const char *path, const char *path2){}
-int	ppfs_unlink (const char *path){}
+int	ppfs_unlink (const char *path){
+    syslog(LOG_WARNING, "ppfs_unlink path : %s", path);
+    ppacket* p = createpacket_s(4+strlen(path),CLTOMD_UNLINK,-1);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,strlen(path));
+    memcpy(ptr,path,strlen(path));
+    ptr += strlen(path);
+    sendpacket(fd,p);
+    free(p);
+
+    p = receivepacket(fd);
+    const uint8_t* ptr2 = p->startptr;
+    int status = get32bit(&ptr2);
+    printf("status:%d\n",status);
+    syslog(LOG_WARNING, "create status:%d", status);
+    free(p);
+    return status;
+}
 int	ppfs_write (const char *path, const char *buf, size_t st, off_t off, struct fuse_file_info *fi){}
 
 int main(int argc, char* argv[]) {
