@@ -108,6 +108,7 @@ static struct fuse_operations ppfs_oper = {
 	.init       = ppfs_fsinit, //connect to mds
 	//.statfs		= ppfs_statfs,
 	.getattr	= ppfs_getattr,
+<<<<<<< HEAD
 	//.setattr	= ppfs_setattr,
 	//.mknod		= ppfs_mknod,
 	//.unlink		= ppfs_unlink,
@@ -118,11 +119,26 @@ static struct fuse_operations ppfs_oper = {
 	//.rename		= ppfs_rename,
 	//.link		= ppfs_link,
 	//.opendir	= ppfs_opendir,
+=======
+	.mknod		= ppfs_mknod,
+	.unlink		= ppfs_unlink,
+	.mkdir		= ppfs_mkdir,
+	.rmdir		= ppfs_rmdir,
+	//.symlink	= ppfs_symlink,
+	//.readlink	= ppfs_readlink,
+	.rename		= ppfs_rename,
+	.link		= ppfs_link,
+	.opendir	= ppfs_opendir,
+>>>>>>> 20b3f12daaec2a41ccb8d3dfb37537579ca0470c
 	.readdir	= ppfs_readdir,
 	//.releasedir	= ppfs_releasedir,
 	.create		= ppfs_create, //replace mknod and open
 	.open		= ppfs_open, //called before read
+<<<<<<< HEAD
 	//.release	= ppfs_release,
+=======
+	.release	= ppfs_release,
+>>>>>>> 20b3f12daaec2a41ccb8d3dfb37537579ca0470c
 	//.flush		= ppfs_flush,
 	//.fsync		= ppfs_fsync,
 	.read		= ppfs_read,
@@ -372,6 +388,11 @@ int	ppfs_flush (const char *path, struct fuse_file_info *fi){
     syslog(LOG_WARNING, "ppfs_flush path : %s", path);
     return 0;
 }
+<<<<<<< HEAD
+=======
+
+int	ppfs_flush (const char *path, struct fuse_file_info *fi){}
+>>>>>>> 20b3f12daaec2a41ccb8d3dfb37537579ca0470c
 int	ppfs_fsync (const char *path, int i, struct fuse_file_info *fi){}
 int	ppfs_read (const char * path, char * buf, size_t size, off_t offset, struct fuse_file_info *fi){
     size_t len;
