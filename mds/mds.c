@@ -515,6 +515,7 @@ void mds_getattr(mdsserventry* eptr,ppacket* p){
 }
 
 void mds_cl_getattr(mdsserventry* eptr,ppacket* p){
+  fprintf(stderr,"cl_getattr"); //path:%s\n",path);
   mds_direct_pass_cl(eptr,p,MDTOCL_GETATTR);
 }
 
@@ -531,12 +532,14 @@ void mds_readdir(mdsserventry* eptr,ppacket* p){
 
   ppfile* f = lookup_file(path);
   if(f == NULL){
+    fprintf(stderr,"path:%s can't be found\n",path);
     ppacket* outp = createpacket_s(p->size,MDTOMI_READDIR,p->id);
     memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
 
     outp->next = mdtomi->outpacket;
     mdtomi->outpacket = outp;
   } else {
+    fprintf(stderr,"path:%s is found, but it's not dir\n",path);
     ppacket* outp = createpacket_s(4,MDTOCL_READDIR,p->id);
     uint8_t* ptr2 = outp->startptr+HEADER_LEN;
     
@@ -700,6 +703,7 @@ void mds_create(mdsserventry* eptr,ppacket* p){
     mode_t mt = get32bit(&ptr);
 
     fprintf(stderr,"path:%s\n",path);
+    fprintf(stderr,"mode:%o\n",mt);
     ppfile* f = lookup_file(path);
     if(f == NULL){ //not exist, ask MIS
 //        attr a;
@@ -749,13 +753,16 @@ void mds_cl_create(mdsserventry* eptr,ppacket* inp){
         memcpy(path, ptr, plen);
         path[plen] = 0;
         ptr += plen;
+        mode_t mt = get32bit(&ptr);
+        syslog(LOG_WARNING, "mds_cl_create mode : %o", mt);
         fprintf(stderr,"mds create path:%s locally\n",path );
         attr a;
         a.uid = a.gid = 0;
         a.atime = a.ctime = a.mtime = time(NULL);
         a.link = 1;
         a.size = 0;
-        a.mode = 0777 | S_IFREG;
+        //a.mode = 0777 | S_IFREG;
+        a.mode = mt;
         ppfile* nf = new_file(path,a);
         add_file(nf);
         //nf->next = f->child; //should mds maintain the edges?

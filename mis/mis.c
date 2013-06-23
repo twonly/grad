@@ -21,6 +21,15 @@ void mis_fs_demo_init(void){
   a.mode = 0777 | S_IFDIR;
   root = new_file("/",a);
   add_file(root);
+  //add a tmp file for demo
+  a.mode = 0777 | S_IFREG;
+  ppfile* tmpfile = new_file("/tmp", a);
+    add_file(tmpfile);
+    tmpfile->next = root->child;
+    root->child = tmpfile;
+
+    //nf->srcip = eptr->peerip;
+
 }
 
 int mis_init(void){
@@ -330,6 +339,7 @@ void mis_getattr(misserventry* eptr,ppacket* inp){
   if(f == NULL){
     p = createpacket_s(4,MITOMD_GETATTR,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
+    printf("status=%d\n",-ENOENT);
     put32bit(&ptr,-ENOENT);
   } else {
     p = createpacket_s(4+sizeof(attr),MITOMD_GETATTR,inp->id);
@@ -362,6 +372,7 @@ void mis_readdir(misserventry* eptr,ppacket* inp){
 
   ppfile* f = lookup_file(path);
   if(f == NULL){
+    printf("mis readdir path=%s, not exist\n",path);
     p = createpacket_s(4,MITOMD_READDIR,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr,-ENOENT);
@@ -378,7 +389,7 @@ void mis_readdir(misserventry* eptr,ppacket* inp){
 
       p = createpacket_s(totsize,MITOMD_READDIR,inp->id);
       uint8_t* ptr = p->startptr + HEADER_LEN;
-      put32bit(&ptr,0);
+      put32bit(&ptr,0); //status
       put32bit(&ptr,nfiles);
 
       for(cf = f->child;cf;cf = cf->next){
@@ -416,6 +427,8 @@ void mis_create(misserventry* eptr,ppacket* inp){
   path = (char*)malloc((len+10)*sizeof(char));
   memcpy(path,inptr,len*sizeof(char));
   path[len] = 0;
+  inptr += len;
+  mode_t mt = get32bit(&inptr);
 
   printf("path=%s\n",path);
 
@@ -469,7 +482,8 @@ void mis_create(misserventry* eptr,ppacket* inp){
     a.link = 1;
     a.size = 0;
 
-    a.mode = 0777 | S_IFREG;
+    a.mode = mt; //| S_IFREG; //use mode from client
+    syslog(LOG_WARNING, "mis_mode : %o", mt);
 
     ppfile* nf = new_file(path,a);
     add_file(nf);
@@ -478,12 +492,14 @@ void mis_create(misserventry* eptr,ppacket* inp){
 
     nf->srcip = eptr->peerip;
 
-    p = createpacket_s(4+strlen(path)+4,MITOMD_CREATE,inp->id);
+    p = createpacket_s(4+strlen(path)+4+4,MITOMD_CREATE,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr,0);
     put32bit(&ptr,strlen(path));
     memcpy(ptr, path, strlen(path));
     ptr += strlen(path);
+    syslog(LOG_WARNING, "mis_mode sent to mds: %o", mt);
+    put32bit(&ptr, mt);
 
     free(dir);
   }

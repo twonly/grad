@@ -37,6 +37,7 @@ int 	ppfs_chmod (const char *, mode_t);
 int 	ppfs_chown (const char *, uid_t, gid_t);
 int 	ppfs_create (const char *, mode_t, struct fuse_file_info *);
 int 	ppfs_flush (const char *, struct fuse_file_info *);
+int 	ppfs_utime (const char *, struct utimbuf *);
 int 	ppfs_fsync (const char *, int, struct fuse_file_info *);
 int 	ppfs_read (const char *, char *, size_t, off_t, struct fuse_file_info *);
 int 	ppfs_readdir (const char *, void *, fuse_fill_dir_t, off_t, struct fuse_file_info *);

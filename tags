@@ -603,7 +603,7 @@ peerip	mis/mis.h	/^	uint32_t peerip;$/;"	m	struct:_misserventry
 pollentry	common/main.c	/^typedef struct pollentry {$/;"	s	file:
 pollentry	common/main.c	/^} pollentry;$/;"	t	typeref:struct:pollentry	file:
 pollhead	common/main.c	/^static pollentry *pollhead=NULL;$/;"	v	file:
-port	client/client.c	/^char *port = "8125";$/;"	v
+port	client/client.c	/^char *port = "8224";$/;"	v
 ppacket	common/ppcomm.h	/^typedef struct ppacket{$/;"	s
 ppacket	common/ppcomm.h	/^} ppacket;$/;"	t	typeref:struct:ppacket
 ppfile	common/ppfile.h	/^typedef struct ppfile{$/;"	s
@@ -612,13 +612,13 @@ ppfs_access	client/client.c	/^int ppfs_access (const char *path, int i){$/;"	f
 ppfs_chmod	client/client.c	/^int	ppfs_chmod (const char *path, mode_t mt){$/;"	f
 ppfs_chown	client/client.c	/^int	ppfs_chown (const char *path, uid_t uid, gid_t gid){$/;"	f
 ppfs_create	client/client.c	/^int	ppfs_create (const char *path, mode_t mt, struct fuse_file_info *fi){$/;"	f
-ppfs_flush	client/client.c	/^int	ppfs_flush (const char *path, struct fuse_file_info *fi){}$/;"	f
+ppfs_flush	client/client.c	/^int	ppfs_flush (const char *path, struct fuse_file_info *fi){$/;"	f
 ppfs_fsinit	client/client.c	/^void* ppfs_fsinit( struct fuse_conn_info* conn ) { \/\/connect to MDS$/;"	f
 ppfs_fsync	client/client.c	/^int	ppfs_fsync (const char *path, int i, struct fuse_file_info *fi){}$/;"	f
 ppfs_getattr	client/client.c	/^int ppfs_getattr(const char* path, struct stat* stbuf){$/;"	f
 ppfs_link	client/client.c	/^int ppfs_link(const char* path, const char* path2 ){}$/;"	f
 ppfs_mkdir	client/client.c	/^int ppfs_mkdir(const char* path, mode_t mt){}$/;"	f
-ppfs_mknod	client/client.c	/^int ppfs_mknod(const char* path, mode_t mt, dev_t dt){}$/;"	f
+ppfs_mknod	client/client.c	/^int ppfs_mknod(const char* path, mode_t mt, dev_t dt){$/;"	f
 ppfs_open	client/client.c	/^int ppfs_open(const char* path, struct fuse_file_info* fi){$/;"	f
 ppfs_opendir	client/client.c	/^int ppfs_opendir(const char* path, struct fuse_file_info* fi){$/;"	f
 ppfs_oper	client/client.c	/^static struct fuse_operations ppfs_oper = {$/;"	v	typeref:struct:fuse_operations	file:
@@ -632,6 +632,7 @@ ppfs_rmdir	client/client.c	/^int	ppfs_rmdir (const char *path){}$/;"	f
 ppfs_statfs	client/client.c	/^int ppfs_statfs (const char *path, struct statvfs * st){}$/;"	f
 ppfs_symlink	client/client.c	/^int	ppfs_symlink (const char *path, const char *path2){}$/;"	f
 ppfs_unlink	client/client.c	/^int	ppfs_unlink (const char *path){}$/;"	f
+ppfs_utime	client/client.c	/^int	ppfs_utime (const char *path, struct utimbuf *ut){$/;"	f
 ppfs_write	client/client.c	/^int	ppfs_write (const char *path, const char *buf, size_t st, off_t off, struct fuse_file_info *fi){}$/;"	f
 prev	common/ppds.h	/^  struct linklist* prev;$/;"	m	struct:linklist	typeref:struct:linklist::linklist
 print_attr	api_test/api_test.c	/^void print_attr(const attr* a){$/;"	f

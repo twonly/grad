@@ -35,7 +35,7 @@ ppacket* receivepacket(int sockfd){
   ppacket* p;
   syslog(LOG_WARNING, "in receivepacket");
 
-  hleft = 8;
+  hleft = HEADER_LEN;
   startptr = headbuf;
   while(hleft){
     i = read(sockfd,startptr,hleft);
@@ -106,32 +106,34 @@ void print_attr(const attr* a){
 
 static struct fuse_operations ppfs_oper = {
 	.init       = ppfs_fsinit, //connect to mds
-	.statfs		= ppfs_statfs,
+	//.statfs		= ppfs_statfs,
 	.getattr	= ppfs_getattr,
-	.mknod		= ppfs_mknod,
-	.unlink		= ppfs_unlink,
-	.mkdir		= ppfs_mkdir,
-	.rmdir		= ppfs_rmdir,
-	.symlink	= ppfs_symlink,
-	.readlink	= ppfs_readlink,
-	.rename		= ppfs_rename,
-	.link		= ppfs_link,
-	.opendir	= ppfs_opendir,
+	//.setattr	= ppfs_setattr,
+	//.mknod		= ppfs_mknod,
+	//.unlink		= ppfs_unlink,
+	//.mkdir		= ppfs_mkdir,
+	//.rmdir		= ppfs_rmdir,
+	//.symlink	= ppfs_symlink, 
+	//.readlink	= ppfs_readlink,
+	//.rename		= ppfs_rename,
+	//.link		= ppfs_link,
+	//.opendir	= ppfs_opendir,
 	.readdir	= ppfs_readdir,
-	.releasedir	= ppfs_releasedir,
-	.create		= ppfs_create,
+	//.releasedir	= ppfs_releasedir,
+	.create		= ppfs_create, //replace mknod and open
 	.open		= ppfs_open, //called before read
-	.release	= ppfs_release,
-	.flush		= ppfs_flush,
-	.fsync		= ppfs_fsync,
+	//.release	= ppfs_release,
+	//.flush		= ppfs_flush,
+	//.fsync		= ppfs_fsync,
 	.read		= ppfs_read,
-	.write		= ppfs_write,
-	.access		= ppfs_access,
+	//.write		= ppfs_write,
+	//.access		= ppfs_access,
+	.utime		= ppfs_utime,
 };
 
 int fd;
 char *ip = "127.0.0.1";
-char *port = "8125";
+char *port = "8224";
 char *hello_path = "/hello";
 char *hello_str = "hello world";
 
@@ -150,7 +152,7 @@ void* ppfs_fsinit( struct fuse_conn_info* conn ) { //connect to MDS
     } else {
         syslog(LOG_WARNING, "after bind");
     }*/
-    if(tcpstrconnect(fd, ip, port)<0) {
+    if(tcpstrconnect(fd, ip, MDS_PORT_STR)<0) {
         syslog(LOG_WARNING, "can't connect to MDS (%s:%s)", ip, port);
         fd = -1;
         return;
@@ -159,24 +161,38 @@ void* ppfs_fsinit( struct fuse_conn_info* conn ) { //connect to MDS
 }
 int ppfs_getattr(const char* path, struct stat* stbuf){
         syslog(LOG_WARNING, "ppfs_getattr path : %s", path);
-        ppacket *s = createpacket_s(4+strlen(path), CLTOMD_GETATTR,1);
-        syslog(LOG_WARNING, "createpacket_s packet size:%u, cmd:%u", s->size, s->cmd); //5,4096
-        uint8_t* ptr = s->startptr+8;
+        ppacket *s = createpacket_s(4+strlen(path), CLTOMD_GETATTR,-1);
+        syslog(LOG_WARNING, "createpacket_s packet size:%u, cmd:%X", s->size, s->cmd); //5,4096
+        uint8_t* ptr = s->startptr+HEADER_LEN;
         put32bit(&ptr, strlen(path));
         memcpy(ptr, path, strlen(path));
         ptr+=strlen(path);
         sendpacket(fd, s);
-        syslog(LOG_WARNING, "sendpacket");
+        syslog(LOG_WARNING, "getattr sendpacket");
         //free(s->buf);
         free(s);
         s = receivepacket(fd);
-        syslog(LOG_WARNING, "receivepacket");
+        syslog(LOG_WARNING, "getattr receivepacket");
         const uint8_t* ptr2 = s->startptr;
         int status = get32bit(&ptr2);
         syslog(LOG_WARNING,"status:%d\n",status);
         if(status == 0){
             syslog(LOG_WARNING,"getattr success");
             print_attr((const attr*)ptr2);
+            memset(stbuf, 0, sizeof(struct stat));
+            const attr* a = (const attr*)ptr2;
+            if(strcmp(path, "/") == 0) {
+                stbuf->st_mode = S_IFDIR | 0755;
+                stbuf->st_nlink = 2;
+            } else {
+                syslog(LOG_WARNING, "a->mode: %o", a->mode);
+                stbuf->st_mode = a->mode; //S_IFREG | 0755;
+                stbuf->st_nlink = 1;
+                stbuf->st_size = strlen(hello_str);
+            }
+            //stbuf->st_mode = a->mode;
+            //stbuf->st_nlink = a->link;
+            //stbuf->st_size = a->size;
         } else {
             if(status == -ENOENT){
                 syslog(LOG_WARNING,"\tENOENT\n");
@@ -185,49 +201,69 @@ int ppfs_getattr(const char* path, struct stat* stbuf){
                 syslog(LOG_WARNING,"\tENOTDIR\n");
             }
         }
-        //free(s->buf);
         free(s);
+        return status;
         int res = 0;
-      memset(stbuf, 0, sizeof(struct stat));
-      if(strcmp(path, "/") == 0) {
-          stbuf->st_mode = S_IFDIR | 0755;
-          stbuf->st_nlink = 2;
-      }
-      else if(strcmp(path, hello_path) == 0) {
-          stbuf->st_mode = S_IFREG | 0444;
-          stbuf->st_nlink = 1;
-          stbuf->st_size = strlen(hello_str);
-      }
-      else
-          res = -ENOENT;
+        if(strcmp(path, "/") == 0) {
+            stbuf->st_mode = S_IFDIR | 0755;
+            stbuf->st_nlink = 2;
+        } else if (!strcmp(path, "/tmp") || !strcmp(path, "/123")) {
+            stbuf->st_mode = S_IFREG | 0755;
+            stbuf->st_nlink = 1;
+            stbuf->st_size = strlen(hello_str);
+        } else {
+            res = -ENOENT;
+        }
+        //free(s->buf);
+        //return 0;
+        
   
       return res;
 } //always called before open
-int ppfs_mknod(const char* path, mode_t mt, dev_t dt){}
+int ppfs_mknod(const char* path, mode_t mt, dev_t dt){
+    syslog(LOG_WARNING, "ppfs_mknod path : %s", path);
+    return 0;
+}
 int ppfs_mkdir(const char* path, mode_t mt){}
 int ppfs_link(const char* path, const char* path2 ){}
 int ppfs_opendir(const char* path, struct fuse_file_info* fi){
     syslog(LOG_WARNING, "ppfs_opendir path : %s", path);
+    return 0;
 }
 int ppfs_open(const char* path, struct fuse_file_info* fi){
     syslog(LOG_WARNING, "ppfs_open path : %s", path);
+    syslog(LOG_WARNING, "ppfs_open flags : %o", fi->flags);
+    syslog(LOG_WARNING, "ppfs_open O_CREAT : %o", O_CREAT);
+    syslog(LOG_WARNING, "ppfs_open O_NONBLOCK : %o", O_NONBLOCK);
+    syslog(LOG_WARNING, "ppfs_open O_WRONLY : %o", O_WRONLY);
+    if((fi->flags & O_CREAT)) { //create a new file
+        syslog(LOG_WARNING, "ppfs_open creat");
+    }
+    if((fi->flags & O_EXCL)) { //create a new file
+        syslog(LOG_WARNING, "ppfs_open EXCL");
+    }
+    if((fi->flags & O_NONBLOCK)) { //create a new file
+        syslog(LOG_WARNING, "ppfs_open nonblock");
+    }
+    if((fi->flags & 3) != O_WRONLY) {
+        syslog(LOG_WARNING, "ppfs_open EACCES");
+        //return -EACCES;
+    }
+    return 0;
     if(strcmp(path, hello_path) != 0){
         syslog(LOG_WARNING, "ppfs_open ENOENT");
           return -ENOENT;
     }
   
-      if((fi->flags & 3) != O_RDONLY) {
-        syslog(LOG_WARNING, "ppfs_open EACCES");
-          return -EACCES;
-      }
   
       return 0;
 }
 int ppfs_access (const char *path, int i){
     syslog(LOG_WARNING, "ppfs_access path : %s", path);
+    return 0;
     ppacket *s = createpacket_s(4+strlen(path), CLTOMD_ACCESS,1);
     //syslog(LOG_WARNING, "createpacket_s packet size:%u, cmd:%u", s->size, s->cmd); //5,4096
-    uint8_t* ptr = s->startptr+8;
+    uint8_t* ptr = s->startptr+HEADER_LEN;
     put32bit(&ptr, strlen(path));
     memcpy(ptr, path, strlen(path));
     ptr+=strlen(path);
@@ -252,7 +288,7 @@ int ppfs_access (const char *path, int i){
 int	ppfs_chmod (const char *path, mode_t mt){
     syslog(LOG_WARNING, "ppfs_chmod path : %s", path);
     ppacket *s = createpacket_s(4+strlen(path)+4, CLTOMD_CHMOD,1);
-    uint8_t* ptr = s->startptr+8;
+    uint8_t* ptr = s->startptr+HEADER_LEN;
     put32bit(&ptr, strlen(path));
     memcpy(ptr, path, strlen(path));
     ptr+=strlen(path);
@@ -280,7 +316,7 @@ int	ppfs_chmod (const char *path, mode_t mt){
 int	ppfs_chown (const char *path, uid_t uid, gid_t gid){
     syslog(LOG_WARNING, "ppfs_chown path : %s", path);
     ppacket *s = createpacket_s(4+strlen(path)+8, CLTOMD_CHOWN, 1);
-    uint8_t* ptr = s->startptr+8;
+    uint8_t* ptr = s->startptr+HEADER_LEN;
     put32bit(&ptr, strlen(path));
     memcpy(ptr, path, strlen(path));
     ptr+=strlen(path);
@@ -306,9 +342,36 @@ int	ppfs_chown (const char *path, uid_t uid, gid_t gid){
 }
 int	ppfs_create (const char *path, mode_t mt, struct fuse_file_info *fi){
     syslog(LOG_WARNING, "ppfs_create path : %s", path);
-    
+    syslog(LOG_WARNING, "ppfs_create flags : %o", fi->flags);
+    syslog(LOG_WARNING, "ppfs_create mode : %o", mt);
+    //syslog(LOG_WARNING, "ppfs_create O_CREAT : %o", O_CREAT);
+    //syslog(LOG_WARNING, "ppfs_create O_NONBLOCK : %o", O_NONBLOCK);
+    //syslog(LOG_WARNING, "ppfs_create O_WRONLY : %o", O_WRONLY);
+    ppacket* p = createpacket_s(4+strlen(path)+4,CLTOMD_CREATE,-1);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,strlen(path));
+    memcpy(ptr,path,strlen(path));
+    ptr += strlen(path);
+    put32bit(&ptr, mt);
+    sendpacket(fd,p);
+    free(p);
+
+    p = receivepacket(fd);
+    const uint8_t* ptr2 = p->startptr;
+    int status = get32bit(&ptr2);
+    printf("status:%d\n",status);
+    syslog(LOG_WARNING, "create status:%d", status);
+    free(p);
+    return status;
 }
-int	ppfs_flush (const char *path, struct fuse_file_info *fi){}
+int	ppfs_utime (const char *path, struct utimbuf *ut){
+    syslog(LOG_WARNING, "ppfs_utime path : %s", path);
+    return 0;
+}
+int	ppfs_flush (const char *path, struct fuse_file_info *fi){
+    syslog(LOG_WARNING, "ppfs_flush path : %s", path);
+    return 0;
+}
 int	ppfs_fsync (const char *path, int i, struct fuse_file_info *fi){}
 int	ppfs_read (const char * path, char * buf, size_t size, off_t offset, struct fuse_file_info *fi){
     size_t len;
@@ -326,8 +389,8 @@ int	ppfs_read (const char * path, char * buf, size_t size, off_t offset, struct 
 }
 int	ppfs_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi){
     syslog(LOG_WARNING, "ppfs_readdir path : %s", path);
-    ppacket *s = createpacket_s(4+strlen(path)+4, CLTOMD_READDIR,1);
-    uint8_t* ptr = s->startptr+8;
+    ppacket *s = createpacket_s(4+strlen(path)+4, CLTOMD_READDIR,-1);
+    uint8_t* ptr = s->startptr+HEADER_LEN;
     put32bit(&ptr, strlen(path));
     memcpy(ptr, path, strlen(path));
     ptr+=strlen(path);
@@ -335,13 +398,24 @@ int	ppfs_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t off
     sendpacket(fd, s);
     free(s);
     s = receivepacket(fd);
-    syslog(LOG_WARNING, "receivepacket");
+    syslog(LOG_WARNING, "readdir receivepacket");
     const uint8_t* ptr2 = s->startptr;
     int status = get32bit(&ptr2);
-    syslog(LOG_WARNING,"chmod status:%d\n",status);
+    syslog(LOG_WARNING,"readdir status:%d\n",status);
     if(status == 0){
-        syslog(LOG_WARNING,"chmod success");
-        print_attr((const attr*)ptr2);
+        syslog(LOG_WARNING,"readdir success");
+        int nfiles = get32bit(&ptr2);
+        syslog(LOG_WARNING, "readdir %d files", nfiles);
+        int i;
+        for(i=0;i<nfiles;++i) {
+            int flen = get32bit(&ptr2);
+            char * fn = (char*)malloc(flen*sizeof(char)+1);
+            memcpy(fn, ptr2, flen);
+            fn[flen] = 0;
+            ptr2 += flen;
+            filler(buf, fn, NULL, 0);
+            free(fn);
+        }
     } else {
         if(status == -ENOENT){
             syslog(LOG_WARNING,"\tENOENT\n");
@@ -351,6 +425,8 @@ int	ppfs_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t off
         }
     }
     free(s);
+    return 0;
+
     (void) offset;
       (void) fi;
   
@@ -369,7 +445,7 @@ int	ppfs_releasedir (const char *path, struct fuse_file_info *fi){}
 int	ppfs_rename (const char *path, const char *newpath){
     syslog(LOG_WARNING, "ppfs_rename path : %s", path);
     ppacket *s = createpacket_s(4+strlen(path)+4+strlen(newpath), CLTOMD_ACCESS,1);
-    uint8_t* ptr = s->startptr+8;
+    uint8_t* ptr = s->startptr+HEADER_LEN;
     put32bit(&ptr, strlen(path));
     memcpy(ptr, path, strlen(path));
     ptr+=strlen(path);
@@ -395,7 +471,10 @@ int	ppfs_rename (const char *path, const char *newpath){
 
 }
 int	ppfs_rmdir (const char *path){}
-int ppfs_statfs (const char *path, struct statvfs * st){}
+int ppfs_statfs (const char *path, struct statvfs * st){
+    syslog(LOG_WARNING, "ppfs_statfs path : %s", path);
+    return 0;
+}
 int	ppfs_symlink (const char *path, const char *path2){}
 int	ppfs_unlink (const char *path){}
 int	ppfs_write (const char *path, const char *buf, size_t st, off_t off, struct fuse_file_info *fi){}
