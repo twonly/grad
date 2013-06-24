@@ -3,4 +3,5 @@ search code for @TODO
 
 Escape the pathname
 
-touch the deleted name will cause segmentation fault
+rmdir should not remove the directory with any child
+See man 2 rmdir

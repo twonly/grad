@@ -404,6 +404,12 @@ void mds_gotpacket(mdsserventry* eptr,ppacket* p){
       mds_cl_mkdir(eptr, p);
       break;
 
+    case CLTOMD_RMDIR:
+      mds_rmdir(eptr,p);
+      break;
+    case MITOMD_RMDIR:
+      mds_cl_rmdir(eptr,p);
+      break;
     case CLTOMD_UNLINK:
       mds_unlink(eptr,p);
       break;
@@ -508,7 +514,7 @@ void mds_getattr(mdsserventry* eptr,ppacket* p){
 
   fprintf(stderr,"path:%s\n",path);
 
-  ppfile* f = lookup_file(path); //seg fault
+  ppfile* f = lookup_file(path); //
   if(f == NULL){
     fprintf(stderr,"can not find path:%s\n",path);
     syslog(LOG_WARNING, "mds_getattr can not find: %s", path);
@@ -772,15 +778,69 @@ void mds_cl_mkdir(mdsserventry* eptr,ppacket* inp){
         a.atime = a.ctime = a.mtime = time(NULL);
         a.link = 2;
         a.size = 0;
-        //a.mode = 0777 | S_IFREG;
         a.mode = mt;
         ppfile* nf = new_file(path,a);
         add_file(nf);
-        //nf->next = f->child; //should mds maintain the edges?
-        //f->child = nf;
         nf->srcip = eptr->peerip;
     }
     mds_direct_pass_cl(eptr,inp,MDTOCL_MKDIR);
+}
+
+void mds_rmdir(mdsserventry* eptr,ppacket* p){
+  fprintf(stderr,"+mds_rmdir\n");
+    int plen;
+    const uint8_t* ptr = p->startptr;
+
+    plen = get32bit(&ptr);
+    char* path = (char*)malloc(plen+10);
+    memcpy(path,ptr,plen);
+    path[plen] = 0;
+    ptr += plen;
+
+    fprintf(stderr,"path:%s\n",path);
+    ppfile* f = lookup_file(path);
+    if(f == NULL){ //not exist, ask MIS
+        fprintf(stderr,"inquery MIS path:%s\n",path);
+        ppacket* outpi = createpacket_s(p->size,MDTOMI_RMDIR,p->id); //inquery MIS
+        memcpy(outpi->startptr+HEADER_LEN,p->startptr,p->size);
+
+        outpi->next = mdtomi->outpacket;
+        mdtomi->outpacket = outpi;
+    } else { //exist, ask MIS to see if contain any child 
+        fprintf(stderr,"path:%s exist; tell MIS\n",path );
+        ppacket* outpi = createpacket_s(p->size,MDTOMI_RMDIR,p->id); //tell MIS
+        memcpy(outpi->startptr+HEADER_LEN,p->startptr,p->size);
+
+        outpi->next = mdtomi->outpacket;
+        mdtomi->outpacket = outpi;
+    }
+    free(path);
+}
+
+void mds_cl_rmdir(mdsserventry* eptr,ppacket* inp){
+  //if status==0, rmdir locally
+    const uint8_t *ptr = inp->startptr;
+    int status = get32bit(&ptr);
+
+    if(status==0) { //rmdir locally
+        int plen = get32bit(&ptr);
+        char *path = (char*)malloc((plen+1)*sizeof(char));
+        memcpy(path, ptr, plen);
+        path[plen] = 0;
+        ptr += plen;
+        ppfile* f = lookup_file(path);
+        if(!f) {
+            //don't exist locally
+        } else {
+            remove_file(f);
+            free_file(f);
+            //should also remove any child of f in this MDS, but how to find them? (MDS doesn't store the edge.)
+            //However, since rmdir can only remove empty directory, this can be ignored.
+            //What about "rm -r"? Fuse and the file system will take care of it, and recursively invoke readdir, unlink for regular file and rmdir for dir
+            //So we just need to implement the unlink and rmdir functions carefully to deal with the memory problem.
+        }
+    }
+      mds_direct_pass_cl(eptr,inp,MDTOCL_RMDIR);
 }
 
 void mds_unlink(mdsserventry* eptr,ppacket* p){

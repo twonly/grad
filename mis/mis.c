@@ -286,6 +286,9 @@ void mis_gotpacket(misserventry* eptr,ppacket* p){
     case MDTOMI_MKDIR:
       mis_mkdir(eptr,p);
       break;
+    case MDTOMI_RMDIR:
+      mis_rmdir(eptr,p);
+      break;
     case MDTOMI_UNLINK:
       mis_unlink(eptr,p);
       break;
@@ -517,6 +520,95 @@ end:
   eptr->outpacket = p;
 }
 
+void mis_rmdir(misserventry* eptr,ppacket* inp){
+  fprintf(stderr,"+mis_rmdir\n");
+  ppacket* p;
+  char* path;
+  int len;
+  const uint8_t* inptr;
+  int i;
+
+  inptr = inp->startptr;
+  len = get32bit(&inptr);
+  printf("plen=%d\n",len);
+
+  path = (char*)malloc((len+1)*sizeof(char));
+  memcpy(path,inptr,len*sizeof(char));
+  path[len] = 0;
+  inptr += len;
+
+  printf("path=%s\n",path);
+
+  ppfile* f = lookup_file(path);
+  if(f){
+    if(!S_ISDIR(f->a.mode)) {
+      p = createpacket_s(4,MITOMD_RMDIR,inp->id);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
+      put32bit(&ptr,-ENOTDIR);
+      goto end;
+    }
+
+    if( has_child(f) ) {
+        p = createpacket_s(4,MITOMD_RMDIR,inp->id);
+        uint8_t* ptr = p->startptr + HEADER_LEN;
+        put32bit(&ptr,-ENOTEMPTY);
+        fprintf(stderr,"dir is not empty\n");
+        goto end;
+    }
+    // No need to check the parent dir
+    char* dir;
+    if(len > 1){
+      dir = &path[len-1];
+      while(dir >= path && *dir != '/') dir--;
+
+      int dirlen = dir - path;
+      if(dirlen==0) dirlen+=1;
+      dir = strdup(path);
+      dir[dirlen] = 0;
+    } else {
+      dir = strdup("/");
+    }
+
+    printf("dir=%s\n",dir);
+    ppfile* pf = lookup_file(dir); //must always exist as a directory
+    if(!pf){ //parent dir not exist
+      p = createpacket_s(4,MITOMD_RMDIR,inp->id);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
+      put32bit(&ptr,-ENOENT);
+      free(dir);
+      goto end;
+    } else {
+      if(!S_ISDIR(pf->a.mode)){ //exist but not directory
+        p = createpacket_s(4,MITOMD_RMDIR,inp->id);
+        uint8_t* ptr = p->startptr + HEADER_LEN;
+        put32bit(&ptr,-ENOTDIR);
+        free(dir);
+        goto end;
+      }
+    }
+    fprintf(stderr,"rmdir %s\n", path);
+    remove_all_child(f);
+    remove_child(pf, f); //should decrease the link cnt in pf->a if f is DIR
+    p = createpacket_s(4+strlen(path)+4,MITOMD_RMDIR,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr, 0);
+    put32bit(&ptr, strlen(path));
+    memcpy(ptr, path, strlen(path));
+    ptr += strlen(path);
+
+    free(dir);
+  } else { //not exist
+    fprintf(stderr,"file not exists\n");
+    p = createpacket_s(4,MITOMD_RMDIR,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr, -ENOENT);
+  }
+
+end:
+  free(path);
+  p->next = eptr->outpacket;
+  eptr->outpacket = p;
+}
 void mis_unlink(misserventry* eptr,ppacket* inp){
   fprintf(stderr,"+mis_unlink\n");
 
@@ -572,26 +664,26 @@ void mis_unlink(misserventry* eptr,ppacket* inp){
         goto end;
       }
     }
-    //remove_child(pf, f);
-    ppfile *it = pf->child;
-    ppfile *pre = NULL; //pf->child;
-    while( it ) {
-        if(!strcmp(it->path, f->path)) {
-            if(!pre) { //first node
-                pf->child = it->next;
-                remove_file(it);
-                free_file(it);
-            } else {
-                pre->next = it->next;
-                remove_file(it);
-                free_file(it);
-            }
-            break;
-        } else {
-            pre = it;
-            it = it->next;
-        }
-    }
+    int ret = remove_child(pf, f);
+   // ppfile *it = pf->child;
+   // ppfile *pre = NULL; //pf->child;
+   // while( it ) {
+   //     if(!strcmp(it->path, f->path)) {
+   //         if(!pre) { //first node
+   //             pf->child = it->next;
+   //             remove_file(it);
+   //             free_file(it);
+   //         } else {
+   //             pre->next = it->next;
+   //             remove_file(it);
+   //             free_file(it);
+   //         }
+   //         break;
+   //     } else {
+   //         pre = it;
+   //         it = it->next;
+   //     }
+   // }
     p = createpacket_s(4,MITOMD_UNLINK,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr, 0);

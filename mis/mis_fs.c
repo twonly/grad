@@ -75,3 +75,37 @@ ppfile* lookup_file(char* p){
 
   return NULL;
 }
+
+int remove_child(ppfile* parent, ppfile* child) {
+    ppfile *it = parent->child;
+    ppfile *pre = NULL; 
+    while( it ) {
+        if(!strcmp(it->path, child->path)) {
+            if(!pre) { //first node
+                parent->child = it->next;
+            } else {
+                pre->next = it->next;
+            }
+            remove_file(it);
+            free_file(it);
+            return 0;
+        } else {
+            pre = it;
+            it = it->next;
+        }
+    }
+    return -1;
+}
+
+void remove_all_child(ppfile* parent) { //remove a dir recursively
+    ppfile* child = parent->child;
+    while( child ) {
+        remove_all_child(child);
+        remove_child(parent, child);
+        child = parent->child;
+    }
+}
+
+int has_child(ppfile* parent) {
+    return (parent->child?1:0);
+}

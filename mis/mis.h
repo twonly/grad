@@ -67,6 +67,7 @@ void mis_chown(misserventry* eptr,ppacket* p);
 void mis_rename(misserventry* eptr,ppacket* p);
 void mis_update_attr(misserventry* eptr,ppacket* p);
 
+void mis_rmdir(misserventry* eptr,ppacket* p);
 void mis_unlink(misserventry* eptr,ppacket* p);
 void mis_noop(misserventry* eptr,ppacket* p);
 

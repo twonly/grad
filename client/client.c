@@ -187,7 +187,7 @@ int ppfs_getattr(const char* path, struct stat* stbuf){
             } else {
                 syslog(LOG_WARNING, "a->mode: %o", a->mode);
                 stbuf->st_mode = a->mode; //S_IFREG | 0755;
-                stbuf->st_nlink = a->link;
+                stbuf->st_nlink = 3;//a->link;
                 stbuf->st_size = strlen(hello_str);
             }
             //stbuf->st_mode = a->mode;
@@ -491,7 +491,24 @@ int	ppfs_rename (const char *path, const char *newpath){
     free(s);
 
 }
-int	ppfs_rmdir (const char *path){}
+int	ppfs_rmdir (const char *path){
+    syslog(LOG_WARNING, "ppfs_rmdir path : %s", path);
+    ppacket* p = createpacket_s(4+strlen(path),CLTOMD_RMDIR,-1);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,strlen(path));
+    memcpy(ptr,path,strlen(path));
+    ptr += strlen(path);
+    sendpacket(fd,p);
+    free(p);
+
+    p = receivepacket(fd);
+    const uint8_t* ptr2 = p->startptr;
+    int status = get32bit(&ptr2);
+    printf("status:%d\n",status);
+    syslog(LOG_WARNING, "rmdir status:%d", status);
+    free(p);
+    return status;
+}
 int ppfs_statfs (const char *path, struct statvfs * st){
     syslog(LOG_WARNING, "ppfs_statfs path : %s", path);
     return 0;
@@ -511,7 +528,7 @@ int	ppfs_unlink (const char *path){
     const uint8_t* ptr2 = p->startptr;
     int status = get32bit(&ptr2);
     printf("status:%d\n",status);
-    syslog(LOG_WARNING, "create status:%d", status);
+    syslog(LOG_WARNING, "unlink status:%d", status);
     free(p);
     return status;
 }

@@ -78,6 +78,8 @@ void mds_create(mdsserventry* eptr,ppacket* inp);
 void mds_cl_create(mdsserventry* eptr,ppacket* inp);
 void mds_unlink(mdsserventry* eptr,ppacket* inp);
 void mds_cl_unlink(mdsserventry* eptr,ppacket* inp);
+void mds_rmdir(mdsserventry* eptr,ppacket* inp);
+void mds_cl_rmdir(mdsserventry* eptr,ppacket* inp);
 
 void mds_open(mdsserventry* eptr,ppacket* inp);
 void mds_cl_open(mdsserventry* eptr,ppacket* inp);
