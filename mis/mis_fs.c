@@ -14,6 +14,7 @@ void term_fs(){
 
 static hashnode* node_new(ppfile* f){
   hashnode* ret = (hashnode*)malloc(sizeof(hashnode));
+  ret->key  = f->path;
   ret->data = (void*)f;
   ret->next = NULL;
 

@@ -497,24 +497,29 @@ static void mds_update_attr(ppacket* p,ppfile* f){
 }
 
 void mds_getattr(mdsserventry* eptr,ppacket* p){
+  fprintf(stderr,"+mds_getattr\n");
   int plen;
   const uint8_t* ptr = p->startptr;
   plen = get32bit(&ptr);
-  syslog(LOG_WARNING, "mds_getattr: %u", plen);
   char* path = (char*)malloc(plen+1);
   memcpy(path,ptr,plen);
+  syslog(LOG_WARNING, "mds_getattr: %s", path);
   path[plen] = 0;
 
   fprintf(stderr,"path:%s\n",path);
 
-  ppfile* f = lookup_file(path);
+  ppfile* f = lookup_file(path); //seg fault
   if(f == NULL){
+    fprintf(stderr,"can not find path:%s\n",path);
+    syslog(LOG_WARNING, "mds_getattr can not find: %s", path);
     ppacket* outp = createpacket_s(p->size,MDTOMI_GETATTR,p->id);
     memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
 
     outp->next = mdtomi->outpacket;
     mdtomi->outpacket = outp;
   } else {
+    fprintf(stderr,"find path:%s\n",path);
+    syslog(LOG_WARNING, "mds_getattr find: %s", path);
     ppacket* outp = createpacket_s(4+sizeof(attr),MDTOCL_GETATTR,p->id);
     uint8_t *ptr2 = outp->startptr + HEADER_LEN;
 
@@ -534,6 +539,7 @@ void mds_cl_getattr(mdsserventry* eptr,ppacket* p){
 }
 
 void mds_readdir(mdsserventry* eptr,ppacket* p){
+  fprintf(stderr,"+mds_readdir\n");
   int plen;
   const uint8_t* ptr = p->startptr;
 
@@ -715,6 +721,7 @@ void mds_cl_chgrp(mdsserventry* eptr,ppacket* inp){
 }
 
 void mds_mkdir(mdsserventry* eptr,ppacket* p){
+  fprintf(stderr,"+mds_mkdir\n");
     int plen;
     const uint8_t* ptr = p->startptr;
 
@@ -777,6 +784,7 @@ void mds_cl_mkdir(mdsserventry* eptr,ppacket* inp){
 }
 
 void mds_unlink(mdsserventry* eptr,ppacket* p){
+  fprintf(stderr,"+mds_unlink\n");
     int plen;
     const uint8_t* ptr = p->startptr;
 
@@ -813,6 +821,7 @@ void mds_cl_unlink(mdsserventry* eptr,ppacket* inp){
   mds_direct_pass_cl(eptr,inp,MDTOCL_UNLINK);
 }
 void mds_create(mdsserventry* eptr,ppacket* p){
+  fprintf(stderr,"+mds_create\n");
     int plen;
     const uint8_t* ptr = p->startptr;
 

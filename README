@@ -2,3 +2,5 @@ TODO:
 search code for @TODO
 
 Escape the pathname
+
+touch the deleted name will cause segmentation fault
