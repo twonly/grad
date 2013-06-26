@@ -466,6 +466,7 @@ mdsserventry* mds_entry_from_id(int id){ //maybe add a hash?
 
 static void mds_direct_pass_cl(mdsserventry* eptr,ppacket* p,int cmd){
   mdsserventry* ceptr = mds_entry_from_id(p->id);
+  fprintf(stderr, "mds_direct_pass_cl entry id is %X\n", p->id);
 
   if(ceptr){
     ppacket* outp = createpacket_s(p->size,cmd,p->id);
@@ -507,10 +508,10 @@ void mds_getattr(mdsserventry* eptr,ppacket* p){
   int plen;
   const uint8_t* ptr = p->startptr;
   plen = get32bit(&ptr);
-  char* path = (char*)malloc(plen+1);
+  char* path = (char*)malloc(plen+10);
   memcpy(path,ptr,plen);
-  syslog(LOG_WARNING, "mds_getattr: %s", path);
   path[plen] = 0;
+  syslog(LOG_WARNING, "mds_getattr: %s", path);
 
   fprintf(stderr,"path:%s\n",path);
 
@@ -539,8 +540,11 @@ void mds_getattr(mdsserventry* eptr,ppacket* p){
   free(path);
 }
 
-void mds_cl_getattr(mdsserventry* eptr,ppacket* p){
-  fprintf(stderr,"cl_getattr"); //path:%s\n",path);
+void mds_cl_getattr(mdsserventry* eptr,ppacket* p){ //p->id?
+  fprintf(stderr,"cl_getattr\n"); //path:%s\n",path);
+    const uint8_t *ptr = p->startptr;
+    int status = get32bit(&ptr);
+    fprintf(stderr, "status is %u\n", status);
   mds_direct_pass_cl(eptr,p,MDTOCL_GETATTR);
 }
 
@@ -818,22 +822,28 @@ void mds_rmdir(mdsserventry* eptr,ppacket* p){
 }
 
 void mds_cl_rmdir(mdsserventry* eptr,ppacket* inp){
-  //if status==0, rmdir locally
+  //if status==0, rmdir locally or do nothing
     const uint8_t *ptr = inp->startptr;
     int status = get32bit(&ptr);
-
     if(status==0) { //rmdir locally
         int plen = get32bit(&ptr);
         char *path = (char*)malloc((plen+1)*sizeof(char));
         memcpy(path, ptr, plen);
         path[plen] = 0;
         ptr += plen;
+        int src = get32bit(&ptr);
         ppfile* f = lookup_file(path);
         if(!f) {
+            free(path);
+            if(src==0)
+                return;
             //don't exist locally
         } else {
             remove_file(f);
             free_file(f);
+            free(path);
+            if(src==0)
+                return;
             //should also remove any child of f in this MDS, but how to find them? (MDS doesn't store the edge.)
             //However, since rmdir can only remove empty directory, this can be ignored.
             //What about "rm -r"? Fuse and the file system will take care of it, and recursively invoke readdir, unlink for regular file and rmdir for dir
@@ -888,19 +898,23 @@ void mds_cl_unlink(mdsserventry* eptr,ppacket* inp){
         memcpy(path,ptr,plen);
         path[plen] = 0;
         ptr += plen;
-
+        int src = get32bit(&ptr); //src==1, where it comes from
         fprintf(stderr,"path:%s\n",path);
         ppfile* f = lookup_file(path);
         if(f == NULL){ //not exist, ask MIS
             fprintf(stderr,"unlink file not exist\n");
+            free(path);
+            if(src==0)
+                return;
         } else { //exist, unlink (locally or remotely)
             remove_file(f); //remove from the path list
             free_file(f); //free the memory
             fprintf(stderr,"unlink file path:%s exist\n",path );
+            free(path);
+            if(src==0)
+                return;
         }
-        free(path);
     }
-   
   mds_direct_pass_cl(eptr,inp,MDTOCL_UNLINK);
 }
 void mds_create(mdsserventry* eptr,ppacket* p){

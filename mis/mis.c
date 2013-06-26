@@ -21,12 +21,6 @@ void mis_fs_demo_init(void){
   a.mode = 0777 | S_IFDIR;
   root = new_file("/",a);
   add_file(root);
-  //add a tmp file for demo
-  a.mode = 0777 | S_IFREG;
-  ppfile* tmpfile = new_file("/tmp", a);
-    add_file(tmpfile);
-    tmpfile->next = root->child;
-    root->child = tmpfile;
 
     //nf->srcip = eptr->peerip;
 
@@ -348,10 +342,11 @@ void mis_getattr(misserventry* eptr,ppacket* inp){
   if(f == NULL){
     p = createpacket_s(4,MITOMD_GETATTR,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
-    printf("status=%d\n",-ENOENT);
+    fprintf(stderr, "can not find the path, status=%d\n",-ENOENT);
     put32bit(&ptr,-ENOENT);
   } else {
-    p = createpacket_s(4+sizeof(attr),MITOMD_GETATTR,inp->id);
+    fprintf(stderr, "find the path, status=%d\n", 0);
+    p = createpacket_s(4+sizeof(attr),MITOMD_GETATTR,inp->id); //p->id = inp->id
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr,0);
     memcpy(ptr,&f->a,sizeof(attr));
@@ -395,6 +390,7 @@ void mis_readdir(misserventry* eptr,ppacket* inp){
         totsize += 4 + strlen(cf->name);
         nfiles++;
       }
+      fprintf(stderr, "mis readdir %d files\n",nfiles);
 
       p = createpacket_s(totsize,MITOMD_READDIR,inp->id);
       uint8_t* ptr = p->startptr + HEADER_LEN;
@@ -587,15 +583,33 @@ void mis_rmdir(misserventry* eptr,ppacket* inp){
       }
     }
     fprintf(stderr,"rmdir %s\n", path);
-    remove_all_child(f);
-    remove_child(pf, f); //should decrease the link cnt in pf->a if f is DIR
-    p = createpacket_s(4+strlen(path)+4,MITOMD_RMDIR,inp->id);
+    //remove_all_child(f); //not necessary
+    p = createpacket_s(4+strlen(path)+4+4,MITOMD_RMDIR,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr, 0);
     put32bit(&ptr, strlen(path));
     memcpy(ptr, path, strlen(path));
     ptr += strlen(path);
+    put32bit(&ptr,1); //source mds?
+    //if file is stored in another MDS, MIS is supposed to tell it
+    if(f->srcip != eptr->peerip){//update mds info
+      misserventry* ceptr = mis_entry_from_ip(f->srcip);
 
+      if(ceptr){
+        fprintf(stderr, "send to MDS: %X\n", f->srcip);
+        ppacket* outp = createpacket_s(4+len+4+4,MITOMD_RMDIR,inp->id); //forward the msg to dest mds
+        uint8_t* ptr3 = outp->startptr + HEADER_LEN;
+        put32bit(&ptr3, 0);
+        put32bit(&ptr3, len);
+        memcpy(ptr3, path, len);
+        ptr3 += len;
+        put32bit(&ptr3, 0);
+
+        outp->next = ceptr->outpacket;
+        ceptr->outpacket = outp;
+      }
+    }
+    remove_child(pf, f); //should decrease the link cnt in pf->a if f is DIR
     free(dir);
   } else { //not exist
     fprintf(stderr,"file not exists\n");
@@ -672,32 +686,35 @@ void mis_unlink(misserventry* eptr,ppacket* inp){
         goto end;
       }
     }
-
-    int ret = remove_child(pf, f);
   
-    p = createpacket_s(4+len+4,MITOMD_UNLINK,inp->id); //send to source MDS
+    p = createpacket_s(4+len+4+4,MITOMD_UNLINK,inp->id); //send to source MDS
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr, 0);
     put32bit(&ptr, len);
     memcpy(ptr, path, len);
     ptr += len;
+    put32bit(&ptr, 1); //source MDS
 
     //if file is stored in another MDS, MIS is supposed to tell it
     if(f->srcip != eptr->peerip){//update mds info
       misserventry* ceptr = mis_entry_from_ip(f->srcip);
 
       if(ceptr){
-        ppacket* outp = createpacket_s(4+len+4,MDTOMI_UNLINK,inp->id); //forward the msg to dest mds
-        uint8_t* ptr3 = p->startptr + HEADER_LEN;
+        fprintf(stderr, "send to MDS: %X\n", f->srcip);
+        ppacket* outp = createpacket_s(4+len+4+4,MITOMD_UNLINK,inp->id); //forward the msg to dest mds
+        uint8_t* ptr3 = outp->startptr + HEADER_LEN;
         put32bit(&ptr3, 0);
+        //put another flag?
         put32bit(&ptr3, len);
         memcpy(ptr3, path, len);
         ptr3 += len;
+        put32bit(&ptr3, 0);
 
         outp->next = ceptr->outpacket;
         ceptr->outpacket = outp;
       }
     }
+    int ret = remove_child(pf, f);
     //free_file(f); double free
     free(dir);
 
@@ -790,11 +807,12 @@ void mis_create(misserventry* eptr,ppacket* inp){
     syslog(LOG_WARNING, "mis_mode : %o", mt);
 
     ppfile* nf = new_file(path,a);
-    add_file(nf);
+    nf->srcip = eptr->peerip;
+    fprintf(stderr, "nf->srcip is %X, eptr->peerip is %X\n", nf->srcip, eptr->peerip);
+    add_file(nf); //add to hash list
     nf->next = f->child;
     f->child = nf;
 
-    nf->srcip = eptr->peerip;
 
     p = createpacket_s(4+strlen(path)+4+4,MITOMD_CREATE,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;

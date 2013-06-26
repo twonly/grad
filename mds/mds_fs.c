@@ -35,7 +35,7 @@ void add_file(ppfile* f){
 
   while( it!=NULL ) {
     if(!strcmp(f->path,it->key)) {
-      fprintf(stderr,"compare file: %s",f->path);
+      fprintf(stderr,"compare file: %s",it->key);
       return;
     }
     it = it->next;
@@ -53,7 +53,7 @@ void remove_file(ppfile* f){
   hashnode* np = NULL;
 
   while(n){
-    fprintf(stderr,"compare file: %s\n",f->path);
+    fprintf(stderr,"compare file: %s\n",n->key);
     if(!strcmp(n->key,f->path)){
       if(np == NULL){ //head of list
         tab[k] = n->next;

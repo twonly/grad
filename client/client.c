@@ -189,15 +189,15 @@ int ppfs_getattr(const char* path, struct stat* stbuf){
                 syslog(LOG_WARNING, "a->mode: %o", a->mode);
                 stbuf->st_mode = a->mode; //S_IFREG | 0755;
                 stbuf->st_nlink = 3;//a->link;
-               // stbuf->st_size = strlen(hello_str);
-		if(stbuf->st_mode & S_IFDIR )
-			stbuf->st_size = 4096;
-		else
-			stbuf->st_size = a->size;
-		stbuf->st_ctime = a->ctime;
-		stbuf->st_atime = a->atime;
-		stbuf->st_mtime = a->mtime;
+                // stbuf->st_size = strlen(hello_str);
+                if(stbuf->st_mode & S_IFDIR )
+                    stbuf->st_size = 4096;
+                else
+                    stbuf->st_size = a->size;
             }
+            stbuf->st_ctime = a->ctime;
+            stbuf->st_atime = a->atime;
+            stbuf->st_mtime = a->mtime;
             //stbuf->st_mode = a->mode;
             //stbuf->st_nlink = a->link;
             //stbuf->st_size = a->size;
