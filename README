@@ -3,5 +3,3 @@ search code for @TODO
 
 Escape the pathname
 
-rmdir should not remove the directory with any child
-See man 2 rmdir

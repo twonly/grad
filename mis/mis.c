@@ -609,6 +609,7 @@ end:
   p->next = eptr->outpacket;
   eptr->outpacket = p;
 }
+
 void mis_unlink(misserventry* eptr,ppacket* inp){
   fprintf(stderr,"+mis_unlink\n");
 
@@ -631,7 +632,14 @@ void mis_unlink(misserventry* eptr,ppacket* inp){
 
   ppfile* f = lookup_file(path);
   if(f){
-    fprintf(stderr,"file exists, unlink it\n");
+    if(S_ISDIR(f->a.mode)) {
+        fprintf(stderr,"path is DIR\n");
+        p = createpacket_s(4,MITOMD_UNLINK,inp->id);
+        uint8_t* ptr = p->startptr + HEADER_LEN;
+        put32bit(&ptr,-EISDIR);
+        goto end;
+    }
+    fprintf(stderr,"file exists\n");
 
     // No need to check the parent dir
     char* dir;
@@ -664,30 +672,33 @@ void mis_unlink(misserventry* eptr,ppacket* inp){
         goto end;
       }
     }
+
     int ret = remove_child(pf, f);
-   // ppfile *it = pf->child;
-   // ppfile *pre = NULL; //pf->child;
-   // while( it ) {
-   //     if(!strcmp(it->path, f->path)) {
-   //         if(!pre) { //first node
-   //             pf->child = it->next;
-   //             remove_file(it);
-   //             free_file(it);
-   //         } else {
-   //             pre->next = it->next;
-   //             remove_file(it);
-   //             free_file(it);
-   //         }
-   //         break;
-   //     } else {
-   //         pre = it;
-   //         it = it->next;
-   //     }
-   // }
-    p = createpacket_s(4,MITOMD_UNLINK,inp->id);
+  
+    p = createpacket_s(4+len+4,MITOMD_UNLINK,inp->id); //send to source MDS
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr, 0);
+    put32bit(&ptr, len);
+    memcpy(ptr, path, len);
+    ptr += len;
 
+    //if file is stored in another MDS, MIS is supposed to tell it
+    if(f->srcip != eptr->peerip){//update mds info
+      misserventry* ceptr = mis_entry_from_ip(f->srcip);
+
+      if(ceptr){
+        ppacket* outp = createpacket_s(4+len+4,MDTOMI_UNLINK,inp->id); //forward the msg to dest mds
+        uint8_t* ptr3 = p->startptr + HEADER_LEN;
+        put32bit(&ptr3, 0);
+        put32bit(&ptr3, len);
+        memcpy(ptr3, path, len);
+        ptr3 += len;
+
+        outp->next = ceptr->outpacket;
+        ceptr->outpacket = outp;
+      }
+    }
+    //free_file(f); double free
     free(dir);
 
   } else { //not exist
@@ -702,6 +713,7 @@ end:
   p->next = eptr->outpacket;
   eptr->outpacket = p;
 }
+
 void mis_create(misserventry* eptr,ppacket* inp){
   fprintf(stderr,"+mis_create\n");
 

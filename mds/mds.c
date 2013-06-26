@@ -864,8 +864,8 @@ void mds_unlink(mdsserventry* eptr,ppacket* p){
         outpi->next = mdtomi->outpacket;
         mdtomi->outpacket = outpi;
     } else { //exist, unlink locally and tell MIS to unlink too
-        remove_file(f); //remove from the path list
-        free_file(f); //free the memory
+        //remove_file(f); //remove from the path list
+        //free_file(f); //free the memory
         fprintf(stderr,"unlink file path:%s exist; tell MIS\n",path );
         ppacket* outpi = createpacket_s(p->size,MDTOMI_UNLINK,p->id); //tell MIS
         memcpy(outpi->startptr+HEADER_LEN,p->startptr,p->size);
@@ -878,6 +878,29 @@ void mds_unlink(mdsserventry* eptr,ppacket* p){
 }
 
 void mds_cl_unlink(mdsserventry* eptr,ppacket* inp){
+    fprintf(stderr,"+mds_cl_unlink\n");
+    const uint8_t *ptr = inp->startptr;
+    int status = get32bit(&ptr);
+    if( status==0 ) {
+        int plen;
+        plen = get32bit(&ptr);
+        char* path = (char*)malloc(plen+1);
+        memcpy(path,ptr,plen);
+        path[plen] = 0;
+        ptr += plen;
+
+        fprintf(stderr,"path:%s\n",path);
+        ppfile* f = lookup_file(path);
+        if(f == NULL){ //not exist, ask MIS
+            fprintf(stderr,"unlink file not exist\n");
+        } else { //exist, unlink (locally or remotely)
+            remove_file(f); //remove from the path list
+            free_file(f); //free the memory
+            fprintf(stderr,"unlink file path:%s exist\n",path );
+        }
+        free(path);
+    }
+   
   mds_direct_pass_cl(eptr,inp,MDTOCL_UNLINK);
 }
 void mds_create(mdsserventry* eptr,ppacket* p){
@@ -917,9 +940,9 @@ void mds_create(mdsserventry* eptr,ppacket* p){
 
 void mds_cl_create(mdsserventry* eptr,ppacket* inp){
     //handle the message
+    fprintf(stderr,"+mds_cl_create\n");
     const uint8_t *ptr = inp->startptr;
     int status = get32bit(&ptr);
-    
     if(status==0) { //create locally
         int plen = get32bit(&ptr);
         char *path = (char*)malloc((plen+1)*sizeof(char));
