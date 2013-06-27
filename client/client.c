@@ -473,7 +473,7 @@ int	ppfs_release (const char *path, struct fuse_file_info *fi){}
 int	ppfs_releasedir (const char *path, struct fuse_file_info *fi){}
 int	ppfs_rename (const char *path, const char *newpath){
     syslog(LOG_WARNING, "ppfs_rename path : %s", path);
-    ppacket *s = createpacket_s(4+strlen(path)+4+strlen(newpath), CLTOMD_ACCESS,1);
+    ppacket *s = createpacket_s(4+strlen(path)+4+strlen(newpath), CLTOMD_RENAME,-1);
     uint8_t* ptr = s->startptr+HEADER_LEN;
     put32bit(&ptr, strlen(path));
     memcpy(ptr, path, strlen(path));
@@ -489,8 +489,8 @@ int	ppfs_rename (const char *path, const char *newpath){
     int status = get32bit(&ptr2);
     syslog(LOG_WARNING,"rename status:%d\n",status);
     if(status == 0){
-        syslog(LOG_WARNING,"chmod success");
-        print_attr((const attr*)ptr2);
+        syslog(LOG_WARNING,"rename success");
+        //print_attr((const attr*)ptr2);
     } else {
         if(status == -ENOENT){
             syslog(LOG_WARNING,"\tENOENT\n");

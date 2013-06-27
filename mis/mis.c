@@ -298,6 +298,9 @@ void mis_gotpacket(misserventry* eptr,ppacket* p){
     case MDTOMI_UPDATE_ATTR:
       mis_update_attr(eptr,p);
       break;
+    case MDTOMI_RENAME:
+      mis_rename(eptr,p);
+      break;
     case MDTOMI_CHMOD:
       mis_chmod(eptr,p);
       break;
@@ -947,6 +950,309 @@ misserventry* mis_entry_from_ip(int ip){ //maybe add a hash?
   }
 
   return eptr;
+}
+
+void mis_rename(misserventry* eptr,ppacket* inp){
+  ppacket* p;
+  char* opath, *npath;
+  int olen, nlen;
+  const uint8_t* inptr;
+  int i;
+
+  inptr = inp->startptr;
+  olen = get32bit(&inptr);
+  opath = (char*)malloc((olen+1)*sizeof(char));
+  memcpy(opath,inptr,olen*sizeof(char));
+  inptr += olen;
+  opath[olen] = 0;
+  //new path
+  nlen = get32bit(&inptr);
+  printf("nlen=%d\n",nlen);
+  npath = (char*)malloc((nlen+1)*sizeof(char));
+  memcpy(npath,inptr,nlen*sizeof(char));
+  inptr += nlen;
+  npath[nlen] = 0;
+
+  printf("olen=%d\n",olen);
+  printf("old path=%s\n",opath);
+  printf("nlen=%d\n",nlen);
+  printf("new path=%s\n",npath);
+
+  ppfile* oldf = lookup_file(opath);
+  ppfile* newf = lookup_file(npath);
+  if(!oldf){
+    p = createpacket_s(4,MITOMD_RENAME,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,-ENOENT);
+    goto end;
+  } else { //oldf exist
+    if( S_ISREG(oldf->a.mode) ) { //old path is file
+        if( newf ) { //new path exist
+            if( S_ISDIR(newf->a.mode) ) {
+                p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                uint8_t* ptr = p->startptr + HEADER_LEN;
+                put32bit(&ptr,-EISDIR);
+                goto end;
+            } else if(S_ISREG(newf->a.mode)) { //new path is file too
+                //remove newpath, and rename oldpath to newpath
+                char* dir = (char*)getparentdir(npath, nlen);
+                printf("dir=%s\n",dir);
+                ppfile* npf = lookup_file(dir); //must always exist as a directory
+                if(!npf){ //parent dir not exist
+                    p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                    uint8_t* ptr = p->startptr + HEADER_LEN;
+                    put32bit(&ptr,-ENOENT);
+                    free(dir);
+                    goto end;
+                } else {
+                    if(!S_ISDIR(npf->a.mode)){ //exist but not directory
+                        p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                        uint8_t* ptr = p->startptr + HEADER_LEN;
+                        put32bit(&ptr,-ENOTDIR);
+                        free(dir);
+                        goto end;
+                    } else {
+                        char* odir = (char*)getparentdir(opath, olen);
+                        printf("odir=%s\n",odir);
+                        ppfile* opf = lookup_file(odir); //must always exist as a odirectory
+                        if(!opf) { //old path's parent not exist
+                            p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                            uint8_t* ptr = p->startptr + HEADER_LEN;
+                            put32bit(&ptr,-ENOENT);
+                            free(dir);
+                            free(odir);
+                            goto end;
+                        } else {
+                            if(!S_ISDIR(opf->a.mode)){ //old path's parent exist but not directory
+                                p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                                uint8_t* ptr = p->startptr + HEADER_LEN;
+                                put32bit(&ptr,-ENOTDIR);
+                                free(dir);
+                                free(odir);
+                                goto end;
+                            } else {
+                                remove_child( npf, newf ); //remove existing new path
+                                attr na = oldf->a;
+                                ppfile* nf = new_file(npath,na);
+                                nf->srcip = eptr->peerip;
+                                //fprintf(stderr, "nf->srcip is %X, eptr->peerip is %X\n", nf->srcip, eptr->peerip);
+                                add_file(nf); //add to hash list
+                                nf->next = npf->child;
+                                npf->child = nf; //add as nparent's child
+                                remove_child( opf, oldf ); //remove existing old path
+                                free(dir);
+                                free(odir);
+                                fprintf(stderr, "rename: new path exist \n");
+                            }
+                        }
+                    }
+                }
+            }
+        } else { //new path not exist
+            //rename oldpath to newpath after check newpath's parent
+            char* dir = (char*)getparentdir(npath, nlen);
+            printf("dir=%s\n",dir);
+            ppfile* npf = lookup_file(dir); //must always exist as a directory
+            if(!npf){ //parent dir not exist
+                p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                uint8_t* ptr = p->startptr + HEADER_LEN;
+                put32bit(&ptr,-ENOENT);
+                free(dir);
+                goto end;
+            } else {
+                if(!S_ISDIR(npf->a.mode)){ //exist but not directory
+                    p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                    uint8_t* ptr = p->startptr + HEADER_LEN;
+                    put32bit(&ptr,-ENOTDIR);
+                    free(dir);
+                    goto end;
+                } else {
+                    char* odir = (char*)getparentdir(opath, olen);
+                    printf("odir=%s\n",odir);
+                    ppfile* opf = lookup_file(odir); //must always exist as a odirectory
+                    if(!opf) { //old path's parent not exist
+                        p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                        uint8_t* ptr = p->startptr + HEADER_LEN;
+                        put32bit(&ptr,-ENOENT);
+                        free(dir);
+                        free(odir);
+                        goto end;
+                    } else {
+                        if(!S_ISDIR(opf->a.mode)){ //old path's parent exist but not directory
+                            p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                            uint8_t* ptr = p->startptr + HEADER_LEN;
+                            put32bit(&ptr,-ENOTDIR);
+                            free(dir);
+                            free(odir);
+                            goto end;
+                        } else {
+                            //remove_child( npf, newf ); //new path not exist, no need to remove
+                            attr na = oldf->a;
+                            ppfile* nf = new_file(npath,na);
+                            nf->srcip = eptr->peerip;
+                            add_file(nf); //add to hash list
+                            nf->next = npf->child;
+                            npf->child = nf; //add as nparent's child
+                            remove_child( opf, oldf ); //remove existing old path
+                            free(dir);
+                            free(odir);
+                            fprintf(stderr, "rename: newpath not exist\n");
+                        }
+                    }
+                }
+            }
+        }
+    } else if( S_ISDIR(oldf->a.mode) ) { //old path is dir
+        if( newf ) {
+            if( S_ISREG(newf->a.mode) ) {
+                p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                uint8_t* ptr = p->startptr + HEADER_LEN;
+                put32bit(&ptr,-ENOTDIR);
+                goto end;
+            } else if( S_ISDIR(newf->a.mode) ) {
+                //remove newpath, renmae old to newpath
+                char* dir = (char*)getparentdir(npath, nlen);
+                ppfile* npf = lookup_file(dir);
+                if(!npf){ //parent dir not exist
+                    p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                    uint8_t* ptr = p->startptr + HEADER_LEN;
+                    put32bit(&ptr,-ENOENT);
+                    free(dir);
+                    goto end;
+                } else {
+                    if(!S_ISDIR(npf->a.mode)){ //exist but not directory
+                        p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                        uint8_t* ptr = p->startptr + HEADER_LEN;
+                        put32bit(&ptr,-ENOTDIR);
+                        free(dir);
+                        goto end;
+                    } else {
+                        char* odir = (char*)getparentdir(opath, olen);
+                        printf("odir=%s\n",odir);
+                        ppfile* opf = lookup_file(odir); //must always exist as a odirectory
+                        if(!opf) { //old path's parent not exist
+                            p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                            uint8_t* ptr = p->startptr + HEADER_LEN;
+                            put32bit(&ptr,-ENOENT);
+                            free(dir);
+                            free(odir);
+                            goto end;
+                        } else {
+                            if(!S_ISDIR(opf->a.mode)){ //old path's parent exist but not directory
+                                p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                                uint8_t* ptr = p->startptr + HEADER_LEN;
+                                put32bit(&ptr,-ENOTDIR);
+                                free(dir);
+                                free(odir);
+                                goto end;
+                            } else {
+                                remove_child( npf, newf ); //remove existing new path
+                                attr na = oldf->a;
+                                ppfile* nf = new_file(npath,na);
+                                nf->srcip = eptr->peerip;
+                                //fprintf(stderr, "nf->srcip is %X, eptr->peerip is %X\n", nf->srcip, eptr->peerip);
+                                add_file(nf); //add to hash list
+                                nf->next = npf->child;
+                                npf->child = nf; //add as nparent's child
+                                remove_child( opf, oldf ); //remove existing old path
+                                free(dir);
+                                free(odir);
+                                fprintf(stderr, "rename dir: new path exist \n");
+                            }
+                        }
+                    }
+                }
+            }
+        } else { //new path not exist
+            //rename directly
+            char* dir = (char*)getparentdir(npath, nlen);
+            printf("dir=%s\n",dir);
+            ppfile* npf = lookup_file(dir); //must always exist as a directory
+            if(!npf){ //parent dir not exist
+                p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                uint8_t* ptr = p->startptr + HEADER_LEN;
+                put32bit(&ptr,-ENOENT);
+                free(dir);
+                goto end;
+            } else {
+                if(!S_ISDIR(npf->a.mode)){ //exist but not directory
+                    p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                    uint8_t* ptr = p->startptr + HEADER_LEN;
+                    put32bit(&ptr,-ENOTDIR);
+                    free(dir);
+                    goto end;
+                } else {
+                    char* odir = (char*)getparentdir(opath, olen);
+                    printf("odir=%s\n",odir);
+                    ppfile* opf = lookup_file(odir); //must always exist as a odirectory
+                    if(!opf) { //old path's parent not exist
+                        p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                        uint8_t* ptr = p->startptr + HEADER_LEN;
+                        put32bit(&ptr,-ENOENT);
+                        free(dir);
+                        free(odir);
+                        goto end;
+                    } else {
+                        if(!S_ISDIR(opf->a.mode)){ //old path's parent exist but not directory
+                            p = createpacket_s(4,MITOMD_RENAME,inp->id);
+                            uint8_t* ptr = p->startptr + HEADER_LEN;
+                            put32bit(&ptr,-ENOTDIR);
+                            free(dir);
+                            free(odir);
+                            goto end;
+                        } else {
+                            //remove_child( npf, newf ); //new path not exist, no need to remove
+                            //should also rename all the children of old path
+                            rename_all_child( npf, opf, oldf, npath );
+                            free(dir);
+                            free(odir);
+                            fprintf(stderr, "rename dir: newpath not exist\n");
+                        }
+                    }
+                }
+            }
+        }
+    }
+  }
+    p = createpacket_s(4+4+olen+4+nlen+4,MITOMD_RENAME,inp->id);
+    //p = createpacket_s(4+len+4+4,MITOMD_UNLINK,inp->id); //send to source MDS
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,0); //status
+    put32bit(&ptr, olen);
+    memcpy(ptr, opath, olen);
+    ptr += olen;
+    put32bit(&ptr, nlen);
+    memcpy(ptr, npath, nlen);
+    ptr += nlen;
+    put32bit(&ptr, 1); //source MDS
+
+    //if file is stored in another MDS, MIS is supposed to tell it
+    if(oldf->srcip != eptr->peerip){//update mds info
+      misserventry* ceptr = mis_entry_from_ip(oldf->srcip);
+
+      if(ceptr){
+        fprintf(stderr, "send to MDS: %X\n", oldf->srcip);
+        ppacket* outp = createpacket_s(4+4+olen+4+nlen+4,MITOMD_RENAME,inp->id); //forward the msg to dest mds
+        uint8_t* ptr3 = outp->startptr + HEADER_LEN;
+        put32bit(&ptr3, 0);
+        put32bit(&ptr, olen);
+        memcpy(ptr, opath, olen);
+        ptr += olen;
+        put32bit(&ptr, nlen);
+        memcpy(ptr, npath, nlen);
+        ptr += nlen;
+        put32bit(&ptr, 0); //dest MDS
+
+        outp->next = ceptr->outpacket;
+        ceptr->outpacket = outp;
+      }
+    }
+    
+end:
+  free(opath);
+  free(npath);
+  p->next = eptr->outpacket;
+  eptr->outpacket = p;
 }
 
 //need to add access control

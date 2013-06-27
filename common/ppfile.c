@@ -5,6 +5,7 @@
 
 char* getbasename(char* path){
   int pos = strlen(path) - 1;
+  if(pos==0) return path; //"/"
   while(pos >= 0 && path[pos] != '/')
     pos--;
 

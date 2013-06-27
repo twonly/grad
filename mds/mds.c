@@ -378,6 +378,13 @@ void mds_gotpacket(mdsserventry* eptr,ppacket* p){
       mds_readdir(eptr,p);
       break;
 
+    case CLTOMD_RENAME:
+      mds_rename(eptr,p);
+      break;
+    case MITOMD_RENAME:
+      mds_cl_rename(eptr,p);
+      break;
+
     case CLTOMD_CHMOD:
       mds_chmod(eptr,p);
       break;
@@ -594,6 +601,92 @@ void mds_readdir(mdsserventry* eptr,ppacket* p){
 void mds_cl_readdir(mdsserventry* eptr,ppacket* p){
   mds_direct_pass_cl(eptr,p,MDTOCL_READDIR);
 }
+
+void mds_rename(mdsserventry* eptr,ppacket* p){
+  fprintf(stderr,"+mds_rename\n");
+
+  int plen, nplen;
+  const uint8_t* ptr = p->startptr;
+
+  plen = get32bit(&ptr);
+  char* path = (char*)malloc(plen+10);
+  memcpy(path,ptr,plen);
+  ptr += plen;
+  path[plen] = 0;
+    //new path
+  nplen = get32bit(&ptr);
+  char* npath = (char*)malloc(nplen+10);
+  memcpy(npath,ptr,nplen);
+  ptr += nplen;
+  npath[nplen] = 0;
+
+  fprintf(stderr,"path=%s\n",path);
+  fprintf(stderr,"new path=%s\n",npath);
+
+  //ppfile* f = lookup_file(path);
+    ppacket* outp = createpacket_s(p->size,MDTOMI_RENAME,p->id);
+    memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
+
+    outp->next = mdtomi->outpacket;
+    mdtomi->outpacket = outp;
+
+  free(path);
+  free(npath);
+}
+
+void mds_cl_rename(mdsserventry* eptr,ppacket* p){
+    fprintf(stderr,"+mds_cl_rename\n");
+    const uint8_t *ptr = p->startptr;
+    int status = get32bit(&ptr);
+    if( status==0 ) {
+        int olen, nlen;
+        olen = get32bit(&ptr);
+        char* opath = (char*)malloc(olen+1);
+        memcpy(opath,ptr,olen);
+        opath[olen] = 0;
+        ptr += olen;
+        nlen = get32bit(&ptr);
+        char* npath = (char*)malloc(nlen+1);
+        memcpy(npath,ptr,nlen);
+        npath[nlen] = 0;
+        ptr += nlen;
+        int src = get32bit(&ptr); //src==1, where it comes from
+        fprintf(stderr,"old path: %s, new path: %s\n",opath, npath);
+        ppfile* oldf = lookup_file(opath);
+        ppfile* newf = lookup_file(npath);
+        if(oldf == NULL){
+            fprintf(stderr,"rename file not exist\n");
+            if(!newf) {
+                fprintf(stderr,"rename new path not exist\n");
+            } else {
+                remove_file(newf);
+                free_file(newf);
+            }
+            free(opath);
+            free(npath);
+            if(src==0)
+                return;
+        } else { //exist, unlink (locally or remotely)
+            attr a = oldf->a;
+            remove_file(oldf); //remove from the path list
+            free_file(oldf); //free the memory
+            fprintf(stderr,"rename file path:%s exist\n",opath );
+            if(!newf) {
+                fprintf(stderr,"rename new path not exist, create\n");
+                ppfile* nf = new_file(npath,a);
+                add_file(nf);
+            } else {
+                fprintf(stderr,"rename new path exist, do nothing\n");
+            }
+            free(opath);
+            free(npath);
+            if(src==0)
+                return;
+        }
+    }
+  mds_direct_pass_cl(eptr,p,MDTOCL_RENAME);
+}
+
 
 void mds_chmod(mdsserventry* eptr,ppacket* p){
   fprintf(stderr,"+mds_chmod\n");
