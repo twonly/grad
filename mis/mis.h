@@ -64,7 +64,6 @@ void mis_chmod(misserventry* eptr,ppacket* p);
 void mis_chgrp(misserventry* eptr,ppacket* p);
 void mis_chown(misserventry* eptr,ppacket* p);
 
-void mis_rename(misserventry* eptr,ppacket* p);
 void mis_update_attr(misserventry* eptr,ppacket* p);
 
 void mis_rmdir(misserventry* eptr,ppacket* p);

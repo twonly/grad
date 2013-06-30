@@ -63,10 +63,6 @@ void mds_access(mdsserventry* eptr,ppacket* p);
 void mds_opendir(mdsserventry* eptr,ppacket* p);
 void mds_mkdir(mdsserventry* eptr,ppacket* p);
 void mds_releasedir(mdsserventry* eptr,ppacket* p);
-void mds_rename(mdsserventry* eptr,ppacket* p);
-
-void mds_rename(mdsserventry* eptr,ppacket* p);
-void mds_cl_rename(mdsserventry* eptr,ppacket* p);
 
 void mds_chmod(mdsserventry* eptr,ppacket* p);
 void mds_cl_chmod(mdsserventry* eptr,ppacket* p);
