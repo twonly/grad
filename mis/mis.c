@@ -289,9 +289,6 @@ void mis_gotpacket(misserventry* eptr,ppacket* p){
     case MDTOMI_CREATE:
       mis_create(eptr,p);
       break;
-    case MDTOMI_ACCESS:
-      mis_access(eptr,p);
-      break;
     case MDTOMI_OPEN:
       mis_open(eptr,p);
       break;
@@ -314,6 +311,9 @@ void mis_gotpacket(misserventry* eptr,ppacket* p){
     case MDTOCL_READ_CHUNK_INFO:
       mis_rfw_read_chunk_info(eptr,p);
       break;
+
+    case MDTOMI_UTIMENS:
+      mis_utimens(eptr,p);
   }
 
   fprintf(stderr,"\n\n");
@@ -458,7 +458,7 @@ void mis_mkdir(misserventry* eptr,ppacket* inp){
       dir = strdup(path);
       dir[dirlen] = 0;
     } else {
-      dir = strdup("/"); //never pass through here
+      dir = strdup("/");
     }
 
 
@@ -663,19 +663,13 @@ void mis_unlink(misserventry* eptr,ppacket* inp){
       put32bit(&ptr,-ENOENT);
       free(dir);
       goto end;
-    } else if(!S_ISREG(pf->a.mode)){
-        p = createpacket_s(4,MITOMD_UNLINK,inp->id);
-        uint8_t* ptr = p->startptr + HEADER_LEN;
-        put32bit(&ptr,-EISDIR);
-        free(dir);
-        goto end;
     }
 
     if(f->srcip != eptr->peerip){
       misserventry* ceptr = mis_entry_from_ip(f->srcip);
 
       if(ceptr){
-        p = createpacket_s(4+4+len,MITOMD_UNLINK,-2);
+        p = createpacket_s(4+4+len,CLTOMD_UNLINK,0); //no client will use ip address 0.0.0.0
         uint8_t* ptr = p->startptr + HEADER_LEN;
 
         put32bit(&ptr,0);
@@ -729,7 +723,7 @@ void mis_create(misserventry* eptr,ppacket* inp){
   memcpy(path,inptr,len*sizeof(char));
   path[len] = 0;
   inptr += len;
-  mode_t mt = get32bit(&inptr);
+  int mt = get32bit(&inptr);
 
   printf("path=%s\n",path);
 
@@ -763,7 +757,7 @@ void mis_create(misserventry* eptr,ppacket* inp){
       p = createpacket_s(4,MITOMD_CREATE,inp->id);
       uint8_t* ptr = p->startptr + HEADER_LEN;
       put32bit(&ptr,-ENOENT);
-      
+
       free(dir);
       goto end;
     } else {
@@ -785,7 +779,7 @@ void mis_create(misserventry* eptr,ppacket* inp){
     a.size = 0;
 
     a.mode = mt; //| S_IFREG; //use mode from client
-    syslog(LOG_WARNING, "mis_mode : %o", mt);
+    fprintf(stderr, "mis_mode : %o", mt);
 
     ppfile* nf = new_file(path,a);
     nf->srcip = eptr->peerip;
@@ -794,14 +788,12 @@ void mis_create(misserventry* eptr,ppacket* inp){
     nf->next = f->child;
     f->child = nf;
 
-
     p = createpacket_s(4+strlen(path)+4+4,MITOMD_CREATE,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr,0);
     put32bit(&ptr,strlen(path));
     memcpy(ptr, path, strlen(path));
     ptr += strlen(path);
-    syslog(LOG_WARNING, "mis_mode sent to mds: %o", mt);
     put32bit(&ptr, mt);
 
     free(dir);
@@ -813,42 +805,7 @@ end:
   eptr->outpacket = p;
 }
 
-//need to add access control
-void mis_access(misserventry* eptr,ppacket* inp){
-  ppacket* p;
-  char* path;
-  int len;
-  const uint8_t* inptr;
-  int i;
-
-  inptr = inp->startptr;
-  len = get32bit(&inptr);
-  printf("plen=%d\n",len);
-
-  path = (char*)malloc((len+10)*sizeof(char));
-  memcpy(path,inptr,len*sizeof(char));
-  path[len] = 0;
-
-  printf("path=%s\n",path);
-
-  ppfile* f = lookup_file(path);
-  if(!f){
-    p = createpacket_s(4,MITOMD_ACCESS,inp->id);
-    uint8_t* ptr = p->startptr + HEADER_LEN;
-    put32bit(&ptr,-ENOENT);
-  } else {
-    p = createpacket_s(4,MITOMD_ACCESS,inp->id);
-    uint8_t* ptr = p->startptr + HEADER_LEN;
-    put32bit(&ptr,0);
-  }
-
-end:
-  free(path);
-  p->next = eptr->outpacket;
-  eptr->outpacket = p;
-}
-
-//need to add access control
+//@TODO need to add access control
 void mis_open(misserventry* eptr,ppacket* inp){
   ppacket* p;
   char* path;
@@ -913,7 +870,7 @@ void mis_update_attr(misserventry* eptr,ppacket* inp){ //no need to send back
   free(path);
 }
 
-misserventry* mis_entry_from_ip(int ip){ //maybe add a hash?
+misserventry* mis_entry_from_ip(int ip){
   misserventry* eptr = misservhead;
   
   fprintf(stderr,"+misserventry:ip=%X\n",ip);
@@ -930,7 +887,7 @@ misserventry* mis_entry_from_ip(int ip){ //maybe add a hash?
   return eptr;
 }
 
-//need to add access control
+//@TODO need to add access control
 void mis_chmod(misserventry* eptr,ppacket* inp){
   ppacket* p;
   char* path;
@@ -968,7 +925,7 @@ void mis_chmod(misserventry* eptr,ppacket* inp){
       misserventry* ceptr = mis_entry_from_ip(f->srcip);
 
       if(ceptr){
-        ppacket* outp = createpacket_s(inp->size,CLTOMD_CHMOD,inp->id); //forward the msg to dest mds
+        ppacket* outp = createpacket_s(inp->size,CLTOMD_CHMOD,inp->id);
         memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
 
         outp->next = ceptr->outpacket;
@@ -983,7 +940,7 @@ end:
   eptr->outpacket = p;
 }
 
-//need to add access control
+//%TODO need to add access control
 void mis_chgrp(misserventry* eptr,ppacket* inp){
   ppacket* p;
   char* path;
@@ -1034,7 +991,7 @@ end:
   eptr->outpacket = p;
 }
 
-//need to add access control
+//@TODO need to add access control
 void mis_chown(misserventry* eptr,ppacket* inp){
   ppacket* p;
   char* path;
@@ -1156,3 +1113,55 @@ void mis_rfw_read_chunk_info(misserventry* eptr,ppacket* p){
   outp->next = ceptr->outpacket;
   ceptr->outpacket = outp;
 }
+
+//@TODO need to add access control
+void mis_utimens(misserventry* eptr,ppacket* inp){
+  ppacket* p;
+  char* path;
+  int len;
+  const uint8_t* inptr;
+  int i;
+
+  inptr = inp->startptr;
+  len = get32bit(&inptr);
+  printf("plen=%d\n",len);
+
+  path = (char*)malloc((len+10)*sizeof(char));
+  memcpy(path,inptr,len*sizeof(char));
+  inptr += len;
+  path[len] = 0;
+
+  printf("path=%s\n",path);
+
+  ppfile* f = lookup_file(path);
+  if(!f){
+    p = createpacket_s(4,MITOMD_UTIMENS,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,-ENOENT);
+  } else {
+    f->a.atime = get32bit(&inptr);
+    f->a.mtime = get32bit(&inptr);
+
+    p = createpacket_s(4,MITOMD_UTIMENS,inp->id);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,0); //status
+
+    if(f->srcip != eptr->peerip){//update mds info
+      misserventry* ceptr = mis_entry_from_ip(f->srcip);
+
+      if(ceptr){
+        ppacket* outp = createpacket_s(inp->size,CLTOMD_UTIMENS,inp->id);
+        memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
+
+        outp->next = ceptr->outpacket;
+        ceptr->outpacket = outp;
+      }
+    }
+  }
+
+end:
+  free(path);
+  p->next = eptr->outpacket;
+  eptr->outpacket = p;
+}
+

@@ -50,7 +50,6 @@ ppacket* mis_createpacket(int size,int cmd);
 misserventry* mis_entry_from_ip(int ip);
 
 void mis_getattr(misserventry* eptr,ppacket* p);
-void mis_access(misserventry* eptr,ppacket* p);
 void mis_opendir(misserventry* eptr,ppacket* p);
 void mis_readdir(misserventry* eptr,ppacket* p);
 void mis_mkdir(misserventry* eptr,ppacket* p);
@@ -58,11 +57,11 @@ void mis_releasedir(misserventry* eptr,ppacket* p);
 
 void mis_create(misserventry* eptr,ppacket* p);
 void mis_open(misserventry* eptr,ppacket* p);
-void mis_access(misserventry* eptr,ppacket* p);
 
 void mis_chmod(misserventry* eptr,ppacket* p);
 void mis_chgrp(misserventry* eptr,ppacket* p);
 void mis_chown(misserventry* eptr,ppacket* p);
+void mis_utimens(misserventry* eptr,ppacket* p);
 
 void mis_update_attr(misserventry* eptr,ppacket* p);
 

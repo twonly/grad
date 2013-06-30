@@ -1,6 +1,10 @@
 #define FUSE_USE_VERSION 26
 #include "client.h"
 
+int min(int a,int b){
+  return a<b?a:b;
+}
+
 void sendpacket(int sockfd,ppacket* p){
   int i;
   int len = 0;
@@ -33,7 +37,6 @@ ppacket* receivepacket(int sockfd){
   const uint8_t* ptr;
   int i,hleft;
   ppacket* p;
-  syslog(LOG_WARNING, "in receivepacket");
 
   hleft = HEADER_LEN;
   startptr = headbuf;
@@ -88,20 +91,21 @@ ppacket* receivepacket(int sockfd){
 
 void print_attr(const attr* a){
   if(a->mode & S_IFDIR){
-    syslog(LOG_WARNING,"\tdirectory\n");
+    fprintf(stderr,"\tdirectory\n");
   } else if(a->mode & S_IFREG){
-    syslog(LOG_WARNING,"\tregular file\n");
+    fprintf(stderr,"\tregular file\n");
   }
 
+  fprintf(stderr,"\tmode=%o\n",a->mode);
 
-  syslog(LOG_WARNING,"\tperm:%d%d%d\n",a->mode / 0100 & 7,
+  fprintf(stderr,"\tperm:%d%d%d\n",a->mode / 0100 & 7,
       a->mode / 0010 & 7,
       a->mode & 7);
 
-  syslog(LOG_WARNING,"\tuid=%d,gid=%d",a->uid,a->gid);
-  syslog(LOG_WARNING,"\tatime=%d,ctime=%d,mtime=%d\n",a->atime,a->ctime,a->mtime);
-  syslog(LOG_WARNING,"\tlink=%d\n",a->link);
-  syslog(LOG_WARNING,"\tsize=%d\n",a->size);
+  fprintf(stderr,"\tuid=%d,gid=%d",a->uid,a->gid);
+  fprintf(stderr,"\tatime=%d,ctime=%d,mtime=%d\n",a->atime,a->ctime,a->mtime);
+  fprintf(stderr,"\tlink=%d\n",a->link);
+  fprintf(stderr,"\tsize=%d\n",a->size);
 }
 
 static struct fuse_operations ppfs_oper = {
@@ -123,49 +127,81 @@ static struct fuse_operations ppfs_oper = {
   .create		= ppfs_create, //replace mknod and open
   .open		= ppfs_open, //called before read
   //.release	= ppfs_release,
-  .release	= ppfs_release,
   //.flush		= ppfs_flush,
   //.fsync		= ppfs_fsync,
   .read		= ppfs_read,
-  //.write		= ppfs_write,
+  .write		= ppfs_write,
   .access		= ppfs_access,
-  .utime		= ppfs_utime,
+  .utimens  = ppfs_utimens,
 };
 
+typedef struct ppfs_conn_entry{
+  int sockfd;
+  int peerip;
+} ppfs_conn_entry;
+
 int fd;
+ppfs_conn_entry local_mds,remote_mds;
+
+int numip = 0x010000FE;
 char *ip = "127.0.0.1";
 char *port = "8224";
-char *hello_path = "/hello";
-char *hello_str = "hello world";
+
+int serv_connect(ppfs_conn_entry* e,int ip,int port){
+  int fd = tcpsocket();
+  if(fd < 0){
+    fprintf(stderr,"cannot create socket\n");
+    return -1;
+  }
+
+  tcpnodelay(fd);
+  if(tcpnumconnect(fd,ip,port) < 0){
+    fprintf(stderr,"cannot connect to %X:%d\n",ip,port);
+    return -1;
+  }
+
+  e->sockfd = fd;
+	tcpgetpeer(fd,&(e->peerip),NULL);
+
+  return fd;
+}
 
 void* ppfs_fsinit( struct fuse_conn_info* conn ) { //connect to MDS
-  syslog(LOG_WARNING, "ppfs_fsinit");
+  fprintf(stderr, "ppfs_fsinit\n");
   if((fd = tcpsocket())<0) {
-    fprintf(stderr, "can't create socket");
+    fprintf(stderr, "can't create socket\n");
+    exit(1);
   } else {
-    syslog(LOG_WARNING, "fd:%d", fd);
+    fprintf(stderr, "fd:%d\n", fd);
   }
 
   tcpnodelay(fd);
   if(tcpstrconnect(fd, ip, MDS_PORT_STR)<0) {
-    syslog(LOG_WARNING, "can't connect to MDS (%s:%s)", ip, port);
+    fprintf(stderr, "can't connect to MDS (%s:%s)\n", ip, port);
     fd = -1;
-    return;
+
+    exit(1);
   }
 
-  syslog(LOG_WARNING, "ppfs_init create socket: %u", fd);
+  fprintf(stderr, "ppfs_init create socket: %u\n", fd);
+
+  local_mds.sockfd = fd;
+	tcpgetpeer(fd,&(local_mds.peerip),NULL);
+
+  remote_mds.sockfd = -1;
+  remote_mds.peerip = -1;
 }
 
 int ppfs_getattr(const char* path, struct stat* stbuf){
-  syslog(LOG_WARNING, "ppfs_getattr path : %s", path);
+  fprintf(stderr, "ppfs_getattr path : %s\n", path);
 
   ppacket *s = createpacket_s(4+strlen(path), CLTOMD_GETATTR,-1);
-  syslog(LOG_WARNING, "createpacket_s packet size:%u, cmd:%X", s->size, s->cmd); //5,4096
+  fprintf(stderr, "createpacket_s packet size:%u, cmd:%X\n", s->size, s->cmd); //5,4096
   uint8_t* ptr = s->startptr+HEADER_LEN;
 
   put32bit(&ptr, strlen(path));
   memcpy(ptr, path, strlen(path));
-  ptr+=strlen(path);
+  ptr += strlen(path);
 
   sendpacket(fd, s);
   free(s);
@@ -173,17 +209,16 @@ int ppfs_getattr(const char* path, struct stat* stbuf){
   s = receivepacket(fd);
   const uint8_t* ptr2 = s->startptr;
   int status = get32bit(&ptr2);
-  syslog(LOG_WARNING,"status:%d\n",status);
+  fprintf(stderr,"status:%d\n",status);
 
   if(status == 0){
-    syslog(LOG_WARNING,"getattr success");
     print_attr((const attr*)ptr2);
 
     memset(stbuf, 0, sizeof(struct stat));
     const attr* a = (const attr*)ptr2;
 
     stbuf->st_mode = a->mode; //S_IFREG | 0755;
-    stbuf->st_nlink = 3;//a->link;
+    stbuf->st_nlink = a->link;
     if(stbuf->st_mode & S_IFDIR )
       stbuf->st_size = 4096;
     else
@@ -198,7 +233,7 @@ int ppfs_getattr(const char* path, struct stat* stbuf){
 } //always called before open
 
 int ppfs_mkdir(const char* path, mode_t mt){
-  syslog(LOG_WARNING, "ppfs_mkdir path : %s", path);
+  fprintf(stderr, "ppfs_mkdir path : %s\n", path);
   mt |= S_IFDIR;
 
   ppacket* p = createpacket_s(4+strlen(path)+4,CLTOMD_MKDIR,-1);
@@ -216,22 +251,18 @@ int ppfs_mkdir(const char* path, mode_t mt){
   const uint8_t* ptr2 = p->startptr;
   int status = get32bit(&ptr2);
 
-  syslog(LOG_WARNING, "mkdir status:%d", status);
+  fprintf(stderr, "mkdir status:%d\n", status);
   free(p);
   return status;
 }
 
 int ppfs_open(const char* path, struct fuse_file_info* fi){
-  syslog(LOG_WARNING, "ppfs_open path : %s", path);
-  syslog(LOG_WARNING, "ppfs_open flags : %o", fi->flags);
-  syslog(LOG_WARNING, "ppfs_open O_CREAT : %o", O_CREAT);
-  syslog(LOG_WARNING, "ppfs_open O_NONBLOCK : %o", O_NONBLOCK);
-  syslog(LOG_WARNING, "ppfs_open O_WRONLY : %o", O_WRONLY);
+  fprintf(stderr, "ppfs_open path : %s\n", path);
 
   int status;
   ppacket* s = createpacket_s(4+strlen(path),CLTOMD_OPEN,-1);
   uint8_t* ptr = s->startptr + HEADER_LEN;
-  
+
   put32bit(&ptr,strlen(path));
   memcpy(ptr,path,strlen(path));
   sendpacket(fd,s);
@@ -246,12 +277,12 @@ int ppfs_open(const char* path, struct fuse_file_info* fi){
 }
 
 int ppfs_access (const char *path, int amode){
-  syslog(LOG_WARNING, "ppfs_access path : %s", path);
+  fprintf(stderr, "ppfs_access path : %s\n", path);
   return ppfs_open(path,NULL); //temporary hack
 }
 
 int	ppfs_chmod (const char *path, mode_t mt){
-  syslog(LOG_WARNING, "ppfs_chmod path : %s", path);
+  fprintf(stderr, "ppfs_chmod path : %s\n", path);
 
   ppacket *s = createpacket_s(4+strlen(path)+4, CLTOMD_CHMOD,1);
   uint8_t* ptr = s->startptr+HEADER_LEN;
@@ -277,7 +308,7 @@ int	ppfs_chmod (const char *path, mode_t mt){
 }
 
 int	ppfs_chown (const char *path, uid_t uid, gid_t gid){
-  syslog(LOG_WARNING, "ppfs_chown path : %s", path);
+  fprintf(stderr, "ppfs_chown path : %s\n", path);
 
   ppacket *s = createpacket_s(4+strlen(path)+8, CLTOMD_CHOWN, 1);
   uint8_t* ptr = s->startptr+HEADER_LEN;
@@ -303,18 +334,19 @@ int	ppfs_chown (const char *path, uid_t uid, gid_t gid){
   return status;
 }
 
-int	ppfs_create (const char *path, mode_t mt, struct fuse_file_info *fi){
-  syslog(LOG_WARNING, "ppfs_create path : %s", path);
-  syslog(LOG_WARNING, "ppfs_create flags : %o", fi->flags);
-  syslog(LOG_WARNING, "ppfs_create mode : %o", mt);
+int	ppfs_create(const char *path, mode_t mt, struct fuse_file_info *fi){
+  fprintf(stderr, "\n\n\n\nppfs_create path : %s\n", path);
+  fprintf(stderr, "ppfs_create mode : %o\n\n\n\n\n", mt);
 
   ppacket* p = createpacket_s(4+strlen(path)+4,CLTOMD_CREATE,-1);
   uint8_t* ptr = p->startptr + HEADER_LEN;
 
+  mt = (mt & 0777) | S_IFREG;
+
   put32bit(&ptr,strlen(path));
   memcpy(ptr,path,strlen(path));
   ptr += strlen(path);
-  put32bit(&ptr, mt);
+  put32bit(&ptr,mt);
 
   sendpacket(fd,p);
   free(p);
@@ -323,7 +355,7 @@ int	ppfs_create (const char *path, mode_t mt, struct fuse_file_info *fi){
   const uint8_t* ptr2 = p->startptr;
   int status = get32bit(&ptr2);
 
-  syslog(LOG_WARNING, "create status:%d", status);
+  fprintf(stderr, "create status:%d\n", status);
   free(p);
 
   return status;
@@ -331,7 +363,7 @@ int	ppfs_create (const char *path, mode_t mt, struct fuse_file_info *fi){
 
 
 int	ppfs_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi){
-  syslog(LOG_WARNING, "ppfs_readdir path : %s", path);
+  fprintf(stderr, "ppfs_readdir path : %s\n", path);
 
   (void) offset;
   (void) fi;
@@ -367,10 +399,10 @@ int	ppfs_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t off
     }
   } else {
     if(status == -ENOENT){
-      syslog(LOG_WARNING,"\tENOENT\n");
+      fprintf(stderr,"\tENOENT\n");
     }
     if(status == -ENOTDIR){
-      syslog(LOG_WARNING,"\tENOTDIR\n");
+      fprintf(stderr,"\tENOTDIR\n");
     }
   }
   free(s);
@@ -378,7 +410,7 @@ int	ppfs_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t off
 }
 
 int	ppfs_rmdir (const char *path){
-  syslog(LOG_WARNING, "ppfs_rmdir path : %s", path);
+  fprintf(stderr, "ppfs_rmdir path : %s\n", path);
   ppacket* p = createpacket_s(4+strlen(path),CLTOMD_RMDIR,-1);
   uint8_t* ptr = p->startptr + HEADER_LEN;
 
@@ -393,13 +425,13 @@ int	ppfs_rmdir (const char *path){
   const uint8_t* ptr2 = p->startptr;
   int status = get32bit(&ptr2);
 
-  syslog(LOG_WARNING, "rmdir status:%d", status);
+  fprintf(stderr, "rmdir status:%d\n", status);
   free(p);
   return status;
 }
 
 int	ppfs_unlink (const char *path){
-  syslog(LOG_WARNING, "ppfs_unlink path : %s", path);
+  fprintf(stderr, "ppfs_unlink path : %s\n", path);
 
   ppacket* p = createpacket_s(4+strlen(path),CLTOMD_UNLINK,-1);
   uint8_t* ptr = p->startptr + HEADER_LEN;
@@ -415,20 +447,336 @@ int	ppfs_unlink (const char *path){
   const uint8_t* ptr2 = p->startptr;
   int status = get32bit(&ptr2);
 
-  syslog(LOG_WARNING, "unlink status:%d", status);
+  fprintf(stderr, "unlink status:%d\n", status);
 
   free(p);
   return status;
 }
 
-int	ppfs_read (const char * path, char * buf, size_t size, off_t offset, struct fuse_file_info *fi){
-  return size;
+int ppfs_utimens(const char* path,const struct timespec tv[2]){ //tv[0]: atime, tv[1] mtime
+  ppacket* p = createpacket_s(4+strlen(path)+4+4,CLTOMD_UTIMENS,-1);
+  uint8_t* ptr = p->startptr + HEADER_LEN;
+  int len = strlen(path);
+
+  put32bit(&ptr,len);
+  memcpy(ptr,path,len);
+  ptr += len;
+  put32bit(&ptr,tv[0].tv_sec);
+  put32bit(&ptr,tv[1].tv_sec);
+
+  sendpacket(fd,p);
+  free(p);
+
+  p = receivepacket(fd);
+  const uint8_t* ptr2 = p->startptr;
+  int status = get32bit(&ptr2);
+
+  free(p);
+  return status;
+}
+
+int	ppfs_read (const char * path, char * buf, size_t st, off_t off, struct fuse_file_info *fi){
+  int nread = 0;
+
+  ppacket* p = createpacket_s(4+strlen(path)+4+4,CLTOMD_READ_CHUNK_INFO,-1);
+  uint8_t* ptr = p->startptr + HEADER_LEN;
+  int len = strlen(path);
+  uint64_t* chunklist = NULL;
+  int clen,calloc;
+  char* rbuf = buf;
+
+  put32bit(&ptr,len);
+  memcpy(ptr,path,len);
+  ptr += len;
+  sendpacket(fd,p);
+  free(p);
+
+  p = receivepacket(fd);
+  const uint8_t* ptr2 = p->startptr;
+  int status = get32bit(&ptr2);
+  fprintf(stderr,"status:%d\n",status);
+  if(status == 0){
+    uint32_t ip = get32bit(&ptr2);
+    if(ip == -1){
+      fprintf(stderr,"local mds\n");
+    } else {
+      fprintf(stderr,"remote mds:%X\n",ip);
+    }
+
+    int chunks = get32bit(&ptr2);
+    fprintf(stderr,"chunks=%d\n",chunks);
+    int i;
+
+    chunklist = (uint64_t*)malloc(sizeof(uint64_t)*(chunks+20));
+    clen = 0;
+    calloc = chunks+20;
+
+    for(i=0;i<chunks;i++){
+      uint64_t chunkid = get64bit(&ptr2);
+      fprintf(stderr,"(%d):id=%lld\n",i,chunkid);
+
+      chunklist[clen++] = chunkid;
+    }
+
+    ppfs_conn_entry* e = NULL;
+    if(ip != -1){
+      if(remote_mds.sockfd != -1 && remote_mds.peerip != ip){
+        tcpclose(remote_mds.sockfd);
+        remote_mds.sockfd = -1;
+      }
+
+      if(remote_mds.sockfd == -1){
+        if(serv_connect(&remote_mds,numip,MDS_PORT) < 0){
+          return -1;
+        }
+      }
+
+      e = &remote_mds;
+    } else {
+      e = &local_mds;
+    }
+
+    if(chunks * CHUNKSIZE <= off + st){
+      return 0;
+    }
+
+    int starti = off/CHUNKSIZE;
+    int len = min(st,CHUNKSIZE - off % CHUNKSIZE);
+    ppfs_conn_entry cs;
+    cs.sockfd = -1;
+
+    while(st > 0){
+      uint64_t chunkid = chunklist[starti];
+
+      ppacket* p = createpacket_s(8,CLTOMD_LOOKUP_CHUNK,-1);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
+      put64bit(&ptr,chunkid);
+      sendpacket(e->sockfd,p);
+      free(p);
+
+      p = receivepacket(e->sockfd);
+      const uint8_t* ptr2 = p->startptr;
+      int status = get32bit(&ptr2);
+      printf("status:%d\n",status);
+      if(status == 0){
+        int csip = get32bit(&ptr2);
+        printf("cid:%lld,csip:%X\n",chunkid,csip);
+
+        if(cs.sockfd != -1 && cs.peerip != csip){
+          tcpclose(cs.sockfd);
+        }
+
+        if(cs.sockfd == -1){
+          if(serv_connect(&cs,csip,CS_PORT) < 0){
+            return -1;
+          }
+        }
+      } else {
+        return -1;
+      }
+
+      p = createpacket_s(8+4+4+len,CLTOCS_READ_CHUNK,-1);
+      ptr = p->startptr + HEADER_LEN;
+      put64bit(&ptr,chunkid);
+      put32bit(&ptr,off % CHUNKSIZE);
+      put32bit(&ptr,len);
+
+      sendpacket(cs.sockfd,p);
+      free(p);
+
+      p = receivepacket(cs.sockfd);
+      ptr2 = p->startptr;
+      status = get32bit(&ptr2);
+      printf("status=%d\n",status);
+      if(status == 0){
+        int rlen =  get32bit(&ptr2);
+        nread += rlen;
+        printf("rlen=%d\n",rlen);
+        
+        memcpy(rbuf,ptr2,rlen);
+        rbuf += rlen;
+      } else {
+        return -1;
+      }
+
+      st -= len;
+      off += len;
+      rbuf += len;
+
+      starti = off/CHUNKSIZE;
+      len = min(st,CHUNKSIZE - off % CHUNKSIZE);
+    }
+  } else {
+    return status;
+  }
+
+  return nread;
 }
 
 int	ppfs_write (const char *path, const char *buf, size_t st, off_t off, struct fuse_file_info *fi){
-  
+  int nwrite = 0;
+
+  ppacket* p = createpacket_s(4+strlen(path)+4+4,CLTOMD_READ_CHUNK_INFO,-1);
+  uint8_t* ptr = p->startptr + HEADER_LEN;
+  int len = strlen(path);
+  uint64_t* chunklist = NULL;
+  int clen,calloc;
+  const char* wbuf = buf;
+
+  put32bit(&ptr,len);
+  memcpy(ptr,path,len);
+  ptr += len;
+  sendpacket(fd,p);
+  free(p);
+
+  p = receivepacket(fd);
+  const uint8_t* ptr2 = p->startptr;
+  int status = get32bit(&ptr2);
+  fprintf(stderr,"status:%d\n",status);
+  if(status == 0){
+    uint32_t ip = get32bit(&ptr2);
+    if(ip == -1){
+      fprintf(stderr,"local mds\n");
+    } else {
+      fprintf(stderr,"remote mds:%X\n",ip);
+    }
+
+    int chunks = get32bit(&ptr2);
+    fprintf(stderr,"chunks=%d\n",chunks);
+    int i;
+
+    chunklist = (uint64_t*)malloc(sizeof(uint64_t)*(chunks+20));
+    clen = 0;
+    calloc = chunks+20;
+
+    for(i=0;i<chunks;i++){
+      uint64_t chunkid = get64bit(&ptr2);
+      fprintf(stderr,"(%d):id=%lld\n",i,chunkid);
+
+      chunklist[clen++] = chunkid;
+    }
+
+    ppfs_conn_entry* e = NULL;
+    if(ip != -1){
+      if(remote_mds.sockfd != -1 && remote_mds.peerip != ip){
+        tcpclose(remote_mds.sockfd);
+        remote_mds.sockfd = -1;
+      }
+
+      if(remote_mds.sockfd == -1){
+        if(serv_connect(&remote_mds,numip,MDS_PORT) < 0){
+          return -1;
+        }
+      }
+
+      e = &remote_mds;
+    } else {
+      e = &local_mds;
+    }
+
+    if(chunks * CHUNKSIZE <= off + st){
+      ppacket* p = createpacket_s(4+len,CLTOMD_APPEND_CHUNK,-1);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
+      put32bit(&ptr,len);
+      memcpy(ptr,path,len);
+      while(chunks * CHUNKSIZE <= off + st){
+        sendpacket(e->sockfd,p);
+
+        ppacket* rp = receivepacket(e->sockfd);
+        const uint8_t* ptr2 = rp->startptr;
+        int status = get32bit(&ptr2);
+        printf("status:%d\n",status);
+        if(status == 0){
+          uint64_t chunkid = get64bit(&ptr2);
+          printf("chunkid=%lld\n",chunkid);
+
+          if(clen < calloc){
+            chunklist[clen++] = chunkid;
+          } else {
+            chunklist = (uint64_t*)realloc(chunklist,calloc<<1);
+            chunklist[clen++] = chunkid;
+          }
+        } else {
+          free(rp);
+          return status;
+        }
+        free(rp);
+
+        chunks++;
+      }
+    }
+
+    int starti = off/CHUNKSIZE;
+    int len = min(st,CHUNKSIZE - off % CHUNKSIZE);
+    ppfs_conn_entry cs;
+    cs.sockfd = -1;
+
+    while(st > 0){
+      uint64_t chunkid = chunklist[starti];
+
+      ppacket* p = createpacket_s(8,CLTOMD_LOOKUP_CHUNK,-1);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
+      put64bit(&ptr,chunkid);
+      sendpacket(e->sockfd,p);
+      free(p);
+
+      p = receivepacket(e->sockfd);
+      const uint8_t* ptr2 = p->startptr;
+      int status = get32bit(&ptr2);
+      printf("status:%d\n",status);
+      if(status == 0){
+        int csip = get32bit(&ptr2);
+        printf("cid:%lld,csip:%X\n",chunkid,csip);
+
+        if(cs.sockfd != -1 && cs.peerip != csip){
+          tcpclose(cs.sockfd);
+        }
+
+        if(cs.sockfd == -1){
+          if(serv_connect(&cs,csip,CS_PORT) < 0){
+            return -1;
+          }
+        }
+      } else {
+        return -1;
+      }
+
+      p = createpacket_s(8+4+4+len,CLTOCS_WRITE_CHUNK,-1);
+      ptr = p->startptr + HEADER_LEN;
+      put64bit(&ptr,chunkid);
+      put32bit(&ptr,off % CHUNKSIZE);
+      put32bit(&ptr,len);
+      memcpy(ptr,wbuf,len);
+
+      sendpacket(cs.sockfd,p);
+      free(p);
+
+      p = receivepacket(cs.sockfd);
+      ptr2 = p->startptr;
+      status = get32bit(&ptr2);
+      printf("status=%d\n",status);
+      if(status == 0){
+        int wlen =  get32bit(&ptr2);
+        nwrite += wlen;
+        printf("wlen=%d\n",wlen);
+      }
+
+      st -= len;
+      off += len;
+      wbuf += len;
+
+      starti = off/CHUNKSIZE;
+      len = min(st,CHUNKSIZE - off % CHUNKSIZE);
+    }
+  } else {
+    return status;
+  }
+
+  return nwrite;
 }
 
 int main(int argc, char* argv[]) {
+  argv[argc++] = "-s";
+
   return fuse_main(argc, argv, &ppfs_oper, NULL);
 }

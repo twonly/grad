@@ -58,6 +58,9 @@
 #define CLTOMD_POP_CHUNK 0x1024
 #define MDTOCL_POP_CHUNK 0x1025
 
+#define CLTOMD_UTIMENS 0x1026
+#define MDTOCL_UTIMENS 0x1027
+
 //======================================================================================
 
 #define MDTOMI_GETATTR 0x2001
@@ -117,6 +120,8 @@
 #define MDTOMI_APPEND_CHUNK 0x202B
 #define MITOMD_APPEND_CHUNK 0x202C
 
+#define MDTOMI_UTIMENS 0x202D
+#define MITOMD_UTIMENS 0x202E
 
 //===============================================================
 

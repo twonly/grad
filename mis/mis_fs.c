@@ -79,12 +79,16 @@ ppfile* lookup_file(char* p){
 void remove_child(ppfile* pf,ppfile* f){
   ppfile* c = pf->child;
 
-  while(c && c->next != f){
-    c = c->next;
-  }
+  if(c != f){
+    while(c && c->next != f){
+      c = c->next;
+    }
 
-  if(c){
-    c->next = f->next;
+    if(c){
+      c->next = f->next;
+    }
+  } else {
+    pf->child = f->next;
   }
 
   remove_file(f);
