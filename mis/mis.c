@@ -1073,8 +1073,6 @@ void mis_fw_read_chunk_info(misserventry* eptr,ppacket* p){
     misserventry* ceptr = mis_entry_from_ip(f->srcip);
 
     if(ceptr){
-      fprintf(stderr,"forwarding to %X\n",f->srcip);
-
       outp = createpacket_s(p->size+4,CLTOMD_READ_CHUNK_INFO,p->id);
       memcpy(outp->startptr + HEADER_LEN,p->startptr,p->size);
       uint8_t* ptr2 = outp->startptr + HEADER_LEN + p->size;
@@ -1082,6 +1080,9 @@ void mis_fw_read_chunk_info(misserventry* eptr,ppacket* p){
 
       outp->next = ceptr->outpacket;
       ceptr->outpacket = outp;
+
+      fprintf(stderr,"forwarding to %X from %X\n",f->srcip,eptr->peerip);
+      fprintf(stderr,"size=%d\n",outp->size);
     } else {
       //@TODO: add error handling
     }
@@ -1095,9 +1096,12 @@ void mis_rfw_read_chunk_info(misserventry* eptr,ppacket* p){
   uint32_t ip = get32bit(&ptr);
 
   misserventry* ceptr = mis_entry_from_ip(ip);
+  fprintf(stderr,"+ip=%X\n",ip);
 
   if(!ceptr){
     //@TODO: add error handling
+    fprintf(stderr,"+ip=%X,serventry not found\n",ip);
+    return;
   }
 
   ppacket* outp = createpacket_s(p->size,MITOMD_READ_CHUNK_INFO,p->id);

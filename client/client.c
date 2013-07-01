@@ -14,13 +14,11 @@ void sendpacket(int sockfd,ppacket* p){
     if(i < 0){
       if(i != -EAGAIN){
         fprintf(stderr,"write error:%d\n",i);
-        exit(1);
       }
       continue;
     }
     if(i==0){
       fprintf(stderr,"Connection closed\n");
-      exit(1);
     }
 
     len += i;
@@ -45,13 +43,11 @@ ppacket* receivepacket(int sockfd){
     if(i < 0){
       if(i != -EAGAIN){
         fprintf(stderr,"read error:%d\n",i);
-        exit(1);
       }
       continue;
     }
     if(i==0){
       fprintf(stderr,"Connection closed\n");
-      exit(1);
     }
 
     hleft -= i;
@@ -71,13 +67,11 @@ ppacket* receivepacket(int sockfd){
     if(i < 0){
       if(i != -EAGAIN){
         fprintf(stderr,"read error:%d\n",i);
-        exit(1);
       }
       continue;
     }
     if(i==0){
       fprintf(stderr,"Connection closed\n");
-      exit(1);
     }
 
     p->bytesleft -= i;
@@ -144,7 +138,6 @@ typedef struct ppfs_conn_entry{
 int fd;
 ppfs_conn_entry local_mds,remote_mds;
 
-int numip = 0x010000FE;
 char *ip = "127.0.0.1";
 char *port = "8224";
 
@@ -324,7 +317,7 @@ int ppfs_truncate(const char* path,off_t off){
     }
 
     if(remote_mds.sockfd == -1){
-      if(serv_connect(&remote_mds,numip,MDS_PORT) < 0){
+      if(serv_connect(&remote_mds,ip,MDS_PORT) < 0){
         return -1;
       }
     }
@@ -593,6 +586,16 @@ int	ppfs_read (const char * path, char * buf, size_t st, off_t off, struct fuse_
   put32bit(&ptr,plen);
   memcpy(ptr,path,plen);
   ptr += plen;
+
+  fprintf(stderr,"just to be clear\n");
+  const uint8_t* tmpptr = p->startptr + HEADER_LEN;
+  int i;
+  for(i=0;i<p->size;i+=1){
+    int x = get8bit(&tmpptr);
+    fprintf(stderr,"%X\t",x);
+  }
+  fprintf(stderr,"\n");
+
   sendpacket(fd,p);
   free(p);
 
@@ -623,7 +626,7 @@ int	ppfs_read (const char * path, char * buf, size_t st, off_t off, struct fuse_
       chunklist[clen++] = chunkid;
     }
 
-    fprintf(stderr,"preparing mds connection\n");
+    fprintf(stderr,"preparing mds connection:%X\n",ip);
 
     ppfs_conn_entry* e = NULL;
     if(ip != -1){
@@ -633,7 +636,8 @@ int	ppfs_read (const char * path, char * buf, size_t st, off_t off, struct fuse_
       }
 
       if(remote_mds.sockfd == -1){
-        if(serv_connect(&remote_mds,numip,MDS_PORT) < 0){
+        fprintf(stderr,"connecting\n");
+        if(serv_connect(&remote_mds,ip,MDS_PORT) < 0){
           return -1;
         }
       }
@@ -736,9 +740,10 @@ int	ppfs_write (const char *path, const char *buf, size_t st, off_t off, struct 
   ost = st;
   ooff = off;
 
-  ppacket* p = createpacket_s(4+strlen(path)+4+4,CLTOMD_READ_CHUNK_INFO,-1);
+  ppacket* p = createpacket_s(4+strlen(path),CLTOMD_READ_CHUNK_INFO,-1);
   uint8_t* ptr = p->startptr + HEADER_LEN;
   int plen = strlen(path);
+  uint32_t ip;
   uint64_t* chunklist = NULL;
   int clen,calloc;
   const char* wbuf = buf;
@@ -746,6 +751,16 @@ int	ppfs_write (const char *path, const char *buf, size_t st, off_t off, struct 
   put32bit(&ptr,plen);
   memcpy(ptr,path,plen);
   ptr += plen;
+
+  fprintf(stderr,"just to be clear\n");
+  const uint8_t* tmpptr = p->startptr + HEADER_LEN;
+  int i;
+  for(i=0;i<p->size;i+=1){
+    int x = get8bit(&tmpptr);
+    fprintf(stderr,"%X\t",x);
+  }
+  fprintf(stderr,"\n");
+
   sendpacket(fd,p);
   free(p);
 
@@ -754,7 +769,7 @@ int	ppfs_write (const char *path, const char *buf, size_t st, off_t off, struct 
   int status = get32bit(&ptr2);
   fprintf(stderr,"status:%d\n",status);
   if(status == 0){
-    uint32_t ip = get32bit(&ptr2);
+    ip = get32bit(&ptr2);
     if(ip == -1){
       fprintf(stderr,"local mds\n");
     } else {
@@ -784,7 +799,7 @@ int	ppfs_write (const char *path, const char *buf, size_t st, off_t off, struct 
       }
 
       if(remote_mds.sockfd == -1){
-        if(serv_connect(&remote_mds,numip,MDS_PORT) < 0){
+        if(serv_connect(&remote_mds,ip,MDS_PORT) < 0){
           return -1;
         }
       }
@@ -793,6 +808,8 @@ int	ppfs_write (const char *path, const char *buf, size_t st, off_t off, struct 
     } else {
       e = &local_mds;
     }
+
+    fprintf(stderr,"connected\n");
 
     if(chunks * CHUNKSIZE <= off + st){
       fprintf(stderr,"appending chunk\n");

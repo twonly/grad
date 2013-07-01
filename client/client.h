@@ -22,7 +22,7 @@
 #include "datapack.h"
 
 
-typedef int(* fuse_fill_dir_t)(void *buf, const char *name, const struct stat *stbuf, off_t off);
+//typedef int(* fuse_fill_dir_t)(void *buf, const char *name, const struct stat *stbuf, off_t off);
 void*   ppfs_fsinit(struct fuse_conn_info *conn);
 int     ppfs_getattr(const char*, struct stat*); //always called before open
 int     ppfs_mkdir(const char*, mode_t);

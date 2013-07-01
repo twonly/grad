@@ -5,7 +5,7 @@ enum {KILL,HEADER,DATA};
 
 static csmdsserventry* csmds = NULL;
 
-static char* mdshostip = "127.0.0.1";
+static char* mdshostip = "192.168.56.101";
 
 int csmds_init(void){
   int mdsip,mdsport;

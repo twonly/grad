@@ -11,7 +11,7 @@ static int lsockpdescpos;
 
 static mdsserventry* mdtomi = NULL;
 
-static char* mishostip = "127.0.0.1";
+static char* mishostip = "192.168.56.101";
 
 int mds_init(void){
   int misip,misport;
@@ -796,7 +796,7 @@ void mds_cl_open(mdsserventry* eptr,ppacket* inp){
 }
 
 void mds_cl_read_chunk_info(mdsserventry* eptr,ppacket* p){
-  fprintf(stderr,"+mds_cl_read_chunk_info\n");
+  fprintf(stderr,"+mds_cl_read_chunk_info,size=%d\n",p->size);
 
   int plen,mdsid,i;
   const uint8_t* ptr = p->startptr;
@@ -807,11 +807,21 @@ void mds_cl_read_chunk_info(mdsserventry* eptr,ppacket* p){
   memcpy(path,ptr,plen);
   ptr += plen;
 
-  if(mdtomi == eptr)
+  if(mdtomi == eptr){
     mdsid = get32bit(&ptr);
+    fprintf(stderr,"mdsid=%X\n",mdsid);
+  }
+
+  fprintf(stderr,"just to be clear\n");
+  ptr = p->startptr;
+  for(i=0;i<p->size;i+=1){
+    int x = get8bit(&ptr);
+    fprintf(stderr,"%X\t",x);
+  }
+  fprintf(stderr,"\n");
 
   path[plen] = 0;
-  fprintf(stderr,"path=%s\n",path);
+  fprintf(stderr,"plen=%d,path=%s\n",plen,path);
   ppfile* f = lookup_file(path);
   if(f == NULL){
     if(eptr != mdtomi){//file in another mds!
