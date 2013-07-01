@@ -850,6 +850,16 @@ int	ppfs_write (const char *path, const char *buf, size_t st, off_t off, struct 
       fprintf(stderr,"\t(%d):%lld\n",i,chunklist[i]);
     }
 
+    ppacket* p = createpacket_s(4+plen+4+4,CLTOMD_WRITE,-1);
+    ptr = p->startptr + HEADER_LEN;
+    put32bit(&ptr,plen);
+    memcpy(ptr,path,plen);
+    ptr += plen;
+    put32bit(&ptr,ooff);
+    put32bit(&ptr,ost);
+    sendpacket(e->sockfd,p);
+    free(p);
+
     int starti = off/CHUNKSIZE;
     int buflen = min(st,CHUNKSIZE - off % CHUNKSIZE);
     ppfs_conn_entry cs;

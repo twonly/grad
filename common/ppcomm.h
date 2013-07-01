@@ -61,6 +61,8 @@
 #define CLTOMD_UTIMENS 0x1026
 #define MDTOCL_UTIMENS 0x1027
 
+#define CLTOMD_WRITE 0x1028
+
 //======================================================================================
 
 #define MDTOMI_GETATTR 0x2001

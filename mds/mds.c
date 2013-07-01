@@ -13,6 +13,10 @@ static mdsserventry* mdtomi = NULL;
 
 static char* mishostip = "192.168.56.101";
 
+int max(int a,int b){
+  return a>b?a:b;
+}
+
 int mds_init(void){
   int misip,misport;
   int msock;
@@ -454,6 +458,8 @@ void mds_gotpacket(mdsserventry* eptr,ppacket* p){
     case MITOMD_UTIMENS:
       mds_cl_utimens(eptr,p);
       break;
+    case CLTOMD_WRITE:
+      mds_cl_write(eptr,p);
   }
 
   fprintf(stderr,"\n\n");
@@ -494,9 +500,9 @@ static void mds_direct_pass_mi(ppacket* p,int cmd){
   mdtomi->outpacket = outp;
 }
 
-static void mis_update_attr(ppacket* p,ppfile* f){
+static void mis_update_attr(ppfile* f){
   int plen = strlen(f->path);
-  ppacket* outp = createpacket_s(4+plen+sizeof(attr),MDTOMI_UPDATE_ATTR,p->id);
+  ppacket* outp = createpacket_s(4+plen+sizeof(attr),MDTOMI_UPDATE_ATTR,-1);
   uint8_t* ptr2 = outp->startptr + HEADER_LEN;
 
   put32bit(&ptr2,plen);
@@ -588,7 +594,7 @@ void mds_chmod(mdsserventry* eptr,ppacket* p){
       outp->next = eptr->outpacket;
       eptr->outpacket = outp;
 
-      mis_update_attr(p,f);
+      mis_update_attr(f);
     }
   } else {
     mds_direct_pass_mi(p,MDTOMI_CHMOD);
@@ -630,7 +636,7 @@ void mds_chown(mdsserventry* eptr,ppacket* p){
     outp->next = eptr->outpacket;
     eptr->outpacket = outp;
 
-    mis_update_attr(p,f);
+    mis_update_attr(f);
   }
 
   free(path);
@@ -670,7 +676,7 @@ void mds_chgrp(mdsserventry* eptr,ppacket* p){
       outp->next = eptr->outpacket;
       eptr->outpacket = outp;
 
-      mis_update_attr(p,f);
+      mis_update_attr(f);
     }
   }
 
@@ -943,7 +949,7 @@ void mds_cl_append_chunk(mdsserventry* eptr,ppacket* p){
       put32bit(&ptr2,0);
       put64bit(&ptr2,chunkid);
 
-      mis_update_attr(p,f);
+      mis_update_attr(f);
     }
   }
 
@@ -1001,7 +1007,7 @@ void mds_cl_pop_chunk(mdsserventry* eptr,ppacket* p){
       put64bit(&ptr2,chunkid);
 
       //send update_attr to mis
-      mis_update_attr(p,f);
+      mis_update_attr(f);
     }
   }
 
@@ -1042,7 +1048,7 @@ void mds_utimens(mdsserventry* eptr,ppacket* p){
       eptr->outpacket = outp;
 
       fprintf(stderr,"updating mis info\n");
-      mis_update_attr(p,f);
+      mis_update_attr(f);
     }
   } else {
     mds_direct_pass_mi(p,MDTOMI_UTIMENS);
@@ -1053,4 +1059,51 @@ void mds_utimens(mdsserventry* eptr,ppacket* p){
 
 void mds_cl_utimens(mdsserventry* eptr,ppacket* p){
   mds_direct_pass_cl(eptr,p,MDTOCL_UTIMENS);
+}
+
+void mds_cl_write(mdsserventry* eptr,ppacket* p){
+  fprintf(stderr,"+mds_cl_write\n");
+
+  int plen,off,st;
+  const uint8_t* ptr = p->startptr;
+
+  plen = get32bit(&ptr);
+  printf("plen=%d\n",plen);
+
+  char* path = (char*)malloc(plen+10);
+  memcpy(path,ptr,plen);
+  ptr += plen;
+  path[plen] = 0;
+
+  fprintf(stderr,"path=%s\n",path);
+
+
+  off = get32bit(&ptr);
+  st = get32bit(&ptr);
+
+  ppfile* f = lookup_file(path);
+  if(f){
+    int i = (f->a.size) / CHUNKSIZE;
+    while(i < (off+st)/CHUNKSIZE && i < f->chunks){
+      uint64_t previd = f->clist[i];
+      mdscsserventry* ceptr = mdscs_find_serventry(previd);
+
+      if(ceptr){
+        ppacket* p = createpacket_s(8,MDTOCS_FILL_CHUNK,-1);
+        uint8_t* ptr = p->startptr + HEADER_LEN;
+        put64bit(&ptr,previd);
+
+        p->next = ceptr->outpacket;
+        ceptr->outpacket = p;
+      }
+
+      i++;
+    }
+
+    int oldsize = f->a.size;
+    f->a.size = max(f->a.size,off+st);
+
+    if(oldsize != f->a.size)
+      mis_update_attr(f);
+  }
 }

@@ -330,21 +330,6 @@ void mdscs_delete_chunk(uint64_t chunkid){
 
 int mdscs_append_chunk(ppfile* f,mdschunk* c){
   int ret = file_append_chunk(f,c->chunkid);
-  if(ret == 0 && f->chunks > 1){
-    uint64_t previd = f->clist[f->chunks-2];
-    mdscsserventry* ceptr = mdscs_find_serventry(previd);
-
-    if(ceptr){
-      ppacket* p = createpacket_s(8,MDTOCS_FILL_CHUNK,-1);
-      uint8_t* ptr = p->startptr + HEADER_LEN;
-      put64bit(&ptr,previd);
-
-      p->next = ceptr->outpacket;
-      ceptr->outpacket = p;
-    } else {
-      //@TODO
-    }
-  }
 
   return ret;
 }
