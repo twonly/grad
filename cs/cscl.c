@@ -261,6 +261,8 @@ void cscl_gotpacket(csclserventry* eptr,ppacket* p){
 }
 
 void cscl_read_chunk(csclserventry* eptr,ppacket* p){
+  fprintf(stderr,"+cscl_read_chunk\n");
+
   uint64_t chunkid;
   int offset,len;
   const uint8_t* inptr = p->startptr;
@@ -270,12 +272,15 @@ void cscl_read_chunk(csclserventry* eptr,ppacket* p){
   offset = get32bit(&inptr);
   len = get32bit(&inptr);
 
+
   cschunk* c = lookup_chunk(chunkid);
   if(c == NULL){
     outp = createpacket_s(4,CSTOCL_READ_CHUNK,p->id);
     uint8_t* ptr = outp->startptr + HEADER_LEN;
     put32bit(&ptr,-ENOENT);
   } else {
+    fprintf(stderr,"chunkid=%lld,offset=%d,len=%d\n",chunkid,offset,len);
+
     uint8_t* buf = (uint8_t*)malloc(len);
     int rlen = read_chunk(c,buf,offset,len);
     
@@ -302,6 +307,8 @@ void cscl_read_chunk(csclserventry* eptr,ppacket* p){
 }
 
 void cscl_write_chunk(csclserventry* eptr,ppacket* p){
+  fprintf(stderr,"+cscl_write_chunk\n");
+
   uint64_t chunkid;
   int offset,len;
   const uint8_t* inptr = p->startptr;
@@ -317,6 +324,8 @@ void cscl_write_chunk(csclserventry* eptr,ppacket* p){
     uint8_t* ptr = outp->startptr + HEADER_LEN;
     put32bit(&ptr,-ENOENT);
   } else {
+    fprintf(stderr,"chunkid=%lld,offset=%d,len=%d\n",chunkid,offset,len);
+
     int ret = write_chunk(c,inptr,offset,len);
     if(ret >= 0){
       outp = createpacket_s(4+4,CSTOCL_WRITE_CHUNK,p->id);

@@ -51,6 +51,7 @@ int 	ppfs_setxattr (const char *, const char *, const char *, size_t, int);
 int     ppfs_statfs (const char *, struct statvfs *);
 int 	ppfs_symlink (const char *, const char *);
 int 	ppfs_unlink (const char *);
+int 	ppfs_truncate(const char *,off_t);
 int 	ppfs_write (const char *, const char *, size_t, off_t, struct fuse_file_info *);
 int ppfs_utimens(const char* path,const struct timespec tv[2]);
 

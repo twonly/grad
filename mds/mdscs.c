@@ -345,6 +345,8 @@ int mdscs_append_chunk(ppfile* f,mdschunk* c){
       //@TODO
     }
   }
+
+  return ret;
 }
 
 int mdscs_pop_chunk(ppfile* f,uint64_t* id){
