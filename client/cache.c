@@ -131,6 +131,7 @@ int lookup_dir_cache(const char* path,dir_cache** c){
     if(!strcmp(dc->path,path)){
       *c = dc;
 
+      fprintf(stderr,"\n\n\n\n\n\n\nfound dir cache\n\n\n\n\n");
       return 0;
     }
 
@@ -140,6 +141,7 @@ int lookup_dir_cache(const char* path,dir_cache** c){
   if(!strcmp(dc->path,path)){
     *c = dc;
 
+    fprintf(stderr,"\n\n\n\n\n\n\nfound dir cache\n\n\n\n\n");
     return 0;
   }
 
@@ -165,6 +167,8 @@ int lookup_attr_cache(const char* path,attr_cache** c){
   while(ac->next != ac_qfront){
     if(!strcmp(ac->path,path)){
       *c = ac;
+      
+      fprintf(stderr,"\n\n\n\n\n\n\nfound attr cache\n\n\n\n\n");
 
       return 0;
     }
@@ -174,6 +178,7 @@ int lookup_attr_cache(const char* path,attr_cache** c){
   if(!strcmp(ac->path,path)){
     *c = ac;
 
+    fprintf(stderr,"\n\n\n\n\n\n\nfound attr cache\n\n\n\n\n");
     return 0;
   }
 

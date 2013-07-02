@@ -203,6 +203,10 @@ int ppfs_getattr(const char* path, struct stat* stbuf){
     stbuf->st_atime = ac->a.atime;
     stbuf->st_mtime = ac->a.mtime;
 
+    stbuf->st_uid = ac->a.uid;
+    stbuf->st_gid = ac->a.gid;
+    stbuf->st_blocks = 0;
+
     return 0;
   }
 
@@ -238,6 +242,11 @@ int ppfs_getattr(const char* path, struct stat* stbuf){
     stbuf->st_ctime = a->ctime;
     stbuf->st_atime = a->atime;
     stbuf->st_mtime = a->mtime;
+
+    stbuf->st_uid = a->uid;
+    stbuf->st_gid = a->gid;
+
+    stbuf->st_blocks = 0;
 
     attr_cache_add(path,*a);
   }
@@ -506,6 +515,8 @@ int	ppfs_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t off
 
   dir_cache* dc;
   if(lookup_dir_cache(path,&dc) == 0){
+    fprintf(stderr,"fucking dir_cache\n");
+
     int i;
     for(i=0;i<dc->n;++i) {
       filler(buf, dc->entries[i], NULL, 0);
