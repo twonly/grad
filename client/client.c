@@ -6,6 +6,22 @@ int min(int a,int b){
   return a<b?a:b;
 }
 
+char* parent_path(const char* path){
+  int len = strlen(path);
+  int i = len-1;
+  while(i > 0 && path[i] != '/') i--;
+
+  if(i == 0){
+    return strdup("/");
+  }
+
+  char* ret = malloc(i+10);
+  memcpy(ret,path,i);
+  ret[i] = '\0';
+
+  return ret;
+}
+
 void sendpacket(int sockfd,ppacket* p){
   int i;
   int len = 0;
@@ -503,6 +519,18 @@ int	ppfs_create(const char *path, mode_t mt, struct fuse_file_info *fi){
   fprintf(stderr, "create status:%d\n", status);
   free(p);
 
+  if(status == 0){
+    dir_cache* dc;
+
+    char* ppath = parent_path(path);
+    fprintf(stderr,"/n/n/npath=%s,parent_path:%s\n\n\n",path,ppath);
+    if(lookup_dir_cache(ppath,&dc) == 0){
+      remove_dir_cache(dc);
+      free_dir_cache(dc);
+    }
+    free(ppath);
+  }
+
   return status;
 }
 
@@ -543,6 +571,7 @@ int	ppfs_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t off
   if(status == 0){
     int nfiles = get32bit(&ptr2);
     int i;
+    char** files = malloc(sizeof(char*)*nfiles);
 
     for(i=0;i<nfiles;++i) {
       int flen = get32bit(&ptr2);
@@ -552,8 +581,16 @@ int	ppfs_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t off
       ptr2 += flen;
 
       filler(buf, fn, NULL, 0);
-      free(fn);
+
+      files[i] = fn;
     }
+
+    dir_cache_add(path,files,nfiles);
+
+    for(i=0;i<nfiles;i++){
+      free(files[i]);
+    }
+    free(files);
   } else {
     if(status == -ENOENT){
       fprintf(stderr,"\tENOENT\n");
@@ -624,6 +661,16 @@ int	ppfs_unlink (const char *path){
       remove_chunk_cache(cc);
       free_chunk_cache(cc);
     }
+
+    dir_cache* dc;
+
+    char* ppath = parent_path(path);
+    fprintf(stderr,"/n/n/npath=%s,parent_path:%s\n\n\n",path,ppath);
+    if(lookup_dir_cache(ppath,&dc) == 0){
+      remove_dir_cache(dc);
+      free_dir_cache(dc);
+    }
+    free(ppath);
   }
 
   free(p);
