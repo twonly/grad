@@ -41,7 +41,14 @@ chunk_cache* cc_qfront = NULL;
   }\
 
 dir_cache* dir_cache_add(const char* path,char* entries[],int n){
-  dir_cache* ret = malloc(sizeof(dir_cache));
+  dir_cache* ret;
+  if(lookup_dir_cache(path,&ret) == 0){
+    remove_dir_cache(ret);
+    free_dir_cache(ret);
+    fprintf(stderr,"\n\n\nduplicate entry\n\n\n");
+  }
+
+  ret = malloc(sizeof(dir_cache));
   int i;
 
   ret->path = strdup(path);
@@ -60,7 +67,14 @@ dir_cache* dir_cache_add(const char* path,char* entries[],int n){
   return ret;
 }
 attr_cache* attr_cache_add(const char* path,attr a){
-  attr_cache* ret = malloc(sizeof(attr_cache));
+  attr_cache* ret;
+  if(lookup_attr_cache(path,&ret) == 0){
+    remove_attr_cache(ret);
+    free_attr_cache(ret);
+    fprintf(stderr,"\n\n\nduplicate entry\n\n\n");
+  }
+
+  ret = malloc(sizeof(attr_cache));
 
   ret->path = strdup(path);
   ret->add_time = time(NULL);
@@ -73,7 +87,15 @@ attr_cache* attr_cache_add(const char* path,attr a){
 }
 
 chunk_cache* chunk_cache_add(const char* path,uint64_t* chunklist,int chunks,int mdsid){
-  chunk_cache* ret = malloc(sizeof(chunk_cache));
+  chunk_cache* ret;
+  if(lookup_chunk_cache(path,&ret) == 0){
+    remove_chunk_cache(ret);
+    free_chunk_cache(ret);
+
+    fprintf(stderr,"\n\n\nduplicate entry\n\n\n");
+  }
+ 
+  ret = malloc(sizeof(chunk_cache));
 
   ret->path = strdup(path);
   ret->add_time = time(NULL);
@@ -109,9 +131,6 @@ int lookup_dir_cache(const char* path,dir_cache** c){
     if(!strcmp(dc->path,path)){
       *c = dc;
 
-      remove_from_queue(dc_qfront,dc)
-      push_queue(dc_qfront,dc)
-      dc->add_time = time(NULL);
       return 0;
     }
 
@@ -120,10 +139,6 @@ int lookup_dir_cache(const char* path,dir_cache** c){
 
   if(!strcmp(dc->path,path)){
     *c = dc;
-
-    remove_from_queue(dc_qfront,dc)
-    push_queue(dc_qfront,dc)
-    dc->add_time = time(NULL);
 
     return 0;
   }
@@ -151,9 +166,6 @@ int lookup_attr_cache(const char* path,attr_cache** c){
     if(!strcmp(ac->path,path)){
       *c = ac;
 
-      remove_from_queue(ac_qfront,ac)
-      push_queue(ac_qfront,ac)
-      ac->add_time = time(NULL);
       return 0;
     }
     ac = ac->next;
@@ -162,9 +174,6 @@ int lookup_attr_cache(const char* path,attr_cache** c){
   if(!strcmp(ac->path,path)){
     *c = ac;
 
-    remove_from_queue(ac_qfront,ac)
-    push_queue(ac_qfront,ac)
-    ac->add_time = time(NULL);
     return 0;
   }
 
@@ -190,10 +199,6 @@ int lookup_chunk_cache(const char* path,chunk_cache** c){
   while(cc->next != cc_qfront){
     if(!strcmp(cc->path,path)){
       *c = cc;
-  
-      remove_from_queue(cc_qfront,cc)
-      push_queue(cc_qfront,cc)
-      cc->add_time = time(NULL);
 
       return 0;
     }
@@ -203,10 +208,6 @@ int lookup_chunk_cache(const char* path,chunk_cache** c){
 
   if(!strcmp(cc->path,path)){
     *c = cc;
-
-    remove_from_queue(cc_qfront,cc)
-    push_queue(cc_qfront,cc)
-    cc->add_time = time(NULL);
 
     return 0;
   }

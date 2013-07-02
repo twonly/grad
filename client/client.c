@@ -375,7 +375,6 @@ int ppfs_truncate(const char* path,off_t off){
 
     size -= CHUNKSIZE;
   }
-  free(p);
 
   p = createpacket_s(4+len,CLTOMD_APPEND_CHUNK,-1);
   ptr = p->startptr + HEADER_LEN;
@@ -651,7 +650,7 @@ int ppfs_utimens(const char* path,const struct timespec tv[2]){ //tv[0]: atime, 
   return status;
 }
 
-int	ppfs_read (const char * path, char * buf, size_t st, off_t off, struct fuse_file_info *fi){
+int	ppfs_read(const char * path, char * buf, size_t st, off_t off, struct fuse_file_info *fi){
   int nread = 0;
   int ooff = off;
   int ost = st;
@@ -898,6 +897,19 @@ int	ppfs_write (const char *path, const char *buf, size_t st, off_t off, struct 
     fprintf(stderr,"connected\n");
 
     if(chunks * CHUNKSIZE <= off + st){
+      fprintf(stderr,"clearing cache\n");
+
+      chunk_cache* cc;
+      attr_cache* ac;
+      if(lookup_chunk_cache(path,&cc) == 0){
+        remove_chunk_cache(cc);
+        free_chunk_cache(cc);
+      }
+      if(lookup_attr_cache(path,&ac) == 0){
+        remove_attr_cache(ac);
+        free_attr_cache(ac);
+      }
+
       fprintf(stderr,"appending chunk\n");
       while(chunks * CHUNKSIZE <= off + st){
         ppacket* p = createpacket_s(4+plen,CLTOMD_APPEND_CHUNK,-1);
@@ -990,7 +1002,6 @@ int	ppfs_write (const char *path, const char *buf, size_t st, off_t off, struct 
       put32bit(&ptr,buflen);
       memcpy(ptr,wbuf,buflen);
 
-      printf("STROKE!!!:%d\n",buflen);
       fprintf(stderr,"starti=%d,chunkid=%lld,off=%d,buflen=%d\n",starti,chunkid,off % CHUNKSIZE,buflen);
 
       sendpacket(cs.sockfd,p);
