@@ -39,7 +39,7 @@ typedef struct _mdmdserventry{
   uint8_t* startptr;
   int bytesleft;
 
-  int add_time;
+  int atime;
   int type; //1:incoming; 2:outgoing
 
   struct _mdmdserventry* next;

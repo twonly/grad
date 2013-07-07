@@ -109,7 +109,7 @@ void mdmd_serve(struct pollfd *pdesc) {
       eptr->startptr = eptr->headbuf;
 
       eptr->type = 1;
-      eptr->add_time = time(NULL);
+      eptr->atime = time(NULL);
 
       fprintf(stderr,"another mds(ip:%u.%u.%u.%u) connected\n",(eptr->peerip>>24)&0xFF,(eptr->peerip>>16)&0xFF,(eptr->peerip>>8)&0xFF,eptr->peerip&0xFF);
 
@@ -140,7 +140,7 @@ void mdmd_serve(struct pollfd *pdesc) {
       eptr->bytesleft = HEADER_LEN;
       eptr->startptr = eptr->headbuf;
 
-      eptr->add_time = time(NULL);
+      eptr->atime = time(NULL);
       eptr->type = 1;
 
       fprintf(stderr,"connected to another mds(ip:%u.%u.%u.%u)\n",(eptr->peerip>>24)&0xFF,(eptr->peerip>>16)&0xFF,(eptr->peerip>>8)&0xFF,eptr->peerip&0xFF);
@@ -353,7 +353,6 @@ void mdmd_add_link(uint32_t ip){
   if(pthread_mutex_trylock(&conns_mutex) != 0){
     return;
   }
-
   if(conns >= MAX_MDS_CONN){
     mdmdserventry* eptr,*iter;
 
@@ -362,7 +361,7 @@ void mdmd_add_link(uint32_t ip){
     while(iter){
       if(iter->type== 1) continue; //ignore incoming connection
       if(eptr == NULL ||
-         eptr->add_time > iter->add_time){
+         eptr->atime > iter->atime){ //more recently accessed
         eptr = iter;
       }
 
@@ -421,6 +420,8 @@ void mdmd_read_chunk_info(mdmdserventry* eptr,char* path,int id){
 
   p->next = eptr->outpacket;
   eptr->outpacket = p;
+
+  eptr->atime = time(NULL);
 }
 
 void mdmd_s2c_read_chunk_info(mdmdserventry* eptr,ppacket* inp){

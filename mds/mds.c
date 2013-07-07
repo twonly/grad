@@ -978,6 +978,14 @@ void mds_cl_append_chunk(mdsserventry* eptr,ppacket* p){
 
 void mds_fw_read_chunk_info(mdsserventry* eptr,ppacket* p){
   fprintf(stderr,"+mds_fw_read_chunk_info\n");
+
+  const uint8_t* ptr = p->startptr;
+  int status = get32bit(&ptr);
+  if(status == 0){
+    uint32_t ip = get32bit(&ptr);
+    mdmd_add_link(ip);
+  }
+
   mds_direct_pass_cl(eptr,p,MDTOCL_READ_CHUNK_INFO);
 }
 
