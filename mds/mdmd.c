@@ -38,7 +38,7 @@ int mdmd_init(void){
 		return -1;
 	}
 
-  fprintf(stderr,"listening on port %s\n",MDSMDS_PORT_STR);
+  fprintf(stderr,"mdmd: listening on port %s\n",MDSMDS_PORT_STR);
 
   exiting = 0;
   conns = 0;
@@ -48,6 +48,9 @@ int mdmd_init(void){
   pthread_create(&conn_thread,NULL,
                 mdmd_conn_thread,NULL);
 
+	main_destructregister(mdmd_term);
+	main_pollregister(mdmd_desc,mdmd_serve);
+
   return 0;
 }
 
@@ -56,23 +59,32 @@ void* mdmd_conn_thread(void* dum){
 
   while(!exiting){
     if(queue_isempty(pcq_conn)){
+      sleep(10);
       continue;
     }
 
     uint32_t ip;
-    if(queue_get(pcq_conn,&ip) != 0){
+    char* data;
+    if(queue_get(pcq_conn,&ip,&data) != 0){
       continue;
     }
+
+    fprintf(stderr,"\n\n\n\n\nfinally!!!!!:%X\n\n\n\n",ip);
 
     int fd = tcpsocket();
     tcpnodelay(fd);
 
     if (tcpnumtoconnect(fd,ip,MDSMDS_PORT,CONN_TIMEOUT)<0) { //connect to mis, with timeout
+
+      fprintf(stderr,"\n\n\n\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!cannot connect to %d\n\n\n",ip);
       tcpclose(fd);
       continue;
     }
 
-    queue_put(pcq_fin,fd);
+    fprintf(stderr,"before that,queue_isempty:%d\n",queue_isempty(pcq_fin));
+    fprintf(stderr,"putting %d to pcq_fin,result=%d\n",fd,queue_put(pcq_fin,fd,data));
+    fprintf(stderr,"now queue_elements:%d\n",queue_elements(pcq_fin));
+    fprintf(stderr,"noew queue_isempty:%d\n",queue_isempty(pcq_fin));
   }
 
   queue_delete(pcq_fin);
@@ -91,7 +103,7 @@ void mdmd_serve(struct pollfd *pdesc) {
 		} else {
 			tcpnonblock(ns);
 			tcpnodelay(ns);
-			eptr = malloc(sizeof(mdsserventry));
+			eptr = malloc(sizeof(mdmdserventry));
 			passert(eptr);
 
 			eptr->next = mdmdservhead;
@@ -109,7 +121,8 @@ void mdmd_serve(struct pollfd *pdesc) {
       eptr->startptr = eptr->headbuf;
 
       eptr->type = 1;
-      eptr->add_time = time(NULL);
+      eptr->atime = time(NULL);
+      memset(eptr->htab,0,sizeof(eptr->htab));
 
       fprintf(stderr,"another mds(ip:%u.%u.%u.%u) connected\n",(eptr->peerip>>24)&0xFF,(eptr->peerip>>16)&0xFF,(eptr->peerip>>8)&0xFF,eptr->peerip&0xFF);
 
@@ -119,11 +132,13 @@ void mdmd_serve(struct pollfd *pdesc) {
 
   if(!queue_isempty(pcq_fin)){
     int ns;
+    char* path;
+    fprintf(stderr,"\n\n\n+fuck yeah\n\n\n");
 
-    while(queue_get(pcq_fin,&ns)==0){
+    while(queue_get(pcq_fin,&ns,&path) == 0){
 			tcpnonblock(ns);
 			tcpnodelay(ns);
-			eptr = malloc(sizeof(mdsserventry));
+			eptr = malloc(sizeof(mdmdserventry));
 			passert(eptr);
 
 			eptr->next = mdmdservhead;
@@ -140,8 +155,10 @@ void mdmd_serve(struct pollfd *pdesc) {
       eptr->bytesleft = HEADER_LEN;
       eptr->startptr = eptr->headbuf;
 
-      eptr->add_time = time(NULL);
+      eptr->atime = time(NULL);
       eptr->type = 1;
+      memset(eptr->htab,0,sizeof(eptr->htab));
+      mdmdserventry_add_path(eptr,path);
 
       fprintf(stderr,"connected to another mds(ip:%u.%u.%u.%u)\n",(eptr->peerip>>24)&0xFF,(eptr->peerip>>16)&0xFF,(eptr->peerip>>8)&0xFF,eptr->peerip&0xFF);
 
@@ -192,7 +209,7 @@ void mdmd_serve(struct pollfd *pdesc) {
       }
 
       *kptr = eptr->next;
-      free(eptr);
+      mdmdserventry_free(eptr);
     } else {
       kptr = &(eptr->next);
     }
@@ -244,7 +261,7 @@ void mdmd_term(void) {
       free(pp);
     }
 
-		free(eptr);
+		mdmdserventry_free(eptr);
 	}
 
   exiting = 1;
@@ -349,11 +366,24 @@ void mdmd_read(mdmdserventry *eptr){
   }
 }
 
-void mdmd_add_link(uint32_t ip){
-  if(pthread_mutex_trylock(&conns_mutex) != 0){
+void mdmd_add_path(uint32_t ip,char* path){
+  fprintf(stderr,"\n\n\n+mdmd_add_link:%X\n\n\n",ip);
+
+  mdmdserventry* eptr = mdmdservhead;
+  while(eptr){
+    if(eptr->peerip == ip) break;
+
+    eptr = eptr->next;
+  }
+
+  if(eptr != NULL){
+    mdmdserventry_add_path(eptr,path);
     return;
   }
 
+  if(pthread_mutex_trylock(&conns_mutex) != 0){
+    return;
+  }
   if(conns >= MAX_MDS_CONN){
     mdmdserventry* eptr,*iter;
 
@@ -362,7 +392,7 @@ void mdmd_add_link(uint32_t ip){
     while(iter){
       if(iter->type== 1) continue; //ignore incoming connection
       if(eptr == NULL ||
-         eptr->add_time > iter->add_time){
+         eptr->atime > iter->atime){ //@TODO:maybe a better replacement policy?
         eptr = iter;
       }
 
@@ -383,13 +413,16 @@ void mdmd_add_link(uint32_t ip){
   conns++;
   pthread_mutex_unlock(&conns_mutex);
 
-  queue_put(pcq_conn,ip);
+  queue_put(pcq_conn,ip,strdup(path));
 }
 
-mdmdserventry* mdmd_find_link(uint32_t ip){
+mdmdserventry* mdmd_find_link(char* path){
+  fprintf(stderr,"+mdmd_find_link:path=%s\n",path);
   mdmdserventry* eptr = mdmdservhead;
   while(eptr){
-    if(eptr->peerip == ip){
+    fprintf(stderr,"eptr=%X\n",eptr->peerip);
+
+    if(mdmdserventry_has_path(eptr,path)){
       return eptr;
     }
 
@@ -411,6 +444,8 @@ void mdmd_gotpacket(mdmdserventry* eptr,ppacket* p){
 }
 
 void mdmd_read_chunk_info(mdmdserventry* eptr,char* path,int id){
+  fprintf(stderr,"+mdmd_read_chunk_info\n");
+
   int plen = strlen(path);
   ppacket* p = createpacket_s(MDTOMD_C2S_READ_CHUNK_INFO,plen+4,id);
   uint8_t* ptr = p->startptr + HEADER_LEN;
@@ -421,6 +456,8 @@ void mdmd_read_chunk_info(mdmdserventry* eptr,char* path,int id){
 
   p->next = eptr->outpacket;
   eptr->outpacket = p;
+
+  eptr->atime = time(NULL);
 }
 
 void mdmd_s2c_read_chunk_info(mdmdserventry* eptr,ppacket* inp){
@@ -491,3 +528,14 @@ void mdmd_c2s_read_chunk_info(mdmdserventry* eptr,ppacket* inp){
   }
 }
 
+void mdmdserventry_add_path(mdmdserventry* eptr,char* path){
+  //@TODO
+}
+
+int mdmdserventry_has_path(mdmdserventry* eptr,char* path){
+  //@TODO
+}
+
+void mdmdserventry_free(mdmdserventry* eptr){
+  //@TODO
+}

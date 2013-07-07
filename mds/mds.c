@@ -821,68 +821,6 @@ void mds_cl_open(mdsserventry* eptr,ppacket* inp){
   mds_direct_pass_cl(eptr,inp,MDTOCL_OPEN);
 }
 
-void mds_cl_read_chunk_info(mdsserventry* eptr,ppacket* p){
-  fprintf(stderr,"+mds_cl_read_chunk_info,size=%d\n",p->size);
-
-  int plen,mdsid,i;
-  const uint8_t* ptr = p->startptr;
-  ppacket* outp = NULL;
-
-  plen = get32bit(&ptr);
-  char* path = (char*)malloc(plen+10);
-  memcpy(path,ptr,plen);
-  ptr += plen;
-
-  if(mdtomi == eptr){
-    mdsid = get32bit(&ptr);
-    fprintf(stderr,"mdsid=%X\n",mdsid);
-  }
-
-  path[plen] = 0;
-  fprintf(stderr,"plen=%d,path=%s\n",plen,path);
-  ppfile* f = lookup_file(path);
-  if(f == NULL){
-    if(eptr != mdtomi){//file in another mds!
-      mdmdserventry* meptr;
-      if((meptr=mdmd_find_link(eptr->peerip)) != NULL){//use inter-mds connections
-        mdmd_read_chunk_info(meptr,path,p->id);
-      } else {
-        mds_direct_pass_mi(p,MDTOMI_READ_CHUNK_INFO);
-      }
-    } else { //no such file
-      outp = createpacket_s(4+4,MDTOCL_READ_CHUNK_INFO,p->id);
-      uint8_t* ptr2 = outp->startptr + HEADER_LEN;
-      put32bit(&ptr2,-ENOENT);
-      put32bit(&ptr2,mdsid);
-    }
-  } else {
-    int totsize = 4+4+4+8*(f->chunks);
-    if(eptr == mdtomi){
-      totsize += 4;
-    }
-
-    outp = createpacket_s(totsize,MDTOCL_READ_CHUNK_INFO,p->id);
-    uint8_t* ptr = outp->startptr + HEADER_LEN;
-    put32bit(&ptr,0);
-
-    put32bit(&ptr,-1);//local mds
-    put32bit(&ptr,f->chunks);
-    for(i=0;i<f->chunks;i++){
-      put64bit(&ptr,f->clist[i]);
-    }
-
-    fprintf(stderr,"chunks=%d\n",f->chunks);
-
-    if(eptr == mdtomi){
-      put32bit(&ptr,mdsid);
-    }
-  }
-
-  if(outp){
-    outp->next = eptr->outpacket;
-    eptr->outpacket = outp;
-  }
-}
 
 void mds_cl_lookup_chunk(mdsserventry* eptr,ppacket* p){
   fprintf(stderr,"+mds_cl_lookup_chunk\n");
@@ -976,8 +914,92 @@ void mds_cl_append_chunk(mdsserventry* eptr,ppacket* p){
   }
 }
 
+void mds_cl_read_chunk_info(mdsserventry* eptr,ppacket* p){
+  fprintf(stderr,"+mds_cl_read_chunk_info,size=%d\n",p->size);
+
+  int plen,mdsid,i;
+  const uint8_t* ptr = p->startptr;
+  ppacket* outp = NULL;
+
+  plen = get32bit(&ptr);
+  char* path = (char*)malloc(plen+10);
+  memcpy(path,ptr,plen);
+  ptr += plen;
+
+  if(mdtomi == eptr){
+    mdsid = get32bit(&ptr);
+    fprintf(stderr,"mdsid=%X\n",mdsid);
+  }
+
+  path[plen] = 0;
+  fprintf(stderr,"plen=%d,path=%s\n",plen,path);
+  ppfile* f = lookup_file(path);
+  if(f == NULL){
+    if(eptr != mdtomi){//file in another mds!
+      mdmdserventry* meptr;
+      if((meptr=mdmd_find_link(path)) != NULL){//use inter-mds connections
+        fprintf(stderr,"+using conns between mds and mds\n");
+        mdmd_read_chunk_info(meptr,path,p->id);
+      } else {
+        mds_direct_pass_mi(p,MDTOMI_READ_CHUNK_INFO);
+      }
+    } else { //no such file
+      outp = createpacket_s(4+4,MDTOCL_READ_CHUNK_INFO,p->id);
+      uint8_t* ptr2 = outp->startptr + HEADER_LEN;
+      put32bit(&ptr2,-ENOENT);
+      put32bit(&ptr2,mdsid);
+    }
+  } else {
+    int totsize = 4+4+4+8*(f->chunks) + 4 + plen;
+    if(eptr == mdtomi){
+      totsize += 4;
+    }
+
+    outp = createpacket_s(totsize,MDTOCL_READ_CHUNK_INFO,p->id);
+    uint8_t* ptr = outp->startptr + HEADER_LEN;
+    put32bit(&ptr,0);
+
+    put32bit(&ptr,-1);//local mds
+    put32bit(&ptr,f->chunks);
+    for(i=0;i<f->chunks;i++){
+      put64bit(&ptr,f->clist[i]);
+    }
+
+    fprintf(stderr,"chunks=%d\n",f->chunks);
+
+    put32bit(&ptr,plen);
+    memcpy(ptr,path,plen);
+    ptr += plen;
+
+    if(eptr == mdtomi){
+      put32bit(&ptr,mdsid);
+    }
+  }
+
+  if(outp){
+    outp->next = eptr->outpacket;
+    eptr->outpacket = outp;
+  }
+}
+
 void mds_fw_read_chunk_info(mdsserventry* eptr,ppacket* p){
   fprintf(stderr,"+mds_fw_read_chunk_info\n");
+
+  const uint8_t* ptr = p->startptr;
+  int status = get32bit(&ptr);
+  if(status == 0){
+    uint32_t ip = get32bit(&ptr);
+    int chunks = get32bit(&ptr);
+    ptr += chunks * 8;
+    int plen = get32bit(&ptr);
+    char* path = malloc(plen+10);
+    memcpy(path,ptr,plen);
+    path[plen] = 0;
+
+    fprintf(stderr,"adding (%X,%s) to mdmd\n",ip,path);
+    mdmd_add_path(ip,path);
+  }
+
   mds_direct_pass_cl(eptr,p,MDTOCL_READ_CHUNK_INFO);
 }
 

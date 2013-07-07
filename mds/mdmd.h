@@ -21,9 +21,12 @@
 #include <pthread.h>
 #include "pcqueue.h"
 #include "mds.h"
+#include "ppds.h"
 
 #define MAX_MDS_CONN 50
 #define CONN_TIMEOUT 500 //in ms
+
+#define MDMD_HASHSIZE 100
 
 typedef struct _mdmdserventry{
   int sock;
@@ -39,8 +42,10 @@ typedef struct _mdmdserventry{
   uint8_t* startptr;
   int bytesleft;
 
-  int add_time;
+  int atime;
   int type; //1:incoming; 2:outgoing
+
+  hashnode* htab[MDMD_HASHSIZE];
 
   struct _mdmdserventry* next;
 } mdmdserventry;
@@ -55,13 +60,17 @@ void* mdmd_conn_thread(void*);
 void mdmd_write(mdmdserventry *eptr);
 void mdmd_read(mdmdserventry *eptr);
 
-void mdmd_add_link(uint32_t ip);
-mdmdserventry* mdmd_find_link(uint32_t ip);
+void mdmd_add_path(uint32_t ip,char* path);
+mdmdserventry* mdmd_find_link(char* path);
 
 void mdmd_gotpacket(mdmdserventry* eptr,ppacket* p);
 
 void mdmd_read_chunk_info(mdmdserventry* eptr,char* path,int id);
 void mdmd_s2c_read_chunk_info(mdmdserventry* eptr,ppacket* p);
 void mdmd_c2s_read_chunk_info(mdmdserventry* eptr,ppacket* p);
+
+void mdmdserventry_add_path(mdmdserventry* eptr,char* path);
+int mdmdserventry_has_path(mdmdserventry* eptr,char* path);
+void mdmdserventry_free(mdmdserventry* eptr);
 
 #endif

@@ -27,6 +27,7 @@
 
 typedef struct _qentry {
 	uint32_t id;
+  char* data;
 	struct _qentry *next;
 } qentry;
 
@@ -86,12 +87,13 @@ uint32_t queue_elements(void *que) {
 	return r;
 }
 
-int queue_put(void *que,uint32_t id){
+int queue_put(void *que,uint32_t id,char* data){
 	queue *q = (queue*)que;
 	qentry *qe;
 	qe = malloc(sizeof(qentry));
 	passert(qe);
 	qe->id = id;
+  qe->data = data;
 	qe->next = NULL;
 	zassert(pthread_mutex_lock(&(q->lock)));
 	q->elements++;
@@ -105,7 +107,7 @@ int queue_put(void *que,uint32_t id){
 	return 0;
 }
 
-int queue_get(void *que,uint32_t *id){
+int queue_get(void *que,uint32_t *id,char** data){
 	queue *q = (queue*)que;
 	qentry *qe;
 	zassert(pthread_mutex_lock(&(q->lock)));
@@ -114,6 +116,9 @@ int queue_get(void *que,uint32_t *id){
 		if (id) {
 			*id=0;
 		}
+    if(data){
+      *data = NULL;
+    }
 		errno = EBUSY;
 		return -1;
 	}
@@ -127,6 +132,9 @@ int queue_get(void *que,uint32_t *id){
 	if (id) {
 		*id = qe->id;
 	}
+  if(data){
+    *data = qe->data;
+  }
 	free(qe);
 	return 0;
 }

@@ -25,7 +25,7 @@ void* queue_new();
 void queue_delete(void *que);
 int queue_isempty(void *que);
 uint32_t queue_elements(void *que);
-int queue_put(void *que,uint32_t id);
-int queue_get(void *que,uint32_t *id);
+int queue_put(void *que,uint32_t id,char* data);
+int queue_get(void *que,uint32_t *id,char** data);
 
 #endif
