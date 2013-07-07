@@ -174,6 +174,8 @@ int serv_connect(ppfs_conn_entry* e,int ip,int port){
   e->sockfd = fd;
 	tcpgetpeer(fd,&(e->peerip),NULL);
 
+  //@TODO: add login
+
   return fd;
 }
 
@@ -1092,6 +1094,7 @@ int	ppfs_write (const char *path, const char *buf, size_t st, off_t off, struct 
 
 int main(int argc, char* argv[]) {
   argv[argc++] = "-s";
+  //@TODO: add options to add and remove user
 
   return fuse_main(argc, argv, &ppfs_oper, NULL);
 }

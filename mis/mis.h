@@ -76,4 +76,9 @@ void mis_rfw_lookup_chunk(misserventry* eptr,ppacket* p);
 void mis_fw_append_chunk(misserventry* eptr,ppacket* p);
 void mis_rfw_append_chunk(misserventry* eptr,ppacket* p);
 
+//@TODO
+void mis_login(misserventry* eptr,ppacket* p);
+void mis_add_user(misserventry* eptr,ppacket* p);
+void mis_del_user(misserventry* eptr,ppacket* p);
+
 #endif

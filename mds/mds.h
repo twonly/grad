@@ -20,6 +20,7 @@
 #include <arpa/inet.h>
 #include "chunks.h"
 #include "mdscs.h"
+#include "mdmd.h"
 
 #define MAXBUFSIZE 512
 
@@ -49,7 +50,6 @@ void mds_write(mdsserventry *eptr);
 void mds_read(mdsserventry *eptr);
 
 void mds_gotpacket(mdsserventry* eptr,ppacket* p);
-ppacket* mds_createpacket(int size,int cmd);
 
 mdsserventry* mds_entry_from_id(int id);
 
@@ -96,5 +96,13 @@ void mds_cl_append_chunk(mdsserventry* eptr,ppacket* p);
 void mds_cl_pop_chunk(mdsserventry* eptr,ppacket* p);
 
 void mds_fw_read_chunk_info(mdsserventry* eptr,ppacket* p);
+
+//@TODO
+void mds_login(mdsserventry* eptr,ppacket* p);
+void mds_cl_login(mdsserventry* eptr,ppacket* p);
+void mds_add_user(mdsserventry* eptr,ppacket* p);
+void mds_cl_add_user(mdsserventry* eptr,ppacket* p);
+void mds_del_user(mdsserventry* eptr,ppacket* p);
+void mds_cl_del_user(mdsserventry* eptr,ppacket* p);
 
 #endif

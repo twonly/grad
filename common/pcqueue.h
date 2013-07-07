@@ -16,29 +16,16 @@
    along with MooseFS.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#ifndef _PCQUEUE_H_
+#define _PCQUEUE_H_
 
-#include <stdio.h>
+#include <inttypes.h>
 
-#include "random.h"
-#include "mds.h"
-#include "mds_fs.h"
-#include "mdscs.h"
-#include "chunks.h"
+void* queue_new();
+void queue_delete(void *que);
+int queue_isempty(void *que);
+uint32_t queue_elements(void *que);
+int queue_put(void *que,uint32_t id);
+int queue_get(void *que,uint32_t *id);
 
-/* Run Tab */
-typedef int (*runfn)(void);
-struct {
-	runfn fn;
-	char *name;
-} RunTab[]={
-	{rnd_init,"random generator"},
-  {chunks_init,"mds chunks init"},
-  {init_fs, "mds_fs init"},
-  {mds_init,"mds init"},
-  {mdscs_init,"mdscs init"},
-  {mdmd_init,"mdmd init"},
-	{(runfn)0,"****"}
-},LateRunTab[]={
-	{(runfn)0,"****"}
-};
+#endif

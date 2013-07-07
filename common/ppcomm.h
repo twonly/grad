@@ -63,6 +63,16 @@
 
 #define CLTOMD_WRITE 0x1028
 
+//@TODO
+#define CLTOMD_LOGIN 0x1029
+#define MDTOCL_LOGIN 0x1030
+
+#define CLTOMD_ADD_USER 0x1031
+#define MDTOCL_ADD_USER 0x1032
+
+#define CLTOMD_DEL_USER 0x1033
+#define MDTOCL_DEL_USER 0x1034
+
 //======================================================================================
 
 #define MDTOMI_GETATTR 0x2001
@@ -125,6 +135,16 @@
 #define MDTOMI_UTIMENS 0x202D
 #define MITOMD_UTIMENS 0x202E
 
+//@TODO
+#define MDTOMI_LOGIN 0x202F
+#define MITOMD_LOGIN 0x2030
+
+#define MDTOMI_ADD_USER 0x2031
+#define MITOMD_ADD_USER 0x2032
+
+#define MDTOMI_DEL_USER 0x2033
+#define MITOMD_DEL_USER 0x2034
+
 //===============================================================
 
 #define ANTOAN_NOOP 0x0001
@@ -159,6 +179,12 @@
 
 //#define CSTOCS_GET_CHUNK_BLOCKS 0x4009
 //#define CSTOCS_GET_CHUNK_STATUS 0x4010
+//
+
+//====================================================================
+
+#define MDTOMD_S2C_READ_CHUNK_INFO 0x10001
+#define MDTOMD_C2S_READ_CHUNK_INFO 0x10002
 
 #define HEADER_LEN 12
 
@@ -172,6 +198,9 @@
 
 #define CS_PORT 8310
 #define CS_PORT_STR "8310"
+
+#define MDSMDS_PORT 8410
+#define MDSMDS_PORT_STR "8410"
 
 typedef struct ppacket{
   int size;

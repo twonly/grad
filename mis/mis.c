@@ -314,6 +314,16 @@ void mis_gotpacket(misserventry* eptr,ppacket* p){
 
     case MDTOMI_UTIMENS:
       mis_utimens(eptr,p);
+      break;
+    case MDTOMI_ADD_USER:
+      mis_add_user(eptr,p);
+      break;
+    case MDTOMI_DEL_USER:
+      mis_del_user(eptr,p);
+      break;
+    case MDTOMI_LOGIN:
+      mis_login(eptr,p);
+      break;
   }
 
   fprintf(stderr,"\n\n");
@@ -1167,5 +1177,17 @@ end:
   free(path);
   p->next = eptr->outpacket;
   eptr->outpacket = p;
+}
+
+void mis_login(misserventry* eptr,ppacket* p){
+  //@TODO
+}
+
+void mis_add_user(misserventry* eptr,ppacket* p){
+  //@TODO
+}
+
+void mis_del_user(misserventry* eptr,ppacket* p){
+  //@TODO
 }
 

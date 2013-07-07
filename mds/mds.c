@@ -460,6 +460,26 @@ void mds_gotpacket(mdsserventry* eptr,ppacket* p){
       break;
     case CLTOMD_WRITE:
       mds_cl_write(eptr,p);
+      break;
+
+    case CLTOMD_LOGIN:
+      mds_login(eptr,p);
+      break;
+    case MITOMD_LOGIN:
+      mds_cl_login(eptr,p);
+      break;
+    case CLTOMD_ADD_USER:
+      mds_add_user(eptr,p);
+      break;
+    case MITOMD_ADD_USER:
+      mds_cl_add_user(eptr,p);
+      break;
+    case CLTOMD_DEL_USER:
+      mds_del_user(eptr,p);
+      break;
+    case MITOMD_DEL_USER:
+      mds_cl_del_user(eptr,p);
+      break;
   }
 
   fprintf(stderr,"\n\n");
@@ -818,20 +838,17 @@ void mds_cl_read_chunk_info(mdsserventry* eptr,ppacket* p){
     fprintf(stderr,"mdsid=%X\n",mdsid);
   }
 
-  fprintf(stderr,"just to be clear\n");
-  ptr = p->startptr;
-  for(i=0;i<p->size;i+=1){
-    int x = get8bit(&ptr);
-    fprintf(stderr,"%X\t",x);
-  }
-  fprintf(stderr,"\n");
-
   path[plen] = 0;
   fprintf(stderr,"plen=%d,path=%s\n",plen,path);
   ppfile* f = lookup_file(path);
   if(f == NULL){
     if(eptr != mdtomi){//file in another mds!
-      mds_direct_pass_mi(p,MDTOMI_READ_CHUNK_INFO);
+      mdmdserventry* meptr;
+      if((meptr=mdmd_find_link(eptr->peerip)) != NULL){//use inter-mds connections
+        mdmd_read_chunk_info(meptr,path,p->id);
+      } else {
+        mds_direct_pass_mi(p,MDTOMI_READ_CHUNK_INFO);
+      }
     } else { //no such file
       outp = createpacket_s(4+4,MDTOCL_READ_CHUNK_INFO,p->id);
       uint8_t* ptr2 = outp->startptr + HEADER_LEN;
@@ -1107,3 +1124,28 @@ void mds_cl_write(mdsserventry* eptr,ppacket* p){
       mis_update_attr(f);
   }
 }
+
+void mds_login(mdsserventry* eptr,ppacket* p){
+  //@TODO
+}
+
+void mds_cl_login(mdsserventry* eptr,ppacket* p){
+  //@TODO
+}
+
+void mds_add_user(mdsserventry* eptr,ppacket* p){
+  //@TODO
+}
+
+void mds_cl_add_user(mdsserventry* eptr,ppacket* p){
+  //@TODO
+}
+
+void mds_del_user(mdsserventry* eptr,ppacket* p){
+  //@TODO
+}
+
+void mds_cl_del_user(mdsserventry* eptr,ppacket* p){
+  //@TODO
+}
+
