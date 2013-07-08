@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -m32 -I../common -I. -g -lpthread
+CFLAGS = -m32 -I../common -I. -g -lpthread -pthread
 HEADERS = ../common/config.h    ../common/ppfile.h   ../common/sockets.h \
           ../common/massert.h  ../common/ppcomm.h ../common/random.h   ../common/strerr.h \
           ../common/datapack.h  ../common/md5.h   ../common/ppds.h  ../common/slogger.h \
