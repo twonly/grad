@@ -538,6 +538,9 @@ void mdmdserventry_add_path(mdmdserventry* eptr,char* path){
     eptr->htab[k]->key = strdup(path);
     eptr->htab[k]->next = NULL;
   } else if(eptr->htab[k]->next == NULL){ //only allow two paths in one slot
+    if(!strcmp(eptr->htab[k]->key,path)){ //already in hash
+      return;
+    }
     hashnode* n = malloc(sizeof(hashnode));
     n->key = strdup(path);
     n->next = NULL;
