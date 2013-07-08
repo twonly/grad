@@ -434,7 +434,7 @@ int ppfs_access (const char *path, int amode){
 int	ppfs_chmod (const char *path, mode_t mt){
   fprintf(stderr, "ppfs_chmod path : %s\n", path);
 
-  ppacket *s = createpacket_s(4+strlen(path)+4, CLTOMD_CHMOD,1);
+  ppacket *s = createpacket_s(4+strlen(path)+4, CLTOMD_CHMOD,-1);
   uint8_t* ptr = s->startptr+HEADER_LEN;
 
   put32bit(&ptr, strlen(path));
@@ -467,7 +467,7 @@ int	ppfs_chown (const char *path, uid_t uid, gid_t gid){
   fprintf(stderr, "ppfs_chown path : %s\n", path);
 
 
-  ppacket *s = createpacket_s(4+strlen(path)+8, CLTOMD_CHOWN, 1);
+  ppacket *s = createpacket_s(4+strlen(path)+8, CLTOMD_CHOWN, -1);
   uint8_t* ptr = s->startptr+HEADER_LEN;
 
   put32bit(&ptr, strlen(path));

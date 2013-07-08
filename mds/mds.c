@@ -394,12 +394,6 @@ void mds_gotpacket(mdsserventry* eptr,ppacket* p){
     case MITOMD_CHOWN:
       mds_cl_chown(eptr,p);
       break;
-    case CLTOMD_CHGRP:
-      mds_chgrp(eptr,p);
-      break;
-    case MITOMD_CHGRP:
-      mds_cl_chgrp(eptr,p);
-      break;
 
     case CLTOMD_MKDIR:
       mds_mkdir(eptr, p);
@@ -598,26 +592,35 @@ void mds_chmod(mdsserventry* eptr,ppacket* p){
 
   ppfile* f = lookup_file(path);
   if(f){
-    int perm = get32bit(&ptr);
-    f->a.mode = (perm&0777) | (f->a.mode & (~0777));
+    int mt = get32bit(&ptr);
+    f->a.mode = mt;
 
-    fprintf(stderr,"perm=%d%d%d\n",perm/0100 & 7,
-                                   perm/0010 & 7,
-                                   perm & 7);
+    fprintf(stderr,"perm=%d%d%d\n",mt/0100 & 7,
+                                   mt/0010 & 7,
+                                   mt & 7);
 
+    ppacket* outp = createpacket_s(4,MDTOCL_CHMOD,p->id);
+    uint8_t* ptr2 = outp->startptr+HEADER_LEN;
+
+    put32bit(&ptr2,0);
+
+    outp->next = eptr->outpacket;
+    eptr->outpacket = outp;
+
+    if(eptr != mdtomi)
+      mis_update_attr(f);
+  } else {
     if(eptr != mdtomi){
+      mds_direct_pass_mi(p,MDTOMI_CHMOD);
+    } else {
       ppacket* outp = createpacket_s(4,MDTOCL_CHMOD,p->id);
       uint8_t* ptr2 = outp->startptr+HEADER_LEN;
-      
-      put32bit(&ptr2,0);
+
+      put32bit(&ptr2,-ENOENT);
 
       outp->next = eptr->outpacket;
       eptr->outpacket = outp;
-
-      mis_update_attr(f);
     }
-  } else {
-    mds_direct_pass_mi(p,MDTOMI_CHMOD);
   }
 
   free(path);
@@ -640,23 +643,36 @@ void mds_chown(mdsserventry* eptr,ppacket* p){
   fprintf(stderr,"path=%s\n",path);
 
   ppfile* f = lookup_file(path);
-  if(f == NULL){
-    mds_direct_pass_mi(p,MDTOMI_CHOWN);
-  } else {
+  if(f){
     int uid = get32bit(&ptr);
+    int gid = get32bit(&ptr);
     f->a.uid = uid;
+    f->a.gid = gid;
 
-    fprintf(stderr,"uid = %u\n",uid);
+    fprintf(stderr,"uid=%d,gid=%d\n",uid,gid);
 
-    ppacket* outp = createpacket_s(4,MDTOCL_CHMOD,p->id);
+    ppacket* outp = createpacket_s(4,MDTOCL_CHOWN,p->id);
     uint8_t* ptr2 = outp->startptr+HEADER_LEN;
-    
+
     put32bit(&ptr2,0);
 
     outp->next = eptr->outpacket;
     eptr->outpacket = outp;
 
-    mis_update_attr(f);
+    if(eptr != mdtomi)
+      mis_update_attr(f);
+  } else {
+    if(eptr != mdtomi){
+      mds_direct_pass_mi(p,MDTOMI_CHOWN);
+    } else {
+      ppacket* outp = createpacket_s(4,MDTOCL_CHOWN,p->id);
+      uint8_t* ptr2 = outp->startptr+HEADER_LEN;
+
+      put32bit(&ptr2,-ENOENT);
+
+      outp->next = eptr->outpacket;
+      eptr->outpacket = outp;
+    }
   }
 
   free(path);
@@ -664,47 +680,6 @@ void mds_chown(mdsserventry* eptr,ppacket* p){
 
 void mds_cl_chown(mdsserventry* eptr,ppacket* p){
   mds_direct_pass_cl(eptr,p,MDTOCL_CHOWN);
-}
-
-void mds_chgrp(mdsserventry* eptr,ppacket* p){
-  int plen;
-  const uint8_t* ptr = p->startptr;
-
-  plen = get32bit(&ptr);
-  char* path = (char*)malloc(plen+10);
-  memcpy(path,ptr,plen);
-  ptr += plen;
-  path[plen] = 0;
-
-  fprintf(stderr,"path=%s\n",path);
-
-  ppfile* f = lookup_file(path);
-  if(f == NULL){
-    mds_direct_pass_mi(p,MDTOMI_CHMOD);
-  } else {
-    int gid = get32bit(&ptr);
-    f->a.gid = gid;
-
-    fprintf(stderr,"gid=%u\n",gid);
-
-    if(eptr != mdtomi){
-      ppacket* outp = createpacket_s(4,MDTOCL_CHMOD,p->id);
-      uint8_t* ptr2 = outp->startptr+HEADER_LEN;
-      
-      put32bit(&ptr2,0);
-
-      outp->next = eptr->outpacket;
-      eptr->outpacket = outp;
-
-      mis_update_attr(f);
-    }
-  }
-
-  free(path);
-}
-
-void mds_cl_chgrp(mdsserventry* eptr,ppacket* inp){
-  mds_direct_pass_cl(eptr,inp,MDTOCL_CHGRP);
 }
 
 void mds_mkdir(mdsserventry* eptr,ppacket* p){

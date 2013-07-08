@@ -298,9 +298,6 @@ void mis_gotpacket(misserventry* eptr,ppacket* p){
     case MDTOMI_CHMOD:
       mis_chmod(eptr,p);
       break;
-    case MDTOMI_CHGRP:
-      mis_chgrp(eptr,p);
-      break;
     case MDTOMI_CHOWN:
       mis_chown(eptr,p);
       break;
@@ -922,72 +919,24 @@ void mis_chmod(misserventry* eptr,ppacket* inp){
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr,-ENOENT);
   } else {
-    int perm = get32bit(&inptr);
-    f->a.mode ^= (perm & 0777);
+    int mt = get32bit(&inptr);
+    f->a.mode = mt;
 
-    fprintf(stderr,"perm=%o\n",perm);
+    fprintf(stderr,"mt=%o\n",mt);
 
     p = createpacket_s(4,MITOMD_CHMOD,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr,0); //status
 
-    if(f->srcip != eptr->peerip){//update mds info
-      misserventry* ceptr = mis_entry_from_ip(f->srcip);
-
-      if(ceptr){
-        ppacket* outp = createpacket_s(inp->size,CLTOMD_CHMOD,inp->id);
-        memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
-
-        outp->next = ceptr->outpacket;
-        ceptr->outpacket = outp;
-      }
-    }
-  }
-
-end:
-  free(path);
-  p->next = eptr->outpacket;
-  eptr->outpacket = p;
-}
-
-//%TODO need to add access control
-void mis_chgrp(misserventry* eptr,ppacket* inp){
-  ppacket* p;
-  char* path;
-  int len;
-  const uint8_t* inptr;
-  int i;
-
-  inptr = inp->startptr;
-  len = get32bit(&inptr);
-  printf("plen=%d\n",len);
-
-  path = (char*)malloc((len+10)*sizeof(char));
-  memcpy(path,inptr,len*sizeof(char));
-  inptr += len;
-  path[len] = 0;
-
-  printf("path=%s\n",path);
-
-  ppfile* f = lookup_file(path);
-  if(!f){
-    p = createpacket_s(4,MITOMD_CHMOD,inp->id);
-    uint8_t* ptr = p->startptr + HEADER_LEN;
-    put32bit(&ptr,-ENOENT);
-  } else {
-    int gid = get32bit(&inptr);
-    f->a.gid = gid;
-
-    p = createpacket_s(4,MITOMD_CHMOD,inp->id);
-    uint8_t* ptr = p->startptr + HEADER_LEN;
-    put32bit(&ptr,0);
+    fprintf(stderr,"f->srcip=%X,eptr->peerip=%X\n",f->srcip,eptr->peerip);
 
     if(f->srcip != eptr->peerip){//update mds info
       misserventry* ceptr = mis_entry_from_ip(f->srcip);
+      fprintf(stderr,"updating mds:%X,ceptr is %X\n",f->srcip,ceptr);
 
       if(ceptr){
         ppacket* outp = createpacket_s(inp->size,CLTOMD_CHMOD,inp->id);
-        memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
+        memcpy(outp->startptr+HEADER_LEN,inp->startptr,inp->size);
 
         outp->next = ceptr->outpacket;
         ceptr->outpacket = outp;
@@ -1027,18 +976,23 @@ void mis_chown(misserventry* eptr,ppacket* inp){
     put32bit(&ptr,-ENOENT);
   } else {
     int uid = get32bit(&inptr);
+    int gid = get32bit(&inptr);
     f->a.uid = uid;
+    f->a.gid = gid;
 
     p = createpacket_s(4,MITOMD_CHMOD,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr,0);
 
+    fprintf(stderr,"f->srcip=%X,eptr->peerip=%X\n",f->srcip,eptr->peerip);
+
     if(f->srcip != eptr->peerip){//update mds info
       misserventry* ceptr = mis_entry_from_ip(f->srcip);
+      fprintf(stderr,"updating mds:%X,ceptr is %X\n",f->srcip,ceptr);
 
       if(ceptr){
         ppacket* outp = createpacket_s(inp->size,CLTOMD_CHMOD,inp->id);
-        memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
+        memcpy(outp->startptr+HEADER_LEN,inp->startptr,inp->size);
 
         outp->next = ceptr->outpacket;
         ceptr->outpacket = outp;
