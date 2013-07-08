@@ -966,6 +966,7 @@ void mds_cl_read_chunk_info(mdsserventry* eptr,ppacket* p){
     }
 
     fprintf(stderr,"chunks=%d\n",f->chunks);
+    fprintf(stderr,"plen=%d,path=%s\n",plen,path);
 
     put32bit(&ptr,plen);
     memcpy(ptr,path,plen);
@@ -991,13 +992,15 @@ void mds_fw_read_chunk_info(mdsserventry* eptr,ppacket* p){
     uint32_t ip = get32bit(&ptr);
     int chunks = get32bit(&ptr);
     ptr += chunks * 8;
-    int plen = get32bit(&ptr);
-    char* path = malloc(plen+10);
-    memcpy(path,ptr,plen);
-    path[plen] = 0;
+    if(p->size - 4 > 4+4+chunks*8){
+      int plen = get32bit(&ptr);
+      char* path = malloc(plen+10);
+      memcpy(path,ptr,plen);
+      path[plen] = 0;
 
-    fprintf(stderr,"adding (%X,%s) to mdmd\n",ip,path);
-    mdmd_add_path(ip,path);
+      fprintf(stderr,"adding (%X,%s) to mdmd\n",ip,path);
+      mdmd_add_path(ip,path);
+    }
   }
 
   mds_direct_pass_cl(eptr,p,MDTOCL_READ_CHUNK_INFO);

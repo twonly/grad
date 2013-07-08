@@ -159,6 +159,7 @@ void mdmd_serve(struct pollfd *pdesc) {
       eptr->type = 1;
       memset(eptr->htab,0,sizeof(eptr->htab));
       mdmdserventry_add_path(eptr,path);
+      free(path);
 
       fprintf(stderr,"connected to another mds(ip:%u.%u.%u.%u)\n",(eptr->peerip>>24)&0xFF,(eptr->peerip>>16)&0xFF,(eptr->peerip>>8)&0xFF,eptr->peerip&0xFF);
 
@@ -367,7 +368,7 @@ void mdmd_read(mdmdserventry *eptr){
 }
 
 void mdmd_add_path(uint32_t ip,char* path){
-  fprintf(stderr,"\n\n\n+mdmd_add_link:%X\n\n\n",ip);
+  fprintf(stderr,"\n\n\n+mdmd_add_path:%X,%s\n\n\n",ip,path);
 
   mdmdserventry* eptr = mdmdservhead;
   while(eptr){
@@ -447,8 +448,10 @@ void mdmd_read_chunk_info(mdmdserventry* eptr,char* path,int id){
   fprintf(stderr,"+mdmd_read_chunk_info\n");
 
   int plen = strlen(path);
-  ppacket* p = createpacket_s(MDTOMD_C2S_READ_CHUNK_INFO,plen+4,id);
+  ppacket* p = createpacket_s(4+plen,MDTOMD_C2S_READ_CHUNK_INFO,id);
   uint8_t* ptr = p->startptr + HEADER_LEN;
+
+  fprintf(stderr,"+path:%s,plen=%d\n",path,plen);
 
   put32bit(&ptr,plen);
   memcpy(ptr,path,plen);
@@ -469,11 +472,11 @@ void mdmd_s2c_read_chunk_info(mdmdserventry* eptr,ppacket* inp){
     ppacket* p = NULL;
 
     if(status != 0){
-      p = createpacket_r(MITOMD_READ_CHUNK_INFO,4,inp->id);
+      p = createpacket_r(4,MITOMD_READ_CHUNK_INFO,inp->id);
       uint8_t* ptr = p->startptr;
       put32bit(&ptr,status);
     } else {
-      p = createpacket_r(MITOMD_READ_CHUNK_INFO,inp->size+4,inp->id);
+      p = createpacket_r(inp->size+4,MITOMD_READ_CHUNK_INFO,inp->id);
       uint8_t* ptr = p->startptr;
       put32bit(&ptr,0);
       put32bit(&ptr,eptr->peerip);
@@ -503,7 +506,7 @@ void mdmd_c2s_read_chunk_info(mdmdserventry* eptr,ppacket* inp){
 
   ppfile* f = lookup_file(path);
   if(f == NULL){
-    outp = createpacket_s(MDTOMD_S2C_READ_CHUNK_INFO,4,inp->id);
+    outp = createpacket_s(4,MDTOMD_S2C_READ_CHUNK_INFO,inp->id);
     uint8_t* ptr = outp->startptr + HEADER_LEN;
     put32bit(&ptr,-ENOENT);
   } else {
@@ -529,13 +532,46 @@ void mdmd_c2s_read_chunk_info(mdmdserventry* eptr,ppacket* inp){
 }
 
 void mdmdserventry_add_path(mdmdserventry* eptr,char* path){
-  //@TODO
+  int k = strhash(path) % MDMD_HASHSIZE;
+  if(eptr->htab[k] == NULL){
+    eptr->htab[k] = malloc(sizeof(hashnode));
+    eptr->htab[k]->key = strdup(path);
+    eptr->htab[k]->next = NULL;
+  } else if(eptr->htab[k]->next == NULL){ //only allow two paths in one slot
+    hashnode* n = malloc(sizeof(hashnode));
+    n->key = strdup(path);
+    n->next = NULL;
+    eptr->htab[k]->next = n;
+  }
 }
 
 int mdmdserventry_has_path(mdmdserventry* eptr,char* path){
-  //@TODO
+  int k = strhash(path) % MDMD_HASHSIZE;
+  hashnode* n = eptr->htab[k];
+  while(n){
+    if(!strcmp(n->key,path)){
+      return 1;
+    }
+
+    n = n->next;
+  }
+
+  return 0;
 }
 
 void mdmdserventry_free(mdmdserventry* eptr){
-  //@TODO
+  int i;
+  for(i=0;i<MDMD_HASHSIZE;i++){
+    if(eptr->htab[i]){
+      if(eptr->htab[i]->next){
+        free(eptr->htab[i]->next->key);
+        free(eptr->htab[i]->next);
+      }
+      free(eptr->htab[i]->key);
+      free(eptr->htab[i]);
+    }
+  }
+
+  free(eptr);
 }
+
