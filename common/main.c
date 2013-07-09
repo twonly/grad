@@ -3,12 +3,11 @@
 #include "slogger.h"
 #include <unistd.h>
 
-#include <poll.h>
-#include <inttypes.h>
-
 #ifndef MFSMAXFILES
 #define MFSMAXFILES 5000
 #endif
+
+#include "main.h"
 
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -44,6 +43,19 @@ typedef struct deentry {
 
 static deentry *dehead=NULL;
 
+
+typedef struct timeentry {
+	uint32_t nextevent;
+	uint32_t seconds;
+	uint32_t offset;
+	int mode;
+//	int offset;
+	void (*fun)(void);
+	struct timeentry *next;
+} timeentry;
+
+static timeentry *timehead=NULL;
+
 static uint32_t now;
 static uint64_t usecnow;
 
@@ -66,9 +78,30 @@ void main_destructregister (void (*fun)(void)) {
 	dehead = aux;
 }
 
+void* main_timeregister (int mode,uint32_t seconds,uint32_t offset,void (*fun)(void)) {
+	timeentry *aux;
+	if (seconds==0 || offset>=seconds) {
+		return NULL;
+	}
+	aux = (timeentry*)malloc(sizeof(timeentry));
+	passert(aux);
+	aux->nextevent = ((now / seconds) * seconds) + offset;
+	while (aux->nextevent<now) {
+		aux->nextevent+=seconds;
+	}
+	aux->seconds = seconds;
+	aux->offset = offset;
+	aux->mode = mode;
+	aux->fun = fun;
+	aux->next = timehead;
+	timehead = aux;
+	return aux;
+}
+
 void free_all_registered_entries(void) {
 	deentry *de,*den;
 	pollentry *pe,*pen;
+	timeentry *te,*ten;
 
 	for (de = dehead ; de ; de = den) {
 		den = de->next;
@@ -79,6 +112,19 @@ void free_all_registered_entries(void) {
 		pen = pe->next;
 		free(pe);
 	}
+
+	for (te = timehead ; te ; te = ten) {
+		ten = te->next;
+		free(te);
+	}
+}
+
+uint32_t main_time() {
+	return now;
+}
+
+uint64_t main_utime() {
+	return usecnow;
 }
 
 void destruct() {
@@ -93,6 +139,7 @@ void mainloop() {
 	struct timeval tv;
 	pollentry *pollit;
 	struct pollfd pdesc[MFSMAXFILES];
+	timeentry *timeit;
 	uint32_t ndesc;
 	int i;
 
@@ -122,6 +169,47 @@ void mainloop() {
 		} else {
 			for (pollit = pollhead ; pollit != NULL ; pollit = pollit->next) {
 				pollit->serve(pdesc);
+			}
+		}
+
+		if (now<prevtime) {
+			// time went backward !!! - recalculate "nextevent" time
+			// adding previous_time_to_run prevents from running next event too soon.
+			for (timeit = timehead ; timeit != NULL ; timeit = timeit->next) {
+				uint32_t previous_time_to_run = timeit->nextevent - prevtime;
+				if (previous_time_to_run > timeit->seconds) {
+					previous_time_to_run = timeit->seconds;
+				}
+				timeit->nextevent = ((now / timeit->seconds) * timeit->seconds) + timeit->offset;
+				while (timeit->nextevent <= now+previous_time_to_run) {
+					timeit->nextevent += timeit->seconds;
+				}
+			}
+		} else if (now>prevtime+3600) {
+			// time went forward !!! - just recalculate "nextevent" time
+			for (timeit = timehead ; timeit != NULL ; timeit = timeit->next) {
+				timeit->nextevent = ((now / timeit->seconds) * timeit->seconds) + timeit->offset;
+				while (now >= timeit->nextevent) {
+					timeit->nextevent += timeit->seconds;
+				}
+			}
+		}
+
+		for (timeit = timehead ; timeit != NULL ; timeit = timeit->next) {
+			if (now >= timeit->nextevent) {
+				if (timeit->mode == TIMEMODE_RUN_LATE) {
+					while (now >= timeit->nextevent) {
+						timeit->nextevent += timeit->seconds;
+					}
+					timeit->fun();
+				} else { /* timeit->mode == TIMEMODE_SKIP_LATE */
+					if (now == timeit->nextevent) {
+						timeit->fun();
+					}
+					while (now >= timeit->nextevent) {
+						timeit->nextevent += timeit->seconds;
+					}
+				}
 			}
 		}
 

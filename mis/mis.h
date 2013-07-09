@@ -15,6 +15,8 @@
 #include "ppcomm.h"
 #include "ppfile.h"
 
+#include "main.h"
+
 enum {KILL,HEADER,DATA};
 
 #define MAXBUFSIZE 512

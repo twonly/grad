@@ -26,6 +26,10 @@ void mis_fs_demo_init(void){
 
 }
 
+static void timeentry_test(void){
+  fprintf(stderr,"TEST:%d\n",main_time());
+}
+
 int mis_init(void){
   lsock = tcpsocket();
   if (lsock<0) {
@@ -50,6 +54,7 @@ int mis_init(void){
 
 	main_destructregister(mis_term);
 	main_pollregister(mis_desc,mis_serve);
+  main_timeregister(TIMEMODE_RUN_LATE,10,0,timeentry_test);
 
   mis_fs_demo_init();
 
