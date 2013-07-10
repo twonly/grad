@@ -22,6 +22,7 @@
 #include "pcqueue.h"
 #include "mds.h"
 #include "ppds.h"
+#include "main.h"
 
 #define MAX_MDS_CONN 50
 #define CONN_TIMEOUT 500 //in ms

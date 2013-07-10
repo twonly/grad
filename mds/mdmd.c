@@ -48,6 +48,7 @@ int mdmd_init(void){
 
 	main_destructregister(mdmd_term);
 	main_pollregister(mdmd_desc,mdmd_serve);
+  main_timeregister(TIMEMODE_RUN_LATE,MDMD_PATH_EXPIRE,0,mdmdserventry_purge_cache);
 
   return 0;
 }
@@ -742,3 +743,43 @@ mdmdserventry* mdmdserventry_from_ip(uint32_t ip){
 
   return NULL;
 }
+
+void mdmdserventry_purge_cache(void){
+  mdmdserventry* eptr = mdmdservhead;
+  uint32_t now = main_time();
+
+  while(eptr){
+    int i;
+    for(i=0;i<MDMD_HASHSIZE;i++){
+      hashnode* n = eptr->htab[i];
+      hashnode* pn = NULL;
+
+      while(n){
+        mdmd_path_st* mps = n->data;
+
+        if(now - mps->ctime > MDMD_PATH_EXPIRE){ //not tested
+          if(pn == NULL){
+            eptr->htab[i] = n->next;
+          } else {
+            pn->next = n->next;
+          }
+
+          free(mps->path);
+          free(mps);
+          free(n);
+
+          if(pn == NULL){
+            n = eptr->htab[i];
+          } else {
+            n = pn->next;
+          }
+        } else {
+          pn = n;
+          n = n->next;
+        }
+      }
+
+    }
+  }
+}
+
