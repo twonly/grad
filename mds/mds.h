@@ -105,4 +105,5 @@ void mds_cl_add_user(mdsserventry* eptr,ppacket* p);
 void mds_del_user(mdsserventry* eptr,ppacket* p);
 void mds_cl_del_user(mdsserventry* eptr,ppacket* p);
 
+void mds_direct_pass_mi(ppacket* p,int cmd);
 #endif

@@ -26,7 +26,7 @@
 #define MAX_MDS_CONN 50
 #define CONN_TIMEOUT 500 //in ms
 
-#define MDMD_HASHSIZE 100
+#define MDMD_HASHSIZE 1838 //should be even
 
 typedef struct _mdmdserventry{
   int sock;
@@ -50,6 +50,24 @@ typedef struct _mdmdserventry{
   struct _mdmdserventry* next;
 } mdmdserventry;
 
+#define MDMD_PATH_CACHE 1
+#define MDMD_DIR_HEURISTIC 2
+
+//for both PATH_CACHE & DIR_HEURISTIC
+#define MDMD_PATH_EXPIRE 180 //in seconds
+
+#define MDMD_FREQ_FACTOR 0.5
+#define MDMD_TIME_FACTOR 0.5
+
+typedef struct mdmd_path_st{
+  char* path;
+  int type;
+
+  int visit;
+  uint32_t atime;
+  uint32_t ctime;
+} mdmd_path_st;
+
 int mdmd_init(void);
 void mdmd_term(void);
 void mdmd_desc(struct pollfd *pdesc,uint32_t *ndesc);
@@ -60,8 +78,9 @@ void* mdmd_conn_thread(void*);
 void mdmd_write(mdmdserventry *eptr);
 void mdmd_read(mdmdserventry *eptr);
 
-void mdmd_add_path(uint32_t ip,char* path);
+void mdmd_add_entry(uint32_t ip,char* entry,int type);
 mdmdserventry* mdmd_find_link(char* path);
+mdmdserventry* mdmd_find_dir(char* dir);
 
 void mdmd_gotpacket(mdmdserventry* eptr,ppacket* p);
 
@@ -69,8 +88,13 @@ void mdmd_read_chunk_info(mdmdserventry* eptr,char* path,int id);
 void mdmd_s2c_read_chunk_info(mdmdserventry* eptr,ppacket* p);
 void mdmd_c2s_read_chunk_info(mdmdserventry* eptr,ppacket* p);
 
-void mdmdserventry_add_path(mdmdserventry* eptr,char* path);
+void mdmdserventry_add_entry(mdmdserventry* eptr,mdmd_path_st* mps);
+
 int mdmdserventry_has_path(mdmdserventry* eptr,char* path);
+mdmd_path_st* mdmdserventry_find_dir(mdmdserventry* eptr,char* dir);
+
+void mdmdserventry_purge_cache(void);
+
 void mdmdserventry_free(mdmdserventry* eptr);
 
 #endif

@@ -69,9 +69,29 @@ int file_pop_chunk(ppfile* f,uint64_t* id){
   }
 
   f->chunks--;
-  *id = f->clist[f->chunks];
+  if(id)
+    *id = f->clist[f->chunks];
+
   if(f->a.size > f->chunks * CHUNKSIZE)
     f->a.size = f->chunks * CHUNKSIZE;
 
   return 0;
 }
+
+char* parentdir(const char* path){
+  int len = strlen(path);
+  char* ret = malloc(len+10);
+  strcpy(ret,path);
+
+  int i = len-1;
+  while(i >= 0 && ret[i] != '/') i--;
+  if(i < 0){
+    ret[0] = '/';
+    ret[1] = 0;
+  } else {
+    ret[i] = 0;
+  }
+
+  return ret;
+}
+

@@ -504,7 +504,7 @@ static void mds_direct_pass_cl(mdsserventry* eptr,ppacket* p,int cmd){
   }
 }
 
-static void mds_direct_pass_mi(ppacket* p,int cmd){
+void mds_direct_pass_mi(ppacket* p,int cmd){
   const uint8_t* ptr = p->startptr;
 
   ppacket* outp = createpacket_s(p->size,cmd,p->id);
@@ -721,7 +721,11 @@ void mds_unlink(mdsserventry* eptr,ppacket* inp){
   printf("path=%s\n",path);
 
   ppfile* f = lookup_file(path);
-  if(f){ //@TODO remove chunks
+  if(f){
+    for(i=0;i<f->chunks;i++){ //remove all chunks
+      mdscs_delete_chunk(f->clist[i]);
+    }
+
     remove_file(f);
     free_file(f);
   }
@@ -973,8 +977,15 @@ void mds_fw_read_chunk_info(mdsserventry* eptr,ppacket* p){
       memcpy(path,ptr,plen);
       path[plen] = 0;
 
-      fprintf(stderr,"adding (%X,%s) to mdmd\n",ip,path);
-      mdmd_add_path(ip,path);
+      fprintf(stderr,"adding path:(%X,%s) to mdmd\n",ip,path);
+      mdmd_add_entry(ip,path,MDMD_PATH_CACHE);
+
+      char* dir = parentdir(path);
+      fprintf(stderr,"adding dir:(%X,%s) to mdmd\n",ip,dir);
+      mdmd_add_entry(ip,dir,MDMD_DIR_HEURISTIC);
+
+      free(path);
+      free(dir);
     }
   }
 

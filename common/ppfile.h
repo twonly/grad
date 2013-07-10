@@ -40,4 +40,6 @@ void free_file(ppfile*);
 int file_append_chunk(ppfile* f,uint64_t id);
 int file_pop_chunk(ppfile* f,uint64_t* id);
 
+char* parentdir(const char* path);
+
 #endif

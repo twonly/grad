@@ -186,6 +186,8 @@
 #define MDTOMD_S2C_READ_CHUNK_INFO 0x10001
 #define MDTOMD_C2S_READ_CHUNK_INFO 0x10002
 
+//====================================================================
+
 #define HEADER_LEN 12
 
 #define MDS_PORT 8224
