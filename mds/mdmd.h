@@ -96,5 +96,6 @@ mdmd_path_st* mdmdserventry_find_dir(mdmdserventry* eptr,char* dir);
 void mdmdserventry_purge_cache(void);
 
 void mdmdserventry_free(mdmdserventry* eptr);
+mdmdserventry* mdmdserventry_from_ip(uint32_t ip);
 
 #endif
