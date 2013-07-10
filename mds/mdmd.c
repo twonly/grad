@@ -14,7 +14,6 @@ static void* pcq_conn = NULL;
 static void* pcq_fin = NULL;
 static volatile int exiting;
 
-static pthread_mutex_t conns_mutex;
 static int conns;
 
 int mdmd_init(void){
@@ -44,7 +43,6 @@ int mdmd_init(void){
   conns = 0;
   pcq_fin = queue_new();
   pcq_conn = queue_new();
-  pthread_mutex_init(&conns_mutex,NULL);
   pthread_create(&conn_thread,NULL,
                 mdmd_conn_thread,NULL);
 
@@ -136,6 +134,19 @@ void mdmd_serve(struct pollfd *pdesc) {
     fprintf(stderr,"\n\n\n+fuck yeah\n\n\n");
 
     while(queue_get(pcq_fin,&ns,(void**)&mps) == 0){
+      fprintf(stderr,"ns=%d\n",ns);
+      uint32_t ip;
+			tcpgetpeer(ns,&ip,NULL);
+
+      eptr = mdmdserventry_from_ip(ip);
+      if(eptr != NULL){
+        mdmdserventry_add_entry(eptr,mps);
+
+        tcpclose(ns); //close redundant connections caused by thread sync problems
+        conns--;
+        continue;
+      }
+
 			tcpnonblock(ns);
 			tcpnodelay(ns);
 			eptr = malloc(sizeof(mdmdserventry));
@@ -147,7 +158,7 @@ void mdmd_serve(struct pollfd *pdesc) {
 			eptr->sock = ns;
 			eptr->pdescpos = -1;
 
-			tcpgetpeer(ns,&(eptr->peerip),NULL);
+      eptr->peerip = ip;
 			eptr->mode = HEADER;
 
       eptr->inpacket = NULL;
@@ -193,9 +204,7 @@ void mdmd_serve(struct pollfd *pdesc) {
       tcpclose(eptr->sock);
 
       if(eptr->type == 2){
-        pthread_mutex_lock(&conns_mutex);
         conns--;
-        pthread_mutex_unlock(&conns_mutex);
       }
 
       ppacket *pp,*ppn;
@@ -409,9 +418,6 @@ void mdmd_add_entry(uint32_t ip,char* path,int type){
     return;
   }
 
-  if(pthread_mutex_trylock(&conns_mutex) != 0){
-    return;
-  }
   if(conns >= MAX_MDS_CONN){
     mdmdserventry* eptr,*iter;
 
@@ -439,7 +445,6 @@ void mdmd_add_entry(uint32_t ip,char* path,int type){
   }
 
   conns++;
-  pthread_mutex_unlock(&conns_mutex);
 
   mdmd_path_st* mps = malloc(sizeof(mdmd_path_st));
   mps->path = strdup(path);
@@ -447,6 +452,7 @@ void mdmd_add_entry(uint32_t ip,char* path,int type){
   mps->visit = 1;
   mps->atime = mps->ctime = main_time();
 
+  fprintf(stderr,"queue_put:%X,%s\n",ip,mps->path);
   queue_put(pcq_conn,ip,mps);
 }
 
@@ -572,6 +578,7 @@ void mdmd_s2c_read_chunk_info(mdmdserventry* eptr,ppacket* inp){
     int plen = get32bit(&inptr);
     char* path = malloc(plen+10);
     memcpy(path,inptr,plen);
+    inptr += plen;
     path[plen] = 0;
 
     //rest: inp->size - 4 - plen
@@ -583,6 +590,7 @@ void mdmd_s2c_read_chunk_info(mdmdserventry* eptr,ppacket* inp){
       uint8_t* ptr = p->startptr;
       put32bit(&ptr,plen);
       memcpy(ptr,path,plen);
+      ptr += plen;
 
       mds_direct_pass_mi(p,MDTOMI_READ_CHUNK_INFO);
     } else {
@@ -722,3 +730,15 @@ mdmd_path_st* mdmdserventry_find_dir(mdmdserventry* eptr,char* dir){
   return NULL;
 }
 
+mdmdserventry* mdmdserventry_from_ip(uint32_t ip){
+  mdmdserventry* eptr = mdmdservhead;
+  while(eptr){
+    if(eptr->peerip == ip){
+      return eptr;
+    }
+
+    eptr = eptr->next;
+  }
+
+  return NULL;
+}

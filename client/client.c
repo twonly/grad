@@ -770,6 +770,8 @@ int	ppfs_read(const char * path, char * buf, size_t st, off_t off, struct fuse_f
     }
 
     cc = chunk_cache_add(path,chunklist,clen,ip);
+  } else {
+    fprintf(stderr,"\n\n\n\nfound chunk_cache\n\n\n\n");
   }
 
   fprintf(stderr,"preparing mds connection:%X\n",ip);

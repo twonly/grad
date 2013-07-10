@@ -85,7 +85,7 @@ char* parentdir(const char* path){
 
   int i = len-1;
   while(i >= 0 && ret[i] != '/') i--;
-  if(i < 0){
+  if(i <= 0){
     ret[0] = '/';
     ret[1] = 0;
   } else {
