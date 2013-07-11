@@ -99,4 +99,5 @@ void mdmdserventry_purge_cache(void);
 void mdmdserventry_free(mdmdserventry* eptr);
 mdmdserventry* mdmdserventry_from_ip(uint32_t ip);
 
+void mdmd_create_access_entry(mdmdserventry* eptr,char* path,int type);
 #endif

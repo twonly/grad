@@ -141,7 +141,8 @@ void mdmd_serve(struct pollfd *pdesc) {
 
       eptr = mdmdserventry_from_ip(ip);
       if(eptr != NULL){
-        mdmdserventry_add_entry(eptr,mps);
+        mdmd_create_access_entry(eptr,mps->path,mps->type);
+        free(mps);
 
         tcpclose(ns); //close redundant connections caused by thread sync problems
         conns--;
@@ -376,7 +377,7 @@ void mdmd_read(mdmdserventry *eptr){
   }
 }
 
-static void mdmd_create_access_entry(mdmdserventry* eptr,char* path,int type){
+void mdmd_create_access_entry(mdmdserventry* eptr,char* path,int type){
   int k = strhash(path) % (MDMD_HASHSIZE/2);
   if(type != MDMD_PATH_CACHE){
     k += (MDMD_HASHSIZE/2);
