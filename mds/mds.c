@@ -11,8 +11,6 @@ static int lsockpdescpos;
 
 static mdsserventry* mdtomi = NULL;
 
-static char* mishostip = "192.168.56.101";
-
 int max(int a,int b){
   return a>b?a:b;
 }
@@ -544,7 +542,13 @@ void mds_getattr(mdsserventry* eptr,ppacket* p){
 
   ppfile* f = lookup_file(path); //
   if(f == NULL){
-    mds_direct_pass_mi(p,MDTOMI_GETATTR);
+    mdmdserventry* meptr;
+    if((meptr=mdmd_find_link(path)) != NULL){//use inter-mds connections
+      fprintf(stderr,"+using conns between mds and mds\n");
+      mdmd_getattr(meptr,path,p->id);
+    } else {
+      mds_direct_pass_mi(p,MDTOMI_GETATTR);
+    }
   } else {
     fprintf(stderr,"found path:%s\n",path);
 
@@ -562,6 +566,42 @@ void mds_getattr(mdsserventry* eptr,ppacket* p){
 }
 
 void mds_cl_getattr(mdsserventry* eptr,ppacket* p){ //p->id?
+  fprintf(stderr,"+mds_cl_getattr\n");
+  const uint8_t* ptr = p->startptr;
+  int status = get32bit(&ptr);
+  if(status == 0){
+    fprintf(stderr,"p->size=%d\n",p->size);
+
+    if(p->size - 4 - sizeof(attr) > 4){
+      attr a;
+      memcpy(&a,ptr,sizeof(attr));
+
+      if(S_ISREG(a.mode)){
+        ptr += sizeof(attr);
+
+        int plen = get32bit(&ptr);
+        fprintf(stderr,"plen=%d\n",plen);
+        char* path = malloc(plen+10);
+        memcpy(path,ptr,plen);
+        path[plen] = 0;
+
+        ptr += plen;
+
+        uint32_t ip = get32bit(&ptr);
+
+        fprintf(stderr,"adding path:(%X,%s) to mdmd\n",ip,path);
+        mdmd_add_entry(ip,path,MDMD_PATH_CACHE);
+
+        char* dir = parentdir(path);
+        fprintf(stderr,"adding dir:(%X,%s) to mdmd\n",ip,dir);
+        mdmd_add_entry(ip,dir,MDMD_DIR_HEURISTIC);
+
+        free(path);
+        free(dir);
+      }
+    }
+  }
+
   mds_direct_pass_cl(eptr,p,MDTOCL_GETATTR);
 }
 

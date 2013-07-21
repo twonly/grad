@@ -335,18 +335,18 @@ void mis_getattr(misserventry* eptr,ppacket* inp){
   fprintf(stderr,"+mis_getattr\n");
 
   char* path;
-  int len;
+  int plen;
   int i;
   ppacket* p;
   const uint8_t* inptr;
 
   inptr = inp->startptr;
-  len = get32bit(&inptr);
-  printf("plen=%X\n",len);
+  plen = get32bit(&inptr);
+  printf("plen=%X\n",plen);
 
-  path = (char*)malloc((len+10)*sizeof(char));
-  memcpy(path,inptr,len*sizeof(char));
-  path[len] = 0;
+  path = (char*)malloc((plen+10)*sizeof(char));
+  memcpy(path,inptr,plen*sizeof(char));
+  path[plen] = 0;
 
   printf("path=%s\n",path);
 
@@ -359,10 +359,24 @@ void mis_getattr(misserventry* eptr,ppacket* inp){
     put32bit(&ptr,-ENOENT);
   } else {
     fprintf(stderr, "found the path, status=%d\n", 0);
-    p = createpacket_s(4+sizeof(attr),MITOMD_GETATTR,inp->id);
+    int totsize = 4+sizeof(attr);
+    if(S_ISREG(f->a.mode)) totsize += 4+plen+4;
+    fprintf(stderr,"p->size=%d\n",totsize);
+
+    p = createpacket_s(totsize,MITOMD_GETATTR,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr,0);
     memcpy(ptr,&f->a,sizeof(attr));
+    ptr += sizeof(attr);
+
+    if(S_ISREG(f->a.mode)){
+      put32bit(&ptr,plen);
+      memcpy(ptr,path,plen);
+      ptr += plen;
+
+      put32bit(&ptr,f->srcip);
+      fprintf(stderr,"srcip=%X\n",f->srcip);
+    }
   }
 
   free(path);

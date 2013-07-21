@@ -23,6 +23,7 @@
 #include "mds.h"
 #include "ppds.h"
 #include "main.h"
+#include "mdmd_stat.h"
 
 #define MAX_MDS_CONN 50
 #define CONN_TIMEOUT 500 //in ms
@@ -88,6 +89,10 @@ void mdmd_gotpacket(mdmdserventry* eptr,ppacket* p);
 void mdmd_read_chunk_info(mdmdserventry* eptr,char* path,int id);
 void mdmd_s2c_read_chunk_info(mdmdserventry* eptr,ppacket* p);
 void mdmd_c2s_read_chunk_info(mdmdserventry* eptr,ppacket* p);
+
+void mdmd_getattr(mdmdserventry* eptr,char* path,int id);
+void mdmd_s2c_getattr(mdmdserventry* eptr,ppacket* p);
+void mdmd_c2s_getattr(mdmdserventry* eptr,ppacket* p);
 
 void mdmdserventry_add_entry(mdmdserventry* eptr,mdmd_path_st* mps);
 

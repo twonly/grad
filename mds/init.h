@@ -25,6 +25,7 @@
 #include "mds_fs.h"
 #include "mdscs.h"
 #include "chunks.h"
+#include "mdmd_stat.h"
 
 /* Run Tab */
 typedef int (*runfn)(void);
@@ -38,6 +39,7 @@ struct {
   {mds_init,"mds init"},
   {mdscs_init,"mdscs init"},
   {mdmd_init,"mdmd init"},
+  {mdmd_stat_init,"mdmd_stat init"},
 	{(runfn)0,"****"}
 },LateRunTab[]={
 	{(runfn)0,"****"}

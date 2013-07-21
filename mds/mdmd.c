@@ -16,6 +16,18 @@ static volatile int exiting;
 
 static int conns;
 
+#define STAT_QUERY 0x100
+#define STAT_PCACHE_HIT 0x101
+#define STAT_DCACHE_HIT 0x102
+#define STAT_MISS 0x103
+#define STAT_EVENTUAL_MISS 0x104
+
+#define STAT_QUERY_STR "stat_query"
+#define STAT_PCACHE_HIT_STR "stat_pcache_h"
+#define STAT_DCACHE_HIT_STR "stat_dcache_h"
+#define STAT_MISS_STR "stat_miss"
+#define STAT_EVENTUAL_MISS_STR "stat_eventual_miss"
+
 int mdmd_init(void){
   lsock = tcpsocket();
   if (lsock<0) {
@@ -49,6 +61,12 @@ int mdmd_init(void){
 	main_destructregister(mdmd_term);
 	main_pollregister(mdmd_desc,mdmd_serve);
   main_timeregister(TIMEMODE_RUN_LATE,MDMD_PATH_EXPIRE,0,mdmdserventry_purge_cache);
+
+  mdmd_stat_add_entry(STAT_QUERY,STAT_QUERY_STR,0);
+  mdmd_stat_add_entry(STAT_PCACHE_HIT,STAT_PCACHE_HIT_STR,0);
+  mdmd_stat_add_entry(STAT_DCACHE_HIT,STAT_DCACHE_HIT_STR,0);
+  mdmd_stat_add_entry(STAT_MISS,STAT_MISS_STR,0);
+  mdmd_stat_add_entry(STAT_EVENTUAL_MISS,STAT_EVENTUAL_MISS_STR,0);
 
   return 0;
 }
@@ -460,11 +478,17 @@ void mdmd_add_entry(uint32_t ip,char* path,int type){
 
 mdmdserventry* mdmd_find_link(char* path){
   fprintf(stderr,"+mdmd_find_link:path=%s\n",path);
+
+  if(!strcmp(path,"/")){//special case
+    return NULL;
+  }
+
   mdmdserventry* eptr = mdmdservhead;
   while(eptr){
     fprintf(stderr,"eptr=%X\n",eptr->peerip);
 
     if(mdmdserventry_has_path(eptr,path)){
+      mdmd_stat_count(STAT_PCACHE_HIT);
       return eptr;
     }
 
@@ -474,6 +498,11 @@ mdmdserventry* mdmd_find_link(char* path){
   char* dir = parentdir(path);
   eptr = mdmd_find_dir(dir);
   free(dir);
+  if(eptr != NULL){
+    mdmd_stat_count(STAT_DCACHE_HIT);
+  } else {
+    mdmd_stat_count(STAT_MISS);
+  }
 
   return eptr;
 }
@@ -550,6 +579,12 @@ void mdmd_gotpacket(mdmdserventry* eptr,ppacket* p){
     case MDTOMD_C2S_READ_CHUNK_INFO:
       mdmd_c2s_read_chunk_info(eptr,p);
       break;
+    case MDTOMD_S2C_GETATTR:
+      mdmd_s2c_getattr(eptr,p);
+      break;
+    case MDTOMD_C2S_GETATTR:
+      mdmd_c2s_getattr(eptr,p);
+      break;
   }
 }
 
@@ -575,18 +610,19 @@ void mdmd_read_chunk_info(mdmdserventry* eptr,char* path,int id){
 void mdmd_s2c_read_chunk_info(mdmdserventry* eptr,ppacket* inp){
   fprintf(stderr,"+mdmd_s2c_read_chunk_info\n");
   mdsserventry* mds_eptr = mds_entry_from_id(inp->id);
+
+  const uint8_t* inptr = inp->startptr;
+  int plen = get32bit(&inptr);
+  char* path = malloc(plen+10);
+  memcpy(path,inptr,plen);
+  inptr += plen;
+  path[plen] = 0;
+
+  //rest: inp->size - 4 - plen
+  int status = get32bit(&inptr);
+  ppacket* p = NULL;
+
   if(mds_eptr){
-    const uint8_t* inptr = inp->startptr;
-    int plen = get32bit(&inptr);
-    char* path = malloc(plen+10);
-    memcpy(path,inptr,plen);
-    inptr += plen;
-    path[plen] = 0;
-
-    //rest: inp->size - 4 - plen
-    int status = get32bit(&inptr);
-    ppacket* p = NULL;
-
     if(status != 0){ //forward to mis
       p = createpacket_r(4+plen,MDTOMI_READ_CHUNK_INFO,inp->id);
       uint8_t* ptr = p->startptr;
@@ -595,6 +631,8 @@ void mdmd_s2c_read_chunk_info(mdmdserventry* eptr,ppacket* inp){
       ptr += plen;
 
       mds_direct_pass_mi(p,MDTOMI_READ_CHUNK_INFO);
+      
+      mdmd_stat_count(STAT_EVENTUAL_MISS);
     } else {
       p = createpacket_r(inp->size-4-plen+4,MITOMD_READ_CHUNK_INFO,inp->id);
       uint8_t* ptr = p->startptr;
@@ -603,11 +641,21 @@ void mdmd_s2c_read_chunk_info(mdmdserventry* eptr,ppacket* inp){
       memcpy(ptr,inptr,inp->size-8-plen);
 
       mds_fw_read_chunk_info(mds_eptr,p);
+
+      //cache hit
     }
 
-    free(p);
-    free(path);
+  } else {
+    if(status!=0){
+      mdmd_stat_count(STAT_EVENTUAL_MISS);
+    }
+    else{
+      //cache hit
+    }
   }
+
+  free(p);
+  free(path);
 }
 
 void mdmd_c2s_read_chunk_info(mdmdserventry* eptr,ppacket* inp){
@@ -784,3 +832,115 @@ void mdmdserventry_purge_cache(void){
   }
 }
 
+void mdmd_getattr(mdmdserventry* eptr,char* path,int id){
+  fprintf(stderr,"+mdmd_getattr\n");
+
+  int plen = strlen(path);
+  ppacket* p = createpacket_s(4+plen,MDTOMD_C2S_GETATTR,id);
+  uint8_t* ptr = p->startptr + HEADER_LEN;
+
+  fprintf(stderr,"+path:%s,plen=%d\n",path,plen);
+
+  put32bit(&ptr,plen);
+  memcpy(ptr,path,plen);
+  ptr += plen;
+
+  p->next = eptr->outpacket;
+  eptr->outpacket = p;
+
+  eptr->atime = main_time();
+}
+
+void mdmd_s2c_getattr(mdmdserventry* eptr,ppacket* inp){
+  fprintf(stderr,"+mdmd_s2c_getattr\n");
+  mdsserventry* mds_eptr = mds_entry_from_id(inp->id);
+
+  const uint8_t* inptr = inp->startptr;
+  int plen = get32bit(&inptr);
+  char* path = malloc(plen+10);
+  memcpy(path,inptr,plen);
+  inptr += plen;
+  path[plen] = 0;
+
+  //rest: inp->size - 4 - plen
+  int status = get32bit(&inptr);
+  ppacket* p = NULL;
+
+  if(mds_eptr){
+    if(status != 0){ //forward to mis
+      p = createpacket_r(4+plen,MDTOMI_GETATTR,inp->id);
+      uint8_t* ptr = p->startptr;
+      put32bit(&ptr,plen);
+      memcpy(ptr,path,plen);
+      ptr += plen;
+
+      mds_direct_pass_mi(p,MDTOMI_GETATTR);
+
+      mdmd_stat_count(STAT_EVENTUAL_MISS);
+    } else {
+      p = createpacket_r(4+sizeof(attr),MITOMD_GETATTR,inp->id);
+      uint8_t* ptr = p->startptr;
+      put32bit(&ptr,0);
+      //put32bit(&ptr,eptr->peerip);
+      memcpy(ptr,inptr,sizeof(attr));
+
+      mds_cl_getattr(mds_eptr,p);
+
+      //cache hit
+    }
+
+  } else {
+    if(status == 0){
+      //cache hit
+    } else{
+      mdmd_stat_count(STAT_EVENTUAL_MISS);
+    }
+  }
+
+  free(p);
+  free(path);
+}
+
+void mdmd_c2s_getattr(mdmdserventry* eptr,ppacket* inp){
+  fprintf(stderr,"+mdmd_c2s_getattr\n");
+
+  int plen,mdsid,i;
+  const uint8_t* ptr = inp->startptr;
+  ppacket* outp = NULL;
+
+  char* path = (char*)malloc(plen+10);
+  plen = get32bit(&ptr);
+  memcpy(path,ptr,plen);
+  ptr += plen;
+
+  path[plen] = 0;
+  fprintf(stderr,"plen=%d,path=%s\n",plen,path);
+
+  ppfile* f = lookup_file(path);
+  if(f == NULL){
+    outp = createpacket_s(4+plen+4,MDTOMD_S2C_GETATTR,inp->id);
+    uint8_t* ptr = outp->startptr + HEADER_LEN;
+
+    put32bit(&ptr,plen);
+    memcpy(ptr,path,plen);
+    ptr += plen;
+    put32bit(&ptr,-ENOENT);
+  } else {
+    int totsize = 4+plen + 4 + sizeof(attr);
+
+    outp = createpacket_s(totsize,MDTOMD_S2C_GETATTR,inp->id);
+    uint8_t* ptr = outp->startptr + HEADER_LEN;
+
+    put32bit(&ptr,plen);
+    memcpy(ptr,path,plen);
+    ptr += plen;
+    put32bit(&ptr,0);
+    //no address here
+    memcpy(ptr,&f->a,sizeof(attr));
+  }
+
+  if(outp){
+    outp->next = eptr->outpacket;
+    eptr->outpacket = outp;
+  }
+}

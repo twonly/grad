@@ -186,6 +186,9 @@
 #define MDTOMD_S2C_READ_CHUNK_INFO 0x10001
 #define MDTOMD_C2S_READ_CHUNK_INFO 0x10002
 
+#define MDTOMD_S2C_GETATTR 0x10003
+#define MDTOMD_C2S_GETATTR 0x10004
+
 //====================================================================
 
 #define HEADER_LEN 12
@@ -218,5 +221,8 @@ typedef struct ppacket{
 
 ppacket* createpacket_s(int size,int cmd,int id);
 ppacket* createpacket_r(int size,int cmd,int id);
+
+static char* mishostip = "192.168.1.7";
+static char* mdshostip = "192.168.1.7";
 
 #endif
