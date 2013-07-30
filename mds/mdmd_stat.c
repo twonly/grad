@@ -15,6 +15,7 @@ mdmd_stat_entry* mdmdstathead = NULL;
 
 int mdmd_stat_init(void){
 	main_destructregister(mdmd_stat_term);
+  main_timeregister(TIMEMODE_RUN_LATE,LOG_PERIOD,0,mdmd_stat_dump);
 }
 
 void mdmd_stat_term(void){
@@ -79,29 +80,35 @@ void mdmd_stat_countm(int key,int c){
 
 void mdmd_stat_dump(){
   char path[100];
-  char tstr[20];
   int t = main_time();
-  FILE* fp;
+  static FILE* fp = NULL;
 
-  sprintf(path,"%s/%d_mdmd_stat.log",stat_path,t);
-
-  fp = fopen(path,"w");
-  if(!fp){
-    fprintf(stderr,"failed to create dump file in path:%s\n",path);
-
-    sprintf(path,"%d_mdmd_stat.log",t);
+  if(fp == NULL){
+    sprintf(path,"%s/%d_mdmd_stat.log",stat_path,t);
 
     fp = fopen(path,"w");
-  }
-  if(!fp){
-    fprintf(stderr,"failed to create dump file in path:%s\n",path);
-  }
+    if(!fp){
+      fprintf(stderr,"failed to create dump file in path:%s\n",path);
 
-  if(fp){
-    fprintf(stderr,"stat_file_path:%s\n",path);
+      sprintf(path,"%d_mdmd_stat.log",t);
+
+      fp = fopen(path,"w");
+    }
+
+    if(!fp){
+      fprintf(stderr,"failed to create dump file in path:%s\n",path);
+    }
+
+    if(fp){
+      fprintf(stderr,"stat_file_path:%s\n",path);
+    }
   }
 
   mdmd_stat_entry* eptr = mdmdstathead;
+  fprintf(stderr,"(%d):{\n",t);
+  if(fp)
+    fprintf(fp,"(%d):{\n",t);
+
   while(eptr){
     fprintf(stderr,"(%s)%d  %d\n",eptr->desc,eptr->key,eptr->count);
     if(fp)
@@ -110,6 +117,12 @@ void mdmd_stat_dump(){
     eptr = eptr->next;
   }
 
+  fprintf(stderr,"}\n");
   if(fp)
-    fclose(fp);
+    fprintf(fp,"}\n\n");
+
+  /*if(fp)*/
+    /*fclose(fp);*/
+  if(fp)
+    fflush(fp);
 }

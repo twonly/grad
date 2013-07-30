@@ -20,6 +20,9 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include "main.h"
+
+#define LOG_PERIOD 600 //write to log every 10 min
 
 int mdmd_stat_init(void);
 void mdmd_stat_term(void);

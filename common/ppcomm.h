@@ -222,7 +222,7 @@ typedef struct ppacket{
 ppacket* createpacket_s(int size,int cmd,int id);
 ppacket* createpacket_r(int size,int cmd,int id);
 
-static char* mishostip = "192.168.1.7";
-static char* mdshostip = "192.168.1.7";
+static char* mishostip = "127.0.0.1";
+static char* mdshostip = "127.0.0.1";
 
 #endif
