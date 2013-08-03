@@ -1,17 +1,33 @@
 #include "mds_fs.h"
 #include <stdio.h>
 #include <syslog.h>
+#include <sys/stat.h>
+#include "main.h"
 
 static hashnode* tab[HASHSIZE];
 
 int init_fs(){
   memset(tab,0,sizeof(tab));
+  struct stat st;
+  if(stat(DUMP_FILE,&st) != -1){
+    unpickle(DUMP_FILE);
+  }
 
   return 0;
 }
 
 void term_fs(){
-  //clean up?
+  struct stat st;
+  char path[100];
+  uint32_t t = main_time();
+  if(stat(DUMP_FILE,&st) != -1){
+    sprintf(path,"%s.%d.old.dump",DUMP_FILE,t);
+    if(rename(DUMP_FILE,path) != 0){
+      fprintf(stderr,"failed to back up old fs record\n");
+    }
+  }
+
+  pickle(DUMP_FILE);
 }
 
 static hashnode* node_new(ppfile* f){
@@ -86,3 +102,63 @@ ppfile* lookup_file(char* p){
 
   return NULL;
 }
+
+//@TODO: The two functions below does not support chunkids yet
+
+static void pickle_attr(FILE* fp,attr a){
+  fprintf(fp,"%d\n",a.mode);
+  fprintf(fp,"%d\t%d\n",a.uid,a.gid);
+  fprintf(fp,"%d\t%d\t%d\n",a.atime,a.ctime,a.mtime);
+  fprintf(fp,"%d\t%d\n",a.link,a.size);
+}
+
+static void unpickle_attr(FILE* fp,attr* a){
+  fscanf(fp,"%d",&a->mode);
+  fscanf(fp,"%d%d",&a->uid,&a->gid);
+  fscanf(fp,"%d%d%d",&a->atime,&a->ctime,&a->mtime);
+  fscanf(fp,"%d%d",&a->link,&a->size);
+}
+
+void pickle(char* path){
+  int i;
+  FILE* fp = fopen(path,"w");
+  if(!fp){
+    fprintf(stderr,"failed to pickle %s, cannot open file!\n",path);
+    return;
+  }
+
+  for(i=0;i<HASHSIZE;i++){
+    hashnode* n = tab[i];
+    while(n){
+      ppfile* f = (ppfile*)(n->data);
+      fprintf(fp,"%s\n",f->path);
+      pickle_attr(fp,f->a);
+
+      n = n->next;
+    }
+  }
+
+  fclose(fp);
+}
+
+void unpickle(char* path){
+  int i;
+  FILE* fp = fopen(path,"r");
+  attr a;
+  char buf[200];
+
+  if(!fp){
+    fprintf(stderr,"failed to unpickle %s,cannot open file!\n",path);
+    return;
+  }
+
+  while(fscanf(fp,"%s",buf) != EOF){
+    unpickle_attr(fp,&a);
+
+    ppfile* f = new_file(buf,a);
+    add_file(f);
+  }
+
+  fclose(fp);
+}
+

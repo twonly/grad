@@ -55,6 +55,7 @@ int mis_init(void){
 	main_destructregister(mis_term);
 	main_pollregister(mis_desc,mis_serve);
   /*main_timeregister(TIMEMODE_RUN_LATE,10,0,timeentry_test);*/
+  main_destructregister(term_fs);
 
   mis_fs_demo_init();
 
