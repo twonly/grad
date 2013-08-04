@@ -15,6 +15,9 @@ int max(int a,int b){
   return a>b?a:b;
 }
 
+#define STAT_DIR_MISS 0x2013
+#define STAT_DIR_MISS_STR "stat_dir_miss"
+
 int mds_init(void){
   int misip,misport;
   int msock;
@@ -76,6 +79,8 @@ int mds_init(void){
 	main_destructregister(mds_term);
   main_destructregister(term_fs);
 	main_pollregister(mds_desc,mds_serve);
+
+	mdmd_stat_add_entry(STAT_DIR_MISS,STAT_DIR_MISS_STR,0);
 
   return 0;
 }
@@ -598,6 +603,8 @@ void mds_cl_getattr(mdsserventry* eptr,ppacket* p){ //p->id?
 
         free(path);
         free(dir);
+      } else {
+      	mdmd_stat_count(STAT_DIR_MISS);
       }
     }
   }
