@@ -56,7 +56,7 @@ typedef struct _mdmdserventry{
 #define MDMD_DIR_HEURISTIC 2
 
 //for both PATH_CACHE & DIR_HEURISTIC
-#define MDMD_PATH_EXPIRE 180 //in seconds
+#define MDMD_PATH_EXPIRE 3600 //in seconds
 
 #define MDMD_FREQ_FACTOR 0.5
 #define MDMD_TIME_FACTOR 0.5
