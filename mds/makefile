@@ -6,4 +6,5 @@ mds: clean mds.c mdmd.c mdmd.h mds_fs.c mdscs.c mdscs.h mds.h init.h chunks.c ch
 clean:
 	rm -rf ../common/*.o
 	rm -rf mds
+	rm -rf *.dSYM/
 

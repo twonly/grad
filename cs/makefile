@@ -6,4 +6,5 @@ cs: clean cscl.c cscl.h csmds.c chunks.c csmds.h chunks.h init.h ${LIBS} ${HEADE
 clean:
 	rm -rf ../common/*.o
 	rm -rf cs
+	rm -rf *.dSYM/
 

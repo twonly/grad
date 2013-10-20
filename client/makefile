@@ -6,3 +6,4 @@ client: client.c client.h cache.h cache.c
 clean:
 	rm -rf ../common/*.o
 	rm -rf client
+	rm -rf *.dSYM/
