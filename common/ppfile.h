@@ -23,7 +23,7 @@ typedef struct ppfile{
 
   int ref;
 
-  int srcip; //where this file is located
+  int srcip; //the ip of the mds on which this file is located
 
   uint64_t* clist;
   int chunks;
