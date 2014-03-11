@@ -145,6 +145,15 @@
 #define MDTOMI_DEL_USER 0x2033
 #define MITOMD_DEL_USER 0x2034
 
+//yjy replica
+#define MDTOMI_CREATE_REPLICA 0x2035
+#define MITOMD_CREATE_REPLICA 0x2036
+
+#define MDTOMD_UPDATE_ATTR 0x2037
+
+#define MDTOMD_SEND_ATTR 0x2038
+#define MDTOMD_GET_ATTR 0x2039
+
 //===============================================================
 
 #define ANTOAN_NOOP 0x0001

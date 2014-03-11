@@ -3,6 +3,7 @@
 #include "mis_fs.h"
 
 static misserventry* misservhead = NULL;
+extern hashnode* tab[HASHSIZE];
 
 static int lsock;
 static int lsockpdescpos;
@@ -54,7 +55,7 @@ int mis_init(void){
 
 	main_destructregister(mis_term);
 	main_pollregister(mis_desc,mis_serve);
-  /*main_timeregister(TIMEMODE_RUN_LATE,10,0,timeentry_test);*/
+    main_timeregister(TIMEMODE_RUN_LATE,MIS_DECAY_TIME,0,mis_visit_decay);
   main_destructregister(term_fs);
 
   mis_fs_demo_init();
@@ -375,8 +376,35 @@ void mis_getattr(misserventry* eptr,ppacket* inp){
       memcpy(ptr,path,plen);
       ptr += plen;
 
-      put32bit(&ptr,f->srcip);
-      fprintf(stderr,"srcip=%X\n",f->srcip);
+      put32bit(&ptr,f->srcip); //primary ip
+      
+      rep* riter = f->rep_list;
+      if( f->srcip != eptr->peerip ) { //if request is from primary, no need to update visit info
+          while(riter) {
+              if(riter->rep_ip == eptr->peerip) { //peer has been candidate
+                  riter->visit_time += 1;
+                  syslog(LOG_WARNING, "getattr: peer candidate exist, ip:%u.%u.%u.%u, visit_time:%d", 
+                          (riter->rep_ip)>>24&0xff, (riter->rep_ip)>>16&0xff, (riter->rep_ip)>>8&0xff, (riter->rep_ip)&0xff, riter->visit_time);
+                  break;
+              } 
+              riter = riter->next;
+          }
+          if(!riter) { //Not candidate yet
+              syslog(LOG_WARNING, "Can not find peer");
+              rep* candidate = (rep*)malloc(sizeof(rep));
+              candidate->rep_ip = eptr->peerip;
+              candidate->visit_time = 1;
+              candidate->history = 0;
+              candidate->is_rep = 0;
+              candidate->next = f->rep_list;
+              f->rep_list = candidate;
+              f->rep_cnt += 1;
+              syslog(LOG_WARNING, "getattr: new peer candidate, ip:%u.%u.%u.%u, visit_time:%d", 
+                  (candidate->rep_ip)>>24&0xff, (candidate->rep_ip)>>16&0xff, (candidate->rep_ip)>>8&0xff, (candidate->rep_ip)&0xff, candidate->visit_time);
+          }
+      }
+
+      fprintf(stderr,"srcip=%X\n",f->srcip); //src MDS ip
     }
   }
 
@@ -444,7 +472,7 @@ void mis_readdir(misserventry* eptr,ppacket* inp){
   eptr->outpacket = p;
 }
 
-void mis_mkdir(misserventry* eptr,ppacket* inp){
+void mis_mkdir(misserventry* eptr,ppacket* inp){ //mkdir, add entry to table
   fprintf(stderr,"+mis_mkdir\n");
 
   ppacket* p;
@@ -526,6 +554,8 @@ void mis_mkdir(misserventry* eptr,ppacket* inp){
     f->child = nf;
 
     nf->srcip = eptr->peerip; //not necessary for dir
+
+    //add dir entry to table, record it as PRIMARY? --yjy
 
     p = createpacket_s(4+strlen(path)+4+4,MITOMD_MKDIR,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
@@ -733,7 +763,7 @@ end:
   eptr->outpacket = p;
 }
 
-void mis_create(misserventry* eptr,ppacket* inp){
+void mis_create(misserventry* eptr,ppacket* inp){ //create file, supposed to add entry to table
   fprintf(stderr,"+mis_create\n");
 
   ppacket* p;
@@ -805,15 +835,18 @@ void mis_create(misserventry* eptr,ppacket* inp){
     a.link = 1;
     a.size = 0;
 
-    a.mode = mt; //| S_IFREG; //use mode from client
-    fprintf(stderr, "mis_mode : %o", mt);
+    a.mode = mt; //use mode from client
+    fprintf(stderr, "mis_mode : %o\n", mt);
 
     ppfile* nf = new_file(path,a);
     nf->srcip = eptr->peerip;
+    //rep* candidate = (rep*)malloc(sizeof(rep));
     fprintf(stderr, "nf->srcip is %X, eptr->peerip is %X\n", nf->srcip, eptr->peerip);
     add_file(nf); //add to hash list
-    nf->next = f->child;
+    nf->next = f->child; //f is the parent dir
     f->child = nf;
+
+    //add entry to table, record the MDS as PRIMARY --yjy
 
     p = createpacket_s(4+strlen(path)+4+4,MITOMD_CREATE,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
@@ -897,7 +930,7 @@ void mis_update_attr(misserventry* eptr,ppacket* inp){ //no need to send back
   free(path);
 }
 
-misserventry* mis_entry_from_ip(int ip){
+misserventry* mis_entry_from_ip(int ip){ //retrieve eptr from ip
   misserventry* eptr = misservhead;
   
   fprintf(stderr,"+misserventry:ip=%X\n",ip);
@@ -1165,3 +1198,74 @@ void mis_del_user(misserventry* eptr,ppacket* p){
   //@TODO
 }
 
+void mis_visit_decay(void) {
+  //traverse directories and update visit info
+    mis_update_visit_all();
+}
+
+void mis_inform_primary(void) {
+    //retrieve eligible candidate ppfile
+    //retrieve eptr by ip
+    //send packet to corresponding mds
+    //including path, replica ip, visit info?
+    syslog(LOG_WARNING, "retrieve candidate");
+    int i;
+    for(i=0; i<HASHSIZE; ++i) { //HASHSIZE/2?
+        hashnode* n = tab[i];
+        while(n) {
+            ppfile* f = (ppfile*)(n->data);
+            //update_visit(f);      
+            n = n->next;
+        }
+    }
+    return;
+}
+
+void mis_create_replica(ppfile* f) {
+    rep* r = f->rep_list;
+    syslog(LOG_WARNING, "update %s replica info", f->path);
+    ppacket* outp = NULL;
+    while(r) {
+        r->history = r->history/2 + r->visit_time;
+        r->visit_time = 0;
+        syslog(LOG_WARNING, "after update %s: ip:%X, history:%d, visit_time:%d", f->path, r->rep_ip, r->history, r->visit_time);
+        if(r->history>2 && r->is_rep==0) {
+            //misserventry peptr = mis_entry_from_ip(r->rep_ip);
+            misserventry* peptr = mis_entry_from_ip(f->srcip); //send to primary, not replica
+            if(peptr) {
+                r->is_rep = 1; //TODO
+                outp = createpacket_s(4+sizeof(f->path)+4, MITOMD_CREATE_REPLICA,-1); //p->id?
+                uint8_t* ptr2 = outp->startptr + HEADER_LEN;
+                put32bit(&ptr2, sizeof(f->path));
+                memcpy(ptr2, f->path, sizeof(f->path));
+                ptr2 += sizeof(f->path);
+                put32bit(&ptr2,r->rep_ip);
+
+                outp->next = peptr->outpacket;
+                peptr->outpacket = outp;
+
+                fprintf(stderr,"create replica from %X to %X\n",f->srcip, r->rep_ip);
+                fprintf(stderr,"size=%d\n",outp->size);
+            } else {
+                fprintf(stderr, "can not retrieve primary eptr");
+                syslog(LOG_WARNING, "update_visit can not retrieve primary eptr");
+            }
+        }
+        r = r->next;
+    }
+    return;
+}
+
+void mis_update_visit_all(void) {
+  syslog(LOG_WARNING, "update all replica info");
+  int i;
+  for(i=0; i<HASHSIZE; ++i) {
+      hashnode* n = tab[i];
+      while(n) {
+          ppfile* f = (ppfile*)(n->data);
+          mis_create_replica(f);      
+          n = n->next;
+      }
+  }
+  return;
+}

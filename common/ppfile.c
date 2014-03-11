@@ -17,6 +17,9 @@ ppfile* new_file(char* path,attr a){
   ret->path = strdup(path);
   ret->srcip = 0;
 
+  ret->rep_list = NULL;
+  ret->rep_cnt = 0;
+
   ret->clist = NULL;
   ret->chunks = 0;
   ret->alloced = 0;

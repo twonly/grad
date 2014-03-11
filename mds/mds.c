@@ -44,7 +44,7 @@ int mds_init(void){
   
   fprintf(stderr,"listening on port %s\n",MDS_PORT_STR);
 
-  inet_pton(AF_INET,mishostip,&misip);
+  inet_pton(AF_INET,"172.18.216.35",&misip);
   misip = htonl(misip);
   misport = MIS_PORT;
 
@@ -385,6 +385,10 @@ void mds_gotpacket(mdsserventry* eptr,ppacket* p){
       mds_readdir(eptr,p);
       break;
 
+    case MITOMD_CREATE_REPLICA:
+      mds_create_replica(eptr, p);
+      break;
+
     case CLTOMD_CHMOD:
       mds_chmod(eptr,p);
       break;
@@ -547,14 +551,16 @@ void mds_getattr(mdsserventry* eptr,ppacket* p){
 
   ppfile* f = lookup_file(path); //
   if(f == NULL){
+    syslog(LOG_WARNING,"mds_getattr: can not find path:%s",path);
     mdmdserventry* meptr;
-    if((meptr=mdmd_find_link(path)) != NULL){//use inter-mds connections
-      fprintf(stderr,"+using conns between mds and mds\n");
-      mdmd_getattr(meptr,path,p->id);
-    } else {
-      mds_direct_pass_mi(p,MDTOMI_GETATTR);
-    }
+   //     if((meptr=mdmd_find_link(path)) != NULL){//use inter-mds connections, this process may be passed later.
+   //       fprintf(stderr,"+using conns between mds and mds\n");
+   //       mdmd_getattr(meptr,path,p->id);
+   //     } else {
+          mds_direct_pass_mi(p,MDTOMI_GETATTR);
+   //     }
   } else {
+    syslog(LOG_WARNING,"mds_getattr: find path:%s",path);
     fprintf(stderr,"found path:%s\n",path);
 
     ppacket* outp = createpacket_s(4+sizeof(attr),MDTOCL_GETATTR,p->id);
@@ -570,49 +576,127 @@ void mds_getattr(mdsserventry* eptr,ppacket* p){
   free(path);
 }
 
-void mds_cl_getattr(mdsserventry* eptr,ppacket* p){ //p->id?
+void mds_cl_getattr(mdsserventry* eptr,ppacket* p){ //p->id? | Msg returned from MIS
   fprintf(stderr,"+mds_cl_getattr\n");
-  const uint8_t* ptr = p->startptr;
-  int status = get32bit(&ptr);
-  if(status == 0){
-    fprintf(stderr,"p->size=%d\n",p->size);
+  //const uint8_t* ptr = p->startptr;
+  //int status = get32bit(&ptr);
+  //if(status == 0){
+  //  fprintf(stderr,"p->size=%d\n",p->size);
 
-    if(p->size - 4 - sizeof(attr) > 4){
-      attr a;
-      memcpy(&a,ptr,sizeof(attr));
+  //  if(p->size - 4 - sizeof(attr) > 4){
+  //    attr a;
+  //    memcpy(&a,ptr,sizeof(attr));
 
-      if(S_ISREG(a.mode)){
-        ptr += sizeof(attr);
+  //    if(S_ISREG(a.mode)){
+  //      ptr += sizeof(attr);
 
-        int plen = get32bit(&ptr);
-        fprintf(stderr,"plen=%d\n",plen);
-        char* path = malloc(plen+10);
-        memcpy(path,ptr,plen);
-        path[plen] = 0;
+  //      int plen = get32bit(&ptr);
+  //      fprintf(stderr,"plen=%d\n",plen);
+  //      char* path = malloc(plen+10);
+  //      memcpy(path,ptr,plen);
+  //      path[plen] = 0;
 
-        ptr += plen;
+  //      ptr += plen;
 
-        uint32_t ip = get32bit(&ptr);
+  //      uint32_t ip = get32bit(&ptr);
 
-        fprintf(stderr,"adding path:(%X,%s) to mdmd\n",ip,path);
-        mdmd_add_entry(ip,path,MDMD_PATH_CACHE);
+  //      //Record the returned MDS info
+  //      fprintf(stderr,"adding path:(%X,%s) to mdmd\n",ip,path);
+  //      mdmd_add_entry(ip,path,MDMD_PATH_CACHE);
 
-        char* dir = parentdir(path);
-        fprintf(stderr,"adding dir:(%X,%s) to mdmd\n",ip,dir);
-        mdmd_add_entry(ip,dir,MDMD_DIR_HEURISTIC);
+  //      char* dir = parentdir(path);
+  //      fprintf(stderr,"adding dir:(%X,%s) to mdmd\n",ip,dir);
+  //      mdmd_add_entry(ip,dir,MDMD_DIR_HEURISTIC);
 
-        free(path);
-        free(dir);
-      } else {
-      	mdmd_stat_count(STAT_DIR_MISS);
-      }
-    }
-  }
+  //      //TODO
+  //      //Update the heuristic table, add 1 access (visited_cnt) && tell Primary MDS to add an access
+  //      //mdmd_connect(ip);
+  //      //mdmd_getattr(path)
+  //      //heuristic table
+  //      //
+
+  //      free(path);
+  //      free(dir);
+  //    } else {
+  //    	mdmd_stat_count(STAT_DIR_MISS);
+  //    }
+  //  }
+  //}
 
   mds_direct_pass_cl(eptr,p,MDTOCL_GETATTR);
 }
 
-void mds_readdir(mdsserventry* eptr,ppacket* p){
+void mds_create_replica(mdsserventry* eptr,ppacket* p){ //create replica of file entry
+  fprintf(stderr,"+mds_create_replica\n");
+  int plen;
+  const uint8_t* ptr = p->startptr;
+  plen = get32bit(&ptr);
+  char* path = (char*)malloc(plen+1);
+  memcpy(path,ptr,plen);
+  path[plen] = 0;
+  ptr+=plen;
+  int repip = get32bit(&ptr);
+  syslog(LOG_WARNING, "mds_create_replica: %s on %X", path, repip);
+  fprintf(stderr,"mds_create_replica path:%s replica ip:%X\n",path, repip);
+  //use mdmd* function
+  //primary connects to replica
+  ppfile* f = lookup_file(path); //suppose the file exist in Primary mds
+  attr a;
+  if(f) {
+    fprintf(stderr,"mds_create_replica path:%s found\n",path);
+    a = f->a;
+    rep* replica = (rep*)malloc(sizeof(rep));
+    replica->rep_ip = repip;
+    replica->visit_time = 0;
+    replica->history = 0;
+    replica->is_rep = 1;
+    replica->next = f->rep_list;
+    f->rep_list = replica;
+  } else {
+      fprintf(stderr, "mds_create_replica path %s not found\n", path);
+      return;
+  }
+  //mdmd_connect( repip );
+  mdmd_add_entry( repip, path, MDMD_PATH_CACHE ); //add entry in Primary mds, including path and rep_ip
+  mdmd_send_attr(repip, f);
+  
+  //send file info to replica mds, including path, srcip and file attr
+   //     if((meptr=mdmd_find_link(path)) != NULL){//use inter-mds connections, this process may be passed later.
+   //       fprintf(stderr,"+using conns between mds and mds\n");
+   //       mdmd_getattr(meptr,path,p->id);
+   //     } else {
+
+  free(path);
+  return;
+
+  //ppfile* f = lookup_file(path); //
+  //if(f == NULL){
+  //  syslog(LOG_WARNING,"mds_getattr: can not find path:%s",path);
+  //  mdmdserventry* meptr;
+  // //     if((meptr=mdmd_find_link(path)) != NULL){//use inter-mds connections, this process may be passed later.
+  // //       fprintf(stderr,"+using conns between mds and mds\n");
+  // //       mdmd_getattr(meptr,path,p->id);
+  // //     } else {
+  //        mds_direct_pass_mi(p,MDTOMI_GETATTR);
+  // //     }
+  //} else {
+  //  syslog(LOG_WARNING,"mds_getattr: find path:%s",path);
+  //  fprintf(stderr,"found path:%s\n",path);
+
+  //  ppacket* outp = createpacket_s(4+sizeof(attr),MDTOCL_GETATTR,p->id);
+  //  uint8_t *ptr2 = outp->startptr + HEADER_LEN;
+
+  //  put32bit(&ptr2,0); //status
+  //  memcpy(ptr2,&f->a,sizeof(attr));
+
+  //  outp->next = eptr->outpacket;
+  //  eptr->outpacket = outp;
+  //}
+
+}
+
+
+void mds_readdir(mdsserventry* eptr,ppacket* p){ //all fwd to MIS
   fprintf(stderr,"+mds_readdir\n");
   mds_direct_pass_mi(p,MDTOMI_READDIR);
 }
@@ -656,6 +740,11 @@ void mds_chmod(mdsserventry* eptr,ppacket* p){
 
     if(eptr != mdtomi)
       mis_update_attr(f);
+    rep* riter = f->rep_list;
+    while(riter) {
+        mdmd_update_attr(riter->rep_ip, f);
+        riter = riter->next;
+    }
   } else {
     if(eptr != mdtomi){
       mds_direct_pass_mi(p,MDTOMI_CHMOD);
@@ -812,31 +901,54 @@ void mds_create(mdsserventry* eptr,ppacket* p){
     fprintf(stderr,"file path:%s exist; status :%d\n",path, -EEXIST);
     outp2->next = eptr->outpacket;
     eptr->outpacket = outp2;
+    free(path);
 
     return;
   } else {
-    attr a;
+    free(path);
+    mds_direct_pass_mi(p,MDTOMI_CREATE); //check if exist in MIS
+    return;
+  }
 
+  mds_direct_pass_mi(p,MDTOMI_CREATE);
+}
+
+void mds_cl_create(mdsserventry* eptr,ppacket* inp){ //yjy
+  fprintf(stderr,"+mds_cl_create\n");
+  //handle the message
+  const uint8_t* ptr = inp->startptr;
+  uint32_t status = get32bit(&ptr);
+  if(status!=0) { //error num
+    fprintf(stderr,"+status num %d\n", status);
+    mds_direct_pass_cl(eptr,inp,MDTOCL_CREATE);
+  } else {
+      int plen;
+      plen = get32bit(&ptr);
+      char* path = (char*)malloc(plen+1);
+      memcpy(path,ptr,plen);
+      path[plen] = 0;
+      ptr += plen;
+      int mt = get32bit(&ptr);
+
+    attr a;
     a.uid = a.gid = 0;
     a.atime = a.ctime = a.mtime = time(NULL);
     a.link = 1;
     a.size = 0;
 
-    a.mode = mt; //| S_IFREG; //use mode from client
+    a.mode = mt; //use mode from client
     fprintf(stderr, "mds_mode : %o", mt);
 
     ppfile* nf = new_file(path,a);
+    //nf->scrip = eptr->peerip;
+    nf->rep_list = NULL;
+    nf->rep_cnt = 0;
     add_file(nf); //add to hash list
+    fprintf(stderr, "add new file %s to hash\n", path);
+    free(path);
+    mds_direct_pass_cl(eptr,inp,MDTOCL_CREATE);
   }
-
-  free(path);
-
-  mds_direct_pass_mi(p,MDTOMI_CREATE);
-}
-
-void mds_cl_create(mdsserventry* eptr,ppacket* inp){
-  //handle the message
-  mds_direct_pass_cl(eptr,inp,MDTOCL_CREATE);
+  //ppacket* outp = NULL;
 }
 
 void mds_open(mdsserventry* eptr,ppacket* inp){

@@ -12,6 +12,14 @@ typedef struct _attr{
   int size;
 } attr;
 
+typedef struct _rep {
+      int rep_ip;
+      int visit_time;
+      int history;
+      int is_rep;
+      struct _rep* next;
+} rep;
+
 #define CHUNKSIZE 4096
 
 #define FILE_MAXCHUNKS 10000
@@ -23,8 +31,12 @@ typedef struct ppfile{
 
   int ref;
 
-  int srcip; //the ip of the mds on which this file is located
+  int srcip; //the ip of the mds on which this file is located , primary
 
+  //candidate list
+  rep* rep_list;
+  int rep_cnt;
+  
   uint64_t* clist;
   int chunks;
   int alloced;
@@ -41,5 +53,14 @@ int file_append_chunk(ppfile* f,uint64_t id);
 int file_pop_chunk(ppfile* f,uint64_t* id);
 
 char* parentdir(const char* path);
+
+typedef struct heuristic {
+    char *path;
+    int mdsip;
+    int visit;
+    int history;
+    //int timestamp;
+    //int location;
+} heuristic;
 
 #endif

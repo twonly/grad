@@ -1,0 +1,1174 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+ANTOAN_NOOP	common/ppcomm.h	150;"	d
+CACHE_EXPIRE_TIME	client/cache.h	10;"	d
+CHUNKSIZE	common/ppfile.h	22;"	d
+CHUNKTABSIZE	cs/chunks.c	3;"	d	file:
+CHUNKTABSIZE	mds/chunks.c	3;"	d	file:
+CLTOCS_READ_CHUNK	common/ppcomm.h	166;"	d
+CLTOCS_WRITE_CHUNK	common/ppcomm.h	169;"	d
+CLTOMD_ACCESS	common/ppcomm.h	7;"	d
+CLTOMD_ADD_USER	common/ppcomm.h	70;"	d
+CLTOMD_APPEND_CHUNK	common/ppcomm.h	37;"	d
+CLTOMD_CHGRP	common/ppcomm.h	52;"	d
+CLTOMD_CHMOD	common/ppcomm.h	46;"	d
+CLTOMD_CHOWN	common/ppcomm.h	49;"	d
+CLTOMD_CREATE	common/ppcomm.h	25;"	d
+CLTOMD_DEL_USER	common/ppcomm.h	73;"	d
+CLTOMD_GETATTR	common/ppcomm.h	4;"	d
+CLTOMD_LOGIN	common/ppcomm.h	67;"	d
+CLTOMD_LOOKUP_CHUNK	common/ppcomm.h	34;"	d
+CLTOMD_MKDIR	common/ppcomm.h	16;"	d
+CLTOMD_OPEN	common/ppcomm.h	28;"	d
+CLTOMD_OPENDIR	common/ppcomm.h	10;"	d
+CLTOMD_POP_CHUNK	common/ppcomm.h	58;"	d
+CLTOMD_READDIR	common/ppcomm.h	13;"	d
+CLTOMD_READ_CHUNK_INFO	common/ppcomm.h	31;"	d
+CLTOMD_RELEASE	common/ppcomm.h	40;"	d
+CLTOMD_RELEASEDIR	common/ppcomm.h	19;"	d
+CLTOMD_RMDIR	common/ppcomm.h	22;"	d
+CLTOMD_UNLINK	common/ppcomm.h	55;"	d
+CLTOMD_UTIMENS	common/ppcomm.h	61;"	d
+CLTOMD_WRITE	common/ppcomm.h	64;"	d
+CONN_TIMEOUT	mds/mdmd.h	29;"	d
+CSTOCL_READ_CHUNK	common/ppcomm.h	167;"	d
+CSTOCL_WRITE_CHUNK	common/ppcomm.h	170;"	d
+CSTOMD_REGISTER	common/ppcomm.h	154;"	d
+CSTOMD_UPDATE_STATUS	common/ppcomm.h	160;"	d
+CS_PORT	common/ppcomm.h	204;"	d
+CS_PORT_STR	common/ppcomm.h	205;"	d
+DATA	cs/cscl.c	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon3	file:
+DATA	cs/csmds.c	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon2	file:
+DATA	echo/echo.h	/^enum {KILL,DATA};$/;"	e	enum:__anon4
+DATA	mds/mdmd.c	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon11	file:
+DATA	mds/mds.c	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon9	file:
+DATA	mds/mdscs.c	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon12	file:
+DATA	mis/mis.h	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon6
+DEFAULT_GROUP	common/config.h	13;"	d
+DEFAULT_USER	common/config.h	16;"	d
+DUMP_FILE	mds/mds_fs.h	12;"	d
+DUMP_FILE	mis/mis_fs.h	13;"	d
+F	common/md5.c	46;"	d	file:
+FF	common/md5.c	53;"	d	file:
+FILE_MAXCHUNKS	common/ppfile.h	24;"	d
+FUSE_USE_VERSION	client/client.c	1;"	d	file:
+G	common/md5.c	47;"	d	file:
+GETWD	postmark/postmark-1.51.c	65;"	d	file:
+GETWD	postmark/postmark-1.51.c	71;"	d	file:
+GG	common/md5.c	58;"	d	file:
+H	common/md5.c	48;"	d	file:
+HASHSIZE	mds/mds_fs.h	10;"	d
+HASHSIZE	mis/mis_fs.h	11;"	d
+HAVE_ARPA_INET_H	common/config.h	20;"	d
+HAVE_ATEXIT	common/config.h	23;"	d
+HAVE_BZERO	common/config.h	26;"	d
+HAVE_DECL_STRERROR_R	common/config.h	30;"	d
+HAVE_DIRENT_H	common/config.h	34;"	d
+HAVE_DLFCN_H	common/config.h	37;"	d
+HAVE_DUP2	common/config.h	40;"	d
+HAVE_FCNTL_H	common/config.h	43;"	d
+HAVE_FORK	common/config.h	46;"	d
+HAVE_FSEEKO	common/config.h	49;"	d
+HAVE_FTELLO	common/config.h	52;"	d
+HAVE_FTRUNCATE	common/config.h	55;"	d
+HAVE_FUSE_VERSION	common/config.h	58;"	d
+HAVE_GETADDRINFO	common/config.h	61;"	d
+HAVE_GETCWD	common/config.h	64;"	d
+HAVE_GETPASS	common/config.h	67;"	d
+HAVE_GETRUSAGE	common/config.h	70;"	d
+HAVE_GETTIMEOFDAY	common/config.h	73;"	d
+HAVE_INTTYPES_H	common/config.h	76;"	d
+HAVE_LIMITS_H	common/config.h	79;"	d
+HAVE_MALLOC	common/config.h	87;"	d
+HAVE_MEMMOVE	common/config.h	90;"	d
+HAVE_MEMORY_H	common/config.h	93;"	d
+HAVE_MEMSET	common/config.h	96;"	d
+HAVE_MKDIR	common/config.h	99;"	d
+HAVE_MLOCKALL	common/config.h	102;"	d
+HAVE_NETDB_H	common/config.h	108;"	d
+HAVE_NETINET_IN_H	common/config.h	111;"	d
+HAVE_PERROR	common/config.h	114;"	d
+HAVE_POLL	common/config.h	117;"	d
+HAVE_PREAD	common/config.h	120;"	d
+HAVE_PTHREAD	common/config.h	123;"	d
+HAVE_PTHREAD_SPIN_LOCK	common/config.h	126;"	d
+HAVE_PWRITE	common/config.h	129;"	d
+HAVE_READV	common/config.h	132;"	d
+HAVE_REALLOC	common/config.h	136;"	d
+HAVE_REALPATH	common/config.h	139;"	d
+HAVE_SETITIMER	common/config.h	142;"	d
+HAVE_SOCKET	common/config.h	145;"	d
+HAVE_STDBOOL_H	common/config.h	152;"	d
+HAVE_STDDEF_H	common/config.h	155;"	d
+HAVE_STDINT_H	common/config.h	158;"	d
+HAVE_STDLIB_H	common/config.h	161;"	d
+HAVE_STRCHR	common/config.h	164;"	d
+HAVE_STRDUP	common/config.h	167;"	d
+HAVE_STRERROR	common/config.h	170;"	d
+HAVE_STRERROR_R	common/config.h	173;"	d
+HAVE_STRINGS_H	common/config.h	176;"	d
+HAVE_STRING_H	common/config.h	179;"	d
+HAVE_STRTOL	common/config.h	182;"	d
+HAVE_STRTOUL	common/config.h	185;"	d
+HAVE_STRUCT_RUSAGE_RU_MAXRSS	common/config.h	188;"	d
+HAVE_STRUCT_STAT_ST_BLKSIZE	common/config.h	194;"	d
+HAVE_STRUCT_STAT_ST_BLOCKS	common/config.h	197;"	d
+HAVE_STRUCT_STAT_ST_RDEV	common/config.h	203;"	d
+HAVE_STRUCT_TM_TM_GMTOFF	common/config.h	206;"	d
+HAVE_ST_BLOCKS	common/config.h	210;"	d
+HAVE_SYSLOG_H	common/config.h	213;"	d
+HAVE_SYS_MMAN_H	common/config.h	220;"	d
+HAVE_SYS_RESOURCE_H	common/config.h	227;"	d
+HAVE_SYS_SOCKET_H	common/config.h	233;"	d
+HAVE_SYS_STATVFS_H	common/config.h	236;"	d
+HAVE_SYS_STAT_H	common/config.h	239;"	d
+HAVE_SYS_TIME_H	common/config.h	242;"	d
+HAVE_SYS_TYPES_H	common/config.h	245;"	d
+HAVE_SYS_WAIT_H	common/config.h	248;"	d
+HAVE_UNISTD_H	common/config.h	251;"	d
+HAVE_VFORK	common/config.h	254;"	d
+HAVE_WORKING_FORK	common/config.h	260;"	d
+HAVE_WORKING_VFORK	common/config.h	263;"	d
+HAVE_WRITEV	common/config.h	266;"	d
+HAVE_ZLIB_H	common/config.h	269;"	d
+HAVE__BOOL	common/config.h	272;"	d
+HEADER	cs/cscl.c	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon3	file:
+HEADER	cs/csmds.c	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon2	file:
+HEADER	mds/mdmd.c	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon11	file:
+HEADER	mds/mds.c	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon9	file:
+HEADER	mds/mdscs.c	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon12	file:
+HEADER	mis/mis.h	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon6
+HEADER_LEN	common/ppcomm.h	194;"	d
+HH	common/md5.c	63;"	d	file:
+I	common/md5.c	49;"	d	file:
+II	common/md5.c	68;"	d	file:
+KILL	cs/cscl.c	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon3	file:
+KILL	cs/csmds.c	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon2	file:
+KILL	echo/echo.h	/^enum {KILL,DATA};$/;"	e	enum:__anon4
+KILL	mds/mdmd.c	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon11	file:
+KILL	mds/mds.c	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon9	file:
+KILL	mds/mdscs.c	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon12	file:
+KILL	mis/mis.h	/^enum {KILL,HEADER,DATA};$/;"	e	enum:__anon6
+KILOBYTE	postmark/postmark-1.51.c	79;"	d	file:
+LIGHT_MFS	common/config.h	275;"	d
+LOG_PERIOD	mds/mdmd_stat.h	25;"	d
+LOWER_MASK	postmark/postmark-1.51.c	1407;"	d	file:
+LSTAT_FOLLOWS_SLASHED_SYMLINK	common/config.h	279;"	d
+LT_OBJDIR	common/config.h	283;"	d
+LateRunTab	cs/init.h	/^},LateRunTab[]={$/;"	v	typeref:struct:__anon1
+LateRunTab	mds/init.h	/^},LateRunTab[]={$/;"	v	typeref:struct:__anon10
+LateRunTab	mis/init.h	/^},LateRunTab[]={$/;"	v	typeref:struct:__anon5
+M	postmark/postmark-1.51.c	1404;"	d	file:
+MATRIX_A	postmark/postmark-1.51.c	1405;"	d	file:
+MAXBUFSIZE	echo/echo.h	16;"	d
+MAXBUFSIZE	mds/mds.h	25;"	d
+MAXBUFSIZE	mds/mdscs.h	21;"	d
+MAXBUFSIZE	mis/mis.h	22;"	d
+MAX_FILENAME	postmark/postmark-1.51.c	77;"	d	file:
+MAX_LINE	postmark/postmark-1.51.c	76;"	d	file:
+MAX_MDS_CONN	mds/mdmd.h	28;"	d
+MAX_QUEUE_SIZE	mis/mis_fs.c	138;"	d	file:
+MDMD_DECAY_TIME	mds/mdmd.h	61;"	d
+MDMD_DIR_HEURISTIC	mds/mdmd.h	56;"	d
+MDMD_FREQ_FACTOR	mds/mdmd.h	63;"	d
+MDMD_HASHSIZE	mds/mdmd.h	31;"	d
+MDMD_PATH_CACHE	mds/mdmd.h	55;"	d
+MDMD_PATH_EXPIRE	mds/mdmd.h	59;"	d
+MDMD_TIME_FACTOR	mds/mdmd.h	64;"	d
+MDSCS_PORT	common/ppcomm.h	198;"	d
+MDSCS_PORT_STR	common/ppcomm.h	199;"	d
+MDSMDS_PORT	common/ppcomm.h	207;"	d
+MDSMDS_PORT_STR	common/ppcomm.h	208;"	d
+MDS_PORT	common/ppcomm.h	196;"	d
+MDS_PORT_STR	common/ppcomm.h	197;"	d
+MDTOCL_ACCESS	common/ppcomm.h	8;"	d
+MDTOCL_ADD_USER	common/ppcomm.h	71;"	d
+MDTOCL_APPEND_CHUNK	common/ppcomm.h	38;"	d
+MDTOCL_CHGRP	common/ppcomm.h	53;"	d
+MDTOCL_CHMOD	common/ppcomm.h	47;"	d
+MDTOCL_CHOWN	common/ppcomm.h	50;"	d
+MDTOCL_CREATE	common/ppcomm.h	26;"	d
+MDTOCL_DEL_USER	common/ppcomm.h	74;"	d
+MDTOCL_GETATTR	common/ppcomm.h	5;"	d
+MDTOCL_LOGIN	common/ppcomm.h	68;"	d
+MDTOCL_LOOKUP_CHUNK	common/ppcomm.h	35;"	d
+MDTOCL_MKDIR	common/ppcomm.h	17;"	d
+MDTOCL_OPEN	common/ppcomm.h	29;"	d
+MDTOCL_OPENDIR	common/ppcomm.h	11;"	d
+MDTOCL_POP_CHUNK	common/ppcomm.h	59;"	d
+MDTOCL_READDIR	common/ppcomm.h	14;"	d
+MDTOCL_READ_CHUNK_INFO	common/ppcomm.h	32;"	d
+MDTOCL_RELEASE	common/ppcomm.h	41;"	d
+MDTOCL_RELEASEDIR	common/ppcomm.h	20;"	d
+MDTOCL_RMDIR	common/ppcomm.h	23;"	d
+MDTOCL_UNLINK	common/ppcomm.h	56;"	d
+MDTOCL_UTIMENS	common/ppcomm.h	62;"	d
+MDTOCS_CREATE	common/ppcomm.h	157;"	d
+MDTOCS_DELETE	common/ppcomm.h	158;"	d
+MDTOCS_FILL_CHUNK	common/ppcomm.h	162;"	d
+MDTOCS_REGISTER	common/ppcomm.h	155;"	d
+MDTOMD_C2S_GETATTR	common/ppcomm.h	190;"	d
+MDTOMD_C2S_READ_CHUNK_INFO	common/ppcomm.h	187;"	d
+MDTOMD_S2C_GETATTR	common/ppcomm.h	189;"	d
+MDTOMD_S2C_READ_CHUNK_INFO	common/ppcomm.h	186;"	d
+MDTOMI_ACCESS	common/ppcomm.h	81;"	d
+MDTOMI_ADD_USER	common/ppcomm.h	142;"	d
+MDTOMI_APPEND_CHUNK	common/ppcomm.h	132;"	d
+MDTOMI_CHGRP	common/ppcomm.h	114;"	d
+MDTOMI_CHMOD	common/ppcomm.h	111;"	d
+MDTOMI_CHOWN	common/ppcomm.h	117;"	d
+MDTOMI_CREATE	common/ppcomm.h	99;"	d
+MDTOMI_DEL_USER	common/ppcomm.h	145;"	d
+MDTOMI_GETATTR	common/ppcomm.h	78;"	d
+MDTOMI_LOGIN	common/ppcomm.h	139;"	d
+MDTOMI_LOOKUP_CHUNK	common/ppcomm.h	129;"	d
+MDTOMI_MKDIR	common/ppcomm.h	90;"	d
+MDTOMI_OPEN	common/ppcomm.h	102;"	d
+MDTOMI_OPENDIR	common/ppcomm.h	84;"	d
+MDTOMI_READDIR	common/ppcomm.h	87;"	d
+MDTOMI_READ_CHUNK_INFO	common/ppcomm.h	126;"	d
+MDTOMI_RELEASE	common/ppcomm.h	105;"	d
+MDTOMI_RELEASEDIR	common/ppcomm.h	93;"	d
+MDTOMI_RMDIR	common/ppcomm.h	96;"	d
+MDTOMI_UNLINK	common/ppcomm.h	123;"	d
+MDTOMI_UPDATE_ATTR	common/ppcomm.h	120;"	d
+MDTOMI_UTIMENS	common/ppcomm.h	135;"	d
+MEGABYTE	postmark/postmark-1.51.c	80;"	d	file:
+MFSMAXFILES	common/main.c	7;"	d	file:
+MIS_DECAY_TIME	mis/mis.h	24;"	d
+MIS_PORT	common/ppcomm.h	201;"	d
+MIS_PORT_STR	common/ppcomm.h	202;"	d
+MITOMD_ACCESS	common/ppcomm.h	82;"	d
+MITOMD_ADD_USER	common/ppcomm.h	143;"	d
+MITOMD_APPEND_CHUNK	common/ppcomm.h	133;"	d
+MITOMD_CHGRP	common/ppcomm.h	115;"	d
+MITOMD_CHMOD	common/ppcomm.h	112;"	d
+MITOMD_CHOWN	common/ppcomm.h	118;"	d
+MITOMD_CREATE	common/ppcomm.h	100;"	d
+MITOMD_DEL_USER	common/ppcomm.h	146;"	d
+MITOMD_GETATTR	common/ppcomm.h	79;"	d
+MITOMD_LOGIN	common/ppcomm.h	140;"	d
+MITOMD_LOOKUP_CHUNK	common/ppcomm.h	130;"	d
+MITOMD_MKDIR	common/ppcomm.h	91;"	d
+MITOMD_OPEN	common/ppcomm.h	103;"	d
+MITOMD_OPENDIR	common/ppcomm.h	85;"	d
+MITOMD_READDIR	common/ppcomm.h	88;"	d
+MITOMD_READ_CHUNK_INFO	common/ppcomm.h	127;"	d
+MITOMD_RELEASE	common/ppcomm.h	106;"	d
+MITOMD_RELEASEDIR	common/ppcomm.h	94;"	d
+MITOMD_RMDIR	common/ppcomm.h	97;"	d
+MITOMD_UNLINK	common/ppcomm.h	124;"	d
+MITOMD_UPDATE_ATTR	common/ppcomm.h	121;"	d
+MITOMD_UTIMENS	common/ppcomm.h	136;"	d
+MKDIR	postmark/postmark-1.51.c	66;"	d	file:
+MKDIR	postmark/postmark-1.51.c	72;"	d	file:
+N	postmark/postmark-1.51.c	1403;"	d	file:
+PACKAGE	common/config.h	286;"	d
+PACKAGE_BUGREPORT	common/config.h	289;"	d
+PACKAGE_NAME	common/config.h	292;"	d
+PACKAGE_STRING	common/config.h	295;"	d
+PACKAGE_TARNAME	common/config.h	298;"	d
+PACKAGE_URL	common/config.h	301;"	d
+PACKAGE_VERSION	common/config.h	304;"	d
+PM_VERSION	postmark/postmark-1.51.c	59;"	d	file:
+PREFIX	common/config.h	307;"	d
+PROMPT	postmark/postmark-1.51.c	82;"	d	file:
+PROTO_BASE	common/config.h	310;"	d
+RND	postmark/postmark-1.51.c	181;"	d	file:
+RND_RC4_STEP	common/random.c	62;"	d	file:
+ROTATE_LEFT	common/md5.c	51;"	d	file:
+RunTab	cs/init.h	/^} RunTab[]={$/;"	v	typeref:struct:__anon1
+RunTab	mds/init.h	/^} RunTab[]={$/;"	v	typeref:struct:__anon10
+RunTab	mis/init.h	/^} RunTab[]={$/;"	v	typeref:struct:__anon5
+S11	common/md5.c	23;"	d	file:
+S12	common/md5.c	24;"	d	file:
+S13	common/md5.c	25;"	d	file:
+S14	common/md5.c	26;"	d	file:
+S21	common/md5.c	27;"	d	file:
+S22	common/md5.c	28;"	d	file:
+S23	common/md5.c	29;"	d	file:
+S24	common/md5.c	30;"	d	file:
+S31	common/md5.c	31;"	d	file:
+S32	common/md5.c	32;"	d	file:
+S33	common/md5.c	33;"	d	file:
+S34	common/md5.c	34;"	d	file:
+S41	common/md5.c	35;"	d	file:
+S42	common/md5.c	36;"	d	file:
+S43	common/md5.c	37;"	d	file:
+S44	common/md5.c	38;"	d	file:
+SEPARATOR	postmark/postmark-1.51.c	67;"	d	file:
+SEPARATOR	postmark/postmark-1.51.c	73;"	d	file:
+STAT_DCACHE_HIT	mds/mdmd.c	21;"	d	file:
+STAT_DCACHE_HIT_STR	mds/mdmd.c	27;"	d	file:
+STAT_DIR_MISS	mds/mds.c	18;"	d	file:
+STAT_DIR_MISS_STR	mds/mds.c	19;"	d	file:
+STAT_EVENTUAL_MISS	mds/mdmd.c	23;"	d	file:
+STAT_EVENTUAL_MISS_STR	mds/mdmd.c	29;"	d	file:
+STAT_MISS	mds/mdmd.c	22;"	d	file:
+STAT_MISS_STR	mds/mdmd.c	28;"	d	file:
+STAT_PCACHE_HIT	mds/mdmd.c	20;"	d	file:
+STAT_PCACHE_HIT_STR	mds/mdmd.c	26;"	d	file:
+STAT_QUERY	mds/mdmd.c	19;"	d	file:
+STAT_QUERY_STR	mds/mdmd.c	25;"	d	file:
+STDC_HEADERS	common/config.h	318;"	d
+STRERROR_R_CHAR_P	common/config.h	321;"	d
+TEMPERING_MASK_B	postmark/postmark-1.51.c	1410;"	d	file:
+TEMPERING_MASK_C	postmark/postmark-1.51.c	1411;"	d	file:
+TEMPERING_SHIFT_L	postmark/postmark-1.51.c	1415;"	d	file:
+TEMPERING_SHIFT_S	postmark/postmark-1.51.c	1413;"	d	file:
+TEMPERING_SHIFT_T	postmark/postmark-1.51.c	1414;"	d	file:
+TEMPERING_SHIFT_U	postmark/postmark-1.51.c	1412;"	d	file:
+TIMEMODE_RUN_LATE	common/main.h	8;"	d
+TIMEMODE_SKIP_LATE	common/main.h	7;"	d
+TIME_WITH_SYS_TIME	common/config.h	324;"	d
+UPPER_MASK	postmark/postmark-1.51.c	1406;"	d	file:
+VERSHEX	common/config.h	330;"	d
+VERSION	common/config.h	333;"	d
+VERSMAJ	common/config.h	336;"	d
+VERSMID	common/config.h	339;"	d
+VERSMIN	common/config.h	342;"	d
+WORDS_BIGENDIAN	common/config.h	348;"	d
+_DARWIN_USE_64_BIT_INODE	common/config.h	358;"	d
+_DATAPACK_H_	common/datapack.h	20;"	d
+_MASSERT_H_	common/massert.h	20;"	d
+_MD5_H_	common/md5.h	20;"	d
+_PCQUEUE_H_	common/pcqueue.h	20;"	d
+_RC4RANDOM_H_	common/random.h	20;"	d
+_SLOGGER_H_	common/slogger.h	2;"	d
+_SOCKETS_H_	common/sockets.h	20;"	d
+_STRERR_H_	common/strerr.h	20;"	d
+__CHUNKS_H__	cs/chunks.h	2;"	d
+__CHUNKS_H__	mds/chunks.h	2;"	d
+__CLIENT_H__	client/client.h	2;"	d
+__CSCL_H__	cs/cscl.h	2;"	d
+__CSMDS_H__	cs/csmds.h	2;"	d
+__ECHO_H__	echo/echo.h	2;"	d
+__MAIN_H__	common/main.h	2;"	d
+__MDMD_STAT_H__	mds/mdmd_stat.h	2;"	d
+__MDSCS_H__	mds/mdscs.h	2;"	d
+__MDS_FS_H__	mds/mds_fs.h	2;"	d
+__MDS_FS_H__	mis/mis_fs.h	2;"	d
+__MDS_H__	mds/mds.h	2;"	d
+__MIS_AUTH_H__	mis/mis_auth.h	2;"	d
+__MIS_H__	mis/mis.h	2;"	d
+__PPCOMM_H__	common/ppcomm.h	2;"	d
+__PPDS_H__	common/ppds.h	2;"	d
+__PPFILE_H__	common/ppfile.h	2;"	d
+__PPFS_CACHE_H__	client/cache.h	2;"	d
+__mdmd_H__	mds/mdmd.h	2;"	d
+_attr	common/ppfile.h	/^typedef struct _attr{$/;"	s
+_csclserventry	cs/cscl.h	/^typedef struct _csclserventry{$/;"	s
+_csmdsserventry	cs/csmds.h	/^typedef struct _csmdsserventry{$/;"	s
+_echoserventry	echo/echo.h	/^typedef struct _echoserventry{$/;"	s
+_md5ctx	common/md5.h	/^typedef struct _md5ctx {$/;"	s
+_mdmdserventry	mds/mdmd.h	/^typedef struct _mdmdserventry{$/;"	s
+_mdscsserventry	mds/mdscs.h	/^typedef struct _mdscsserventry{$/;"	s
+_mdsserventry	mds/mds.h	/^typedef struct _mdsserventry{$/;"	s
+_misserventry	mis/mis.h	/^typedef struct _misserventry{$/;"	s
+_qentry	common/pcqueue.c	/^typedef struct _qentry {$/;"	s	file:
+_queue	common/pcqueue.c	/^typedef struct _queue {$/;"	s	file:
+_rep	common/ppfile.h	/^typedef struct _rep {$/;"	s
+a	client/cache.h	/^  attr a;$/;"	m	struct:attr_cache
+a	common/ppfile.h	/^  attr a;$/;"	m	struct:ppfile
+ac_qfront	client/cache.c	/^attr_cache* ac_qfront = NULL;$/;"	v
+add_chunk	cs/chunks.c	/^void add_chunk(cschunk* c){$/;"	f
+add_chunk	mds/chunks.c	/^void add_chunk(mdschunk* c){$/;"	f
+add_file	mds/mds_fs.c	/^void add_file(ppfile* f){$/;"	f
+add_file	mis/mis_fs.c	/^void add_file(ppfile* f){$/;"	f
+add_location	postmark/postmark-1.51.c	/^void add_location(params,weight)$/;"	f
+add_time	client/cache.h	/^  time_t add_time;$/;"	m	struct:attr_cache
+add_time	client/cache.h	/^  time_t add_time;$/;"	m	struct:chunk_cache
+add_time	client/cache.h	/^  time_t add_time;$/;"	m	struct:dir_cache
+alloced	common/ppfile.h	/^  int alloced;$/;"	m	struct:ppfile
+apis	trace_related/replay.py	/^apis = ["STAT","FSTAT"]$/;"	v
+append_file	postmark/postmark-1.51.c	/^void append_file(number,buffered)$/;"	f
+atime	common/ppfile.h	/^  int atime,ctime,mtime;$/;"	m	struct:_attr
+atime	mds/mdmd.h	/^  int atime;$/;"	m	struct:_mdmdserventry
+atime	mds/mdmd.h	/^  uint32_t atime;$/;"	m	struct:mdmd_path_st
+attr	common/ppfile.h	/^} attr;$/;"	t	typeref:struct:_attr
+attr_cache	client/cache.h	/^typedef struct attr_cache{$/;"	s
+attr_cache	client/cache.h	/^} attr_cache;$/;"	t	typeref:struct:attr_cache
+attr_cache_add	client/cache.c	/^attr_cache* attr_cache_add(const char* path,attr a){$/;"	f
+availspace	cs/chunks.c	/^static int space,availspace,chunks;$/;"	v	file:
+availspace	mds/mdscs.h	/^  int space,availspace,chunks;$/;"	m	struct:_mdscsserventry
+bias_create	postmark/postmark-1.51.c	/^int bias_create=5;              \/* chance of picking create over delete *\/$/;"	v
+bias_read	postmark/postmark-1.51.c	/^int bias_read=5;                \/* chance of picking read over append *\/$/;"	v
+buf	common/ppcomm.h	/^  char* buf;$/;"	m	struct:ppacket
+buf	cs/chunks.h	/^  uint8_t* buf;$/;"	m	struct:cschunk
+buffer	common/md5.h	/^	uint8_t buffer[64];$/;"	m	struct:_md5ctx
+buffer	echo/echo.h	/^  char buffer[MAXBUFSIZE];$/;"	m	struct:_echoserventry
+buffered_io	postmark/postmark-1.51.c	/^int buffered_io=1;              \/* use C library buffered I\/O *\/$/;"	v
+build_location_index	postmark/postmark-1.51.c	/^char **build_location_index(list,weight)$/;"	f
+bytes_read	postmark/postmark-1.51.c	/^float bytes_read;    \/* number of bytes read from files *\/$/;"	v
+bytes_written	postmark/postmark-1.51.c	/^float bytes_written; \/* number of bytes written to files *\/$/;"	v
+bytesleft	common/ppcomm.h	/^  int bytesleft;$/;"	m	struct:ppacket
+bytesleft	cs/cscl.h	/^  int bytesleft;$/;"	m	struct:_csclserventry
+bytesleft	cs/csmds.h	/^  int bytesleft;$/;"	m	struct:_csmdsserventry
+bytesleft	mds/mdmd.h	/^  int bytesleft;$/;"	m	struct:_mdmdserventry
+bytesleft	mds/mds.h	/^  int bytesleft;$/;"	m	struct:_mdsserventry
+bytesleft	mds/mdscs.h	/^  int bytesleft;$/;"	m	struct:_mdscsserventry
+bytesleft	mis/mis.h	/^  int bytesleft;$/;"	m	struct:_misserventry
+cc_qfront	client/cache.c	/^chunk_cache* cc_qfront = NULL;$/;"	v
+child	common/ppfile.h	/^  struct ppfile* child;$/;"	m	struct:ppfile	typeref:struct:ppfile::ppfile
+chunk_cache	client/cache.h	/^typedef struct chunk_cache{$/;"	s
+chunk_cache	client/cache.h	/^} chunk_cache;$/;"	t	typeref:struct:chunk_cache
+chunk_cache_add	client/cache.c	/^chunk_cache* chunk_cache_add(const char* path,uint64_t* chunklist,int chunks,int mdsid){$/;"	f
+chunkid	cs/chunks.h	/^  uint64_t chunkid;$/;"	m	struct:cschunk
+chunkid	mds/chunks.h	/^  uint64_t chunkid;$/;"	m	struct:mdschunk
+chunklist	client/cache.h	/^  uint64_t* chunklist;$/;"	m	struct:chunk_cache
+chunklist	cs/chunks.h	/^linklist* chunklist;$/;"	v
+chunks	client/cache.h	/^  int chunks;$/;"	m	struct:chunk_cache
+chunks	common/ppfile.h	/^  int chunks;$/;"	m	struct:ppfile
+chunks	cs/chunks.c	/^static int space,availspace,chunks;$/;"	v	file:
+chunks	mds/mdscs.h	/^  int space,availspace,chunks;$/;"	m	struct:_mdscsserventry
+chunks_init	cs/chunks.c	/^int chunks_init(){$/;"	f
+chunks_init	mds/chunks.c	/^int chunks_init(){$/;"	f
+chxxx	api_test/api_test.c	/^static void chxxx(int sockfd,int ip,char* path,int cmd,int opt){$/;"	f	file:
+cli_generic_int	postmark/postmark-1.51.c	/^int cli_generic_int(var,param,error)$/;"	f
+cli_help	postmark/postmark-1.51.c	/^int cli_help(param) $/;"	f
+cli_load	postmark/postmark-1.51.c	/^int cli_load(param)$/;"	f
+cli_parse_line	postmark/postmark-1.51.c	/^int cli_parse_line(buffer)$/;"	f
+cli_quit	postmark/postmark-1.51.c	/^int cli_quit(param) \/* none *\/$/;"	f
+cli_read_line	postmark/postmark-1.51.c	/^char *cli_read_line(buffer,size)$/;"	f
+cli_run	postmark/postmark-1.51.c	/^int cli_run(param) \/* none *\/$/;"	f
+cli_set_bias_create	postmark/postmark-1.51.c	/^int cli_set_bias_create(param)$/;"	f
+cli_set_bias_read	postmark/postmark-1.51.c	/^int cli_set_bias_read(param)$/;"	f
+cli_set_buffering	postmark/postmark-1.51.c	/^int cli_set_buffering(param)$/;"	f
+cli_set_location	postmark/postmark-1.51.c	/^int cli_set_location(param)$/;"	f
+cli_set_number	postmark/postmark-1.51.c	/^int cli_set_number(param)$/;"	f
+cli_set_read	postmark/postmark-1.51.c	/^int cli_set_read(param)$/;"	f
+cli_set_report	postmark/postmark-1.51.c	/^int cli_set_report(param)$/;"	f
+cli_set_seed	postmark/postmark-1.51.c	/^int cli_set_seed(param)$/;"	f
+cli_set_size	postmark/postmark-1.51.c	/^int cli_set_size(param)$/;"	f
+cli_set_subdirs	postmark/postmark-1.51.c	/^int cli_set_subdirs(param)$/;"	f
+cli_set_transactions	postmark/postmark-1.51.c	/^int cli_set_transactions(param)$/;"	f
+cli_set_write	postmark/postmark-1.51.c	/^int cli_set_write(param)$/;"	f
+cli_show	postmark/postmark-1.51.c	/^int cli_show(param) $/;"	f
+clist	common/ppfile.h	/^  uint64_t* clist;$/;"	m	struct:ppfile
+clist	mds/mdscs.h	/^  linklist* clist;$/;"	m	struct:_mdscsserventry
+cmd	common/ppcomm.h	/^  int cmd;$/;"	m	struct:ppacket
+cmd	postmark/postmark-1.51.c	/^} cmd;$/;"	t	typeref:struct:__anon7	file:
+command_list	postmark/postmark-1.51.c	/^cmd command_list[]={ \/* table of CLI commands *\/$/;"	v
+conn_thread	mds/mdmd.c	/^static pthread_t conn_thread;$/;"	v	file:
+conns	mds/mdmd.c	/^static int conns;$/;"	v	file:
+count	common/md5.h	/^	uint32_t count[2];$/;"	m	struct:_md5ctx
+count	mds/mdmd_stat.c	/^  int count;$/;"	m	struct:mdmd_stat_entry	file:
+create_dir	trace_related/replay.py	/^def create_dir(path):$/;"	f
+create_file	postmark/postmark-1.51.c	/^void create_file(buffered)$/;"	f
+create_file	trace_related/replay.py	/^def create_file(path):$/;"	f
+create_file_name	postmark/postmark-1.51.c	/^void create_file_name(dest)$/;"	f
+create_init_entries	trace_related/replay.py	/^def create_init_entries(apaths,npaths):$/;"	f
+create_subdirectories	postmark/postmark-1.51.c	/^void create_subdirectories(dir_list,base_dir,subdirs)$/;"	f
+createpacket_r	common/ppcomm.c	/^ppacket* createpacket_r(int size,int cmd,int id){$/;"	f
+createpacket_s	common/ppcomm.c	/^ppacket* createpacket_s(int size,int cmd,int id){$/;"	f
+cschunk	cs/chunks.h	/^typedef struct cschunk{$/;"	s
+cschunk	cs/chunks.h	/^} cschunk;$/;"	t	typeref:struct:cschunk
+cscl_desc	cs/cscl.c	/^void cscl_desc(struct pollfd *pdesc,uint32_t *ndesc) {$/;"	f
+cscl_gotpacket	cs/cscl.c	/^void cscl_gotpacket(csclserventry* eptr,ppacket* p){$/;"	f
+cscl_init	cs/cscl.c	/^int cscl_init(void){$/;"	f
+cscl_read	cs/cscl.c	/^void cscl_read(csclserventry *eptr) {$/;"	f
+cscl_read_chunk	cs/cscl.c	/^void cscl_read_chunk(csclserventry* eptr,ppacket* p){$/;"	f
+cscl_serve	cs/cscl.c	/^void cscl_serve(struct pollfd *pdesc) {$/;"	f
+cscl_term	cs/cscl.c	/^void cscl_term(void) {$/;"	f
+cscl_write	cs/cscl.c	/^void cscl_write(csclserventry *eptr) {$/;"	f
+cscl_write_chunk	cs/cscl.c	/^void cscl_write_chunk(csclserventry* eptr,ppacket* p){$/;"	f
+csclserventry	cs/cscl.h	/^} csclserventry;$/;"	t	typeref:struct:_csclserventry
+csclservhead	cs/cscl.c	/^static csclserventry* csclservhead = NULL;$/;"	v	file:
+cshash	cs/chunks.c	/^typedef struct cshash{$/;"	s	file:
+cshash	cs/chunks.c	/^} cshash;$/;"	t	typeref:struct:cshash	file:
+csip	mds/chunks.h	/^  uint32_t csip;$/;"	m	struct:mdschunk
+csmds	cs/csmds.c	/^static csmdsserventry* csmds = NULL;$/;"	v	file:
+csmds_create	cs/csmds.c	/^void csmds_create(csmdsserventry* eptr,ppacket* p){$/;"	f
+csmds_delete	cs/csmds.c	/^void csmds_delete(csmdsserventry* eptr,ppacket* p){$/;"	f
+csmds_desc	cs/csmds.c	/^void csmds_desc(struct pollfd *pdesc,uint32_t *ndesc) {$/;"	f
+csmds_fill_chunk	cs/csmds.c	/^void csmds_fill_chunk(csmdsserventry* eptr,ppacket* p){$/;"	f
+csmds_gotpacket	cs/csmds.c	/^void csmds_gotpacket(csmdsserventry* eptr,ppacket* p){$/;"	f
+csmds_init	cs/csmds.c	/^int csmds_init(void){$/;"	f
+csmds_read	cs/csmds.c	/^void csmds_read(csmdsserventry *eptr) {$/;"	f
+csmds_register	cs/csmds.c	/^void csmds_register(csmdsserventry* eptr,ppacket* p){$/;"	f
+csmds_serve	cs/csmds.c	/^void csmds_serve(struct pollfd *pdesc) {$/;"	f
+csmds_term	cs/csmds.c	/^void csmds_term(void) {$/;"	f
+csmds_update_status	cs/csmds.c	/^void csmds_update_status(csmdsserventry* eptr,ppacket* p){$/;"	f
+csmds_write	cs/csmds.c	/^void csmds_write(csmdsserventry *eptr) {$/;"	f
+csmdsserventry	cs/csmds.h	/^} csmdsserventry;$/;"	t	typeref:struct:_csmdsserventry
+ctime	common/ppfile.h	/^  int atime,ctime,mtime;$/;"	m	struct:_attr
+ctime	mds/mdmd.h	/^  uint32_t ctime;$/;"	m	struct:mdmd_path_st
+data	common/pcqueue.c	/^  void* data;$/;"	m	struct:_qentry	file:
+data	common/ppds.h	/^  void* data;$/;"	m	struct:hashnode
+data	common/ppds.h	/^  void* data;$/;"	m	struct:linklist
+data	cs/chunks.c	/^  cschunk* data;$/;"	m	struct:cshash	file:
+data	mds/chunks.c	/^  mdschunk* data;$/;"	m	struct:mdshash	file:
+dates	trace_related/call_stat.py	/^    dates = []$/;"	v
+dates	trace_related/replay.py	/^dates = []$/;"	v
+dc_qfront	client/cache.c	/^dir_cache* dc_qfront = NULL;$/;"	v
+deentry	common/main.c	/^typedef struct deentry {$/;"	s	file:
+deentry	common/main.c	/^} deentry;$/;"	t	typeref:struct:deentry	file:
+dehead	common/main.c	/^static deentry *dehead=NULL;$/;"	v	file:
+delete_file	postmark/postmark-1.51.c	/^void delete_file(number)$/;"	f
+delete_location	postmark/postmark-1.51.c	/^void delete_location(loc_name)$/;"	f
+delete_locations	postmark/postmark-1.51.c	/^void delete_locations()$/;"	f
+delete_subdirectories	postmark/postmark-1.51.c	/^void delete_subdirectories(dir_list,base_dir,subdirs)$/;"	f
+deq	mis/mis_fs.c	/^static ppfile* deq(queue** front,queue** rear){$/;"	f	file:
+deque	trace_related/replay.py	/^from collections import deque$/;"	i
+desc	common/main.c	/^	void (*desc)(struct pollfd *,uint32_t *);$/;"	m	struct:pollentry	file:
+desc	mds/mdmd_stat.c	/^  char* desc;$/;"	m	struct:mdmd_stat_entry	file:
+destruct	common/main.c	/^void destruct() {$/;"	f
+dev	trace_related/query_dir.py	/^    dev = int(sys.argv[1])$/;"	v
+dev_dirtab	trace_related/call_stat.py	/^dev_dirtab = {}$/;"	v
+dev_dirtab	trace_related/replay.py	/^dev_dirtab = {}$/;"	v
+diff_time	postmark/postmark-1.51.c	/^time_t diff_time(t1,t0)$/;"	f
+dir_cache	client/cache.h	/^typedef struct dir_cache{$/;"	s
+dir_cache	client/cache.h	/^} dir_cache;$/;"	t	typeref:struct:dir_cache
+dir_cache_add	client/cache.c	/^dir_cache* dir_cache_add(const char* path,char* entries[],int n){$/;"	f
+dirdb_prefix	trace_related/call_stat.py	/^dirdb_prefix = ".\/dirdb.res\/dirgroup.19970430"$/;"	v
+dirdb_prefix	trace_related/replay.py	/^dirdb_prefix = ".\/dirdb.res\/dirgroup.19970430"$/;"	v
+division	trace_related/replay.py	/^from __future__ import division$/;"	i
+do_init_entries	trace_related/replay.py	/^        do_init_entries = True$/;"	v
+do_init_entries	trace_related/replay.py	/^do_init_entries = False$/;"	v
+eassert	common/massert.h	31;"	d
+echo_desc	echo/echo.c	/^void echo_desc(struct pollfd *pdesc,uint32_t *ndesc) {$/;"	f
+echo_init	echo/echo.c	/^int echo_init(void){$/;"	f
+echo_read	echo/echo.c	/^void echo_read(echoserventry *eptr) {$/;"	f
+echo_serve	echo/echo.c	/^void echo_serve(struct pollfd *pdesc) {$/;"	f
+echo_term	echo/echo.c	/^void echo_term(void) {$/;"	f
+echo_write	echo/echo.c	/^void echo_write(echoserventry *eptr) {$/;"	f
+echoserventry	echo/echo.h	/^} echoserventry;$/;"	t	typeref:struct:_echoserventry
+echoservhead	echo/echo.c	/^echoserventry* echoservhead = NULL;$/;"	v
+elements	common/pcqueue.c	/^	uint32_t elements;$/;"	m	struct:_queue	file:
+enq	mis/mis_fs.c	/^static void enq(ppfile* f,queue** front,queue** rear){$/;"	f	file:
+entries	client/cache.h	/^  char** entries;$/;"	m	struct:dir_cache
+errent	common/strerr.c	/^typedef struct errent {$/;"	s	file:
+errent	common/strerr.c	/^} errent;$/;"	t	typeref:struct:errent	file:
+errhash	common/strerr.c	/^static errent *errhash = NULL;$/;"	v	file:
+errhsize	common/strerr.c	/^static uint32_t errhsize = 0;$/;"	v	file:
+errtab	common/strerr.c	/^static errent errtab[] = {$/;"	v	file:
+exiting	common/main.c	/^volatile int exiting;$/;"	v
+exiting	mds/mdmd.c	/^static volatile int exiting;$/;"	v	file:
+f	mis/mis_fs.c	/^      ppfile* f;$/;"	m	struct:queue_	file:
+fd	client/client.c	/^int fd;$/;"	v
+fds	trace_related/replay.py	/^fds = {}$/;"	v
+fid	trace_related/query_dir.py	/^    fid = int(sys.argv[2])$/;"	v
+file_allocated	postmark/postmark-1.51.c	/^int file_allocated;     \/* pointer to last allocated slot in file_table *\/$/;"	v
+file_append_chunk	common/ppfile.c	/^int file_append_chunk(ppfile* f,uint64_t id){\/\/should set a limit$/;"	f
+file_entry	postmark/postmark-1.51.c	/^} file_entry;$/;"	t	typeref:struct:__anon8	file:
+file_pop_chunk	common/ppfile.c	/^int file_pop_chunk(ppfile* f,uint64_t* id){$/;"	f
+file_size_high	postmark/postmark-1.51.c	/^int file_size_high=10000;       \/* file size: fixed or random within range *\/$/;"	v
+file_size_low	postmark/postmark-1.51.c	/^int file_size_low=500;$/;"	v
+file_source	postmark/postmark-1.51.c	/^char *file_source; \/* pointer to buffer of random text *\/$/;"	v
+file_system	postmark/postmark-1.51.c	/^} file_system; $/;"	t	typeref:struct:file_system_struct	file:
+file_system_count	postmark/postmark-1.51.c	/^int file_system_count;     \/* number of configured file systems *\/$/;"	v
+file_system_struct	postmark/postmark-1.51.c	/^typedef struct file_system_struct {$/;"	s	file:
+file_system_weight	postmark/postmark-1.51.c	/^int file_system_weight;    \/* sum of weights for all file systems *\/$/;"	v
+file_systems	postmark/postmark-1.51.c	/^file_system *file_systems; \/* table of file systems\/directories to use *\/$/;"	v
+file_table	postmark/postmark-1.51.c	/^file_entry *file_table; \/* table of files in use *\/$/;"	v
+files_appended	postmark/postmark-1.51.c	/^int files_appended; \/* number of files appended *\/$/;"	v
+files_created	postmark/postmark-1.51.c	/^int files_created;  \/* number of files created *\/$/;"	v
+files_deleted	postmark/postmark-1.51.c	/^int files_deleted;  \/* number of files deleted *\/$/;"	v
+files_read	postmark/postmark-1.51.c	/^int files_read;     \/* number of files read *\/$/;"	v
+find_free_file	postmark/postmark-1.51.c	/^int find_free_file()$/;"	f
+find_used_file	postmark/postmark-1.51.c	/^int find_used_file() \/* only called after files are created *\/$/;"	f
+fn	cs/init.h	/^	runfn fn;$/;"	m	struct:__anon1
+fn	mds/init.h	/^	runfn fn;$/;"	m	struct:__anon10
+fn	mis/init.h	/^	runfn fn;$/;"	m	struct:__anon5
+free_all_registered_entries	common/main.c	/^void free_all_registered_entries(void) {$/;"	f
+free_attr_cache	client/cache.c	/^void free_attr_cache(attr_cache* c){$/;"	f
+free_chunk	cs/chunks.c	/^void free_chunk(cschunk* c){$/;"	f
+free_chunk	mds/chunks.c	/^void free_chunk(mdschunk* c){$/;"	f
+free_chunk_cache	client/cache.c	/^void free_chunk_cache(chunk_cache* c){$/;"	f
+free_dir_cache	client/cache.c	/^void free_dir_cache(dir_cache* c){$/;"	f
+free_file	common/ppfile.c	/^void free_file(ppfile* f){$/;"	f
+freewaiting	common/pcqueue.c	/^	uint32_t freewaiting;$/;"	m	struct:_queue	file:
+full_path	trace_related/query_dir.py	/^def full_path(tab,fid):$/;"	f
+fun	common/main.c	/^	void (*fun)(void);$/;"	m	struct:deentry	file:
+fun	common/main.c	/^	void (*fun)(void);$/;"	m	struct:timeentry	file:
+func	postmark/postmark-1.51.c	/^   int (*func)(); \/* pointer to callback function *\/$/;"	m	struct:__anon7	file:
+fwrite_blocks	postmark/postmark-1.51.c	/^void fwrite_blocks(fp,size)$/;"	f
+genrand	postmark/postmark-1.51.c	/^genrand()$/;"	f
+get16bit	common/datapack.h	/^static inline uint16_t get16bit(const uint8_t **ptr) {$/;"	f
+get32bit	common/datapack.h	/^static inline uint32_t get32bit(const uint8_t **ptr) {$/;"	f
+get64bit	common/datapack.h	/^static inline uint64_t get64bit(const uint8_t **ptr) {$/;"	f
+get8bit	common/datapack.h	/^static inline uint8_t get8bit(const uint8_t **ptr) {$/;"	f
+get_call	trace_related/replay.py	/^    def get_call():$/;"	f	function:play_call
+get_chunk_info	cs/chunks.c	/^void get_chunk_info(int* _space,int* _availspace,int* _chunks){$/;"	f
+get_dev_fid_path	trace_related/replay.py	/^    def get_dev_fid_path():$/;"	f	function:play_call
+get_full_path	trace_related/call_stat.py	/^def get_full_path(dev,fid):$/;"	f
+get_full_path	trace_related/replay.py	/^def get_full_path(dev,fid):$/;"	f
+getbasename	common/ppfile.c	/^char* getbasename(char* path){$/;"	f
+gid	common/ppfile.h	/^  int uid,gid;$/;"	m	struct:_attr
+global_chunk_counter	mds/mdscs.c	/^static uint64_t global_chunk_counter;$/;"	v	file:
+hash	cs/chunks.c	/^int hash(uint64_t id){$/;"	f
+hash	mds/chunks.c	/^int hash(uint64_t id){$/;"	f
+hashnode	common/ppds.h	/^typedef struct hashnode{$/;"	s
+hashnode	common/ppds.h	/^} hashnode;$/;"	t	typeref:struct:hashnode
+head	common/pcqueue.c	/^	qentry *head,**tail;$/;"	m	struct:_queue	file:
+headbuf	cs/cscl.h	/^  uint8_t headbuf[20];$/;"	m	struct:_csclserventry
+headbuf	cs/csmds.h	/^  uint8_t headbuf[20];$/;"	m	struct:_csmdsserventry
+headbuf	mds/mdmd.h	/^  uint8_t headbuf[20];$/;"	m	struct:_mdmdserventry
+headbuf	mds/mds.h	/^  uint8_t headbuf[20];$/;"	m	struct:_mdsserventry
+headbuf	mds/mdscs.h	/^  uint8_t headbuf[20];$/;"	m	struct:_mdscsserventry
+headbuf	mis/mis.h	/^  uint8_t headbuf[20];$/;"	m	struct:_misserventry
+help	postmark/postmark-1.51.c	/^   char *help;    \/* descriptive help string *\/$/;"	m	struct:__anon7	file:
+heuristic	common/ppfile.h	/^typedef struct heuristic {$/;"	s
+heuristic	common/ppfile.h	/^} heuristic;$/;"	t	typeref:struct:heuristic
+hexdigit	api_test/api_test.c	/^static char* hexdigit = "0123456789ABCDEF";$/;"	v	file:
+history	common/ppfile.h	/^      int history;$/;"	m	struct:_rep
+history	common/ppfile.h	/^    int history;$/;"	m	struct:heuristic
+history	mds/mdmd.h	/^  int history;$/;"	m	struct:mdmd_path_st
+htab	mds/mdmd.h	/^  hashnode* htab[MDMD_HASHSIZE];$/;"	m	struct:_mdmdserventry
+i	common/random.c	/^static uint8_t i,j;$/;"	v	file:
+id	common/pcqueue.c	/^	uint32_t id;$/;"	m	struct:_qentry	file:
+id	common/ppcomm.h	/^  int id;$/;"	m	struct:ppacket
+ignoresignal	common/main.c	/^static int ignoresignal[]={$/;"	v	file:
+init	trace_related/replay.py	/^def init(prefix,date,paths,apaths,npaths):$/;"	f
+init_dev_dirtab	trace_related/call_stat.py	/^def init_dev_dirtab(dev):$/;"	f
+init_dev_dirtab	trace_related/replay.py	/^def init_dev_dirtab(dev):$/;"	f
+init_fs	mds/mds_fs.c	/^int init_fs(){$/;"	f
+init_fs	mis/mis_fs.c	/^int init_fs(){$/;"	f
+init_table	trace_related/query_dir.py	/^def init_table(prefix,dev):$/;"	f
+initialize	common/main.c	/^int initialize(void) {$/;"	f
+initialize_file_source	postmark/postmark-1.51.c	/^char *initialize_file_source(size)$/;"	f
+initialize_late	common/main.c	/^int initialize_late(void) {$/;"	f
+inpacket	cs/cscl.h	/^  ppacket* inpacket;$/;"	m	struct:_csclserventry
+inpacket	cs/csmds.h	/^  ppacket* inpacket;$/;"	m	struct:_csmdsserventry
+inpacket	mds/mdmd.h	/^  ppacket* inpacket;$/;"	m	struct:_mdmdserventry
+inpacket	mds/mds.h	/^  ppacket* inpacket;$/;"	m	struct:_mdsserventry
+inpacket	mds/mdscs.h	/^  ppacket* inpacket;$/;"	m	struct:_mdscsserventry
+inpacket	mis/mis.h	/^  ppacket* inpacket;$/;"	m	struct:_misserventry
+ip	client/client.c	/^char *ip = "127.0.0.1";$/;"	v
+is_empty	mis/mis_fs.c	/^static int is_empty(const queue* front,const queue* rear){$/;"	f	file:
+j	common/random.c	/^static uint8_t i,j;$/;"	v	file:
+key	common/ppds.h	/^  char* key;$/;"	m	struct:hashnode
+key	cs/chunks.c	/^  uint64_t key;$/;"	m	struct:cshash	file:
+key	mds/chunks.c	/^  uint64_t key;$/;"	m	struct:mdshash	file:
+key	mds/mdmd_stat.c	/^  int key;$/;"	m	struct:mdmd_stat_entry	file:
+link	common/ppfile.h	/^  int link;$/;"	m	struct:_attr
+linklist	common/ppds.h	/^typedef struct linklist{$/;"	s
+linklist	common/ppds.h	/^} linklist;$/;"	t	typeref:struct:linklist
+local_mds	client/client.c	/^ppfs_conn_entry local_mds,remote_mds;$/;"	v
+location_index	postmark/postmark-1.51.c	/^char **location_index;     \/* weighted index of file systems *\/$/;"	v
+lock	common/pcqueue.c	/^	pthread_mutex_t lock;$/;"	m	struct:_queue	file:
+lookup_attr_cache	client/cache.c	/^int lookup_attr_cache(const char* path,attr_cache** c){$/;"	f
+lookup_chunk	cs/chunks.c	/^cschunk* lookup_chunk(uint64_t chunkid){$/;"	f
+lookup_chunk	mds/chunks.c	/^mdschunk* lookup_chunk(uint64_t chunkid){$/;"	f
+lookup_chunk_cache	client/cache.c	/^int lookup_chunk_cache(const char* path,chunk_cache** c){$/;"	f
+lookup_dir_cache	client/cache.c	/^int lookup_dir_cache(const char* path,dir_cache** c){$/;"	f
+lookup_file	mds/mds_fs.c	/^ppfile* lookup_file(char* p){$/;"	f
+lookup_file	mis/mis_fs.c	/^ppfile* lookup_file(char* p){$/;"	f
+lsgenrand	postmark/postmark-1.51.c	/^lsgenrand(seed_array)$/;"	f
+lsock	cs/cscl.c	/^static int lsock;$/;"	v	file:
+lsock	echo/echo.c	/^int lsock;$/;"	v
+lsock	mds/mdmd.c	/^static int lsock;$/;"	v	file:
+lsock	mds/mds.c	/^static int lsock;$/;"	v	file:
+lsock	mds/mdscs.c	/^static int lsock;$/;"	v	file:
+lsock	mis/mis.c	/^static int lsock;$/;"	v	file:
+lsockpdescpos	cs/cscl.c	/^static int lsockpdescpos;$/;"	v	file:
+lsockpdescpos	echo/echo.c	/^int lsockpdescpos;$/;"	v
+lsockpdescpos	mds/mdmd.c	/^static int lsockpdescpos;$/;"	v	file:
+lsockpdescpos	mds/mds.c	/^static int lsockpdescpos;$/;"	v	file:
+lsockpdescpos	mds/mdscs.c	/^static int lsockpdescpos;$/;"	v	file:
+lsockpdescpos	mis/mis.c	/^static int lsockpdescpos;$/;"	v	file:
+main	api_test/api_test.c	/^int main(void){$/;"	f
+main	client/client.c	/^int main(int argc, char* argv[]) {$/;"	f
+main	common/main.c	/^int main(int argc,char **argv) {$/;"	f
+main	postmark/postmark-1.51.c	/^main(argc,argv)$/;"	f
+main_destructregister	common/main.c	/^void main_destructregister (void (*fun)(void)) {$/;"	f
+main_pollregister	common/main.c	/^void main_pollregister (void (*desc)(struct pollfd *,uint32_t *),void (*serve)(struct pollfd *)) {$/;"	f
+main_time	common/main.c	/^uint32_t main_time() {$/;"	f
+main_timeregister	common/main.c	/^void* main_timeregister (int mode,uint32_t seconds,uint32_t offset,void (*fun)(void)) {$/;"	f
+main_utime	common/main.c	/^uint64_t main_utime() {$/;"	f
+mainloop	common/main.c	/^void mainloop() {$/;"	f
+massert	common/massert.h	28;"	d
+max	mds/mds.c	/^int max(int a,int b){$/;"	f
+md5_decode	common/md5.c	/^static void md5_decode (uint32_t *output,const uint8_t *input,uint32_t len) {$/;"	f	file:
+md5_encode	common/md5.c	/^static void md5_encode (uint8_t *output,const uint32_t *input,uint32_t len) {$/;"	f	file:
+md5_final	common/md5.c	/^void md5_final (uint8_t digest[16],md5ctx *ctx) {$/;"	f
+md5_init	common/md5.c	/^void md5_init (md5ctx *ctx) {$/;"	f
+md5_transform	common/md5.c	/^static void md5_transform (uint32_t state[4],const uint8_t block[64]) {$/;"	f	file:
+md5_update	common/md5.c	/^void md5_update (md5ctx *ctx,const uint8_t *buff,uint32_t leng) {$/;"	f
+md5ctx	common/md5.h	/^} md5ctx;$/;"	t	typeref:struct:_md5ctx
+mdmd_add_entry	mds/mdmd.c	/^void mdmd_add_entry(uint32_t ip,char* path,int type){$/;"	f
+mdmd_c2s_getattr	mds/mdmd.c	/^void mdmd_c2s_getattr(mdmdserventry* eptr,ppacket* inp){$/;"	f
+mdmd_c2s_read_chunk_info	mds/mdmd.c	/^void mdmd_c2s_read_chunk_info(mdmdserventry* eptr,ppacket* inp){$/;"	f
+mdmd_conn_thread	mds/mdmd.c	/^void* mdmd_conn_thread(void* dum){$/;"	f
+mdmd_create_access_entry	mds/mdmd.c	/^void mdmd_create_access_entry(mdmdserventry* eptr,char* path,int type){$/;"	f
+mdmd_desc	mds/mdmd.c	/^void mdmd_desc(struct pollfd *pdesc,uint32_t *ndesc) {$/;"	f
+mdmd_find_dir	mds/mdmd.c	/^mdmdserventry* mdmd_find_dir(char* dir){$/;"	f
+mdmd_find_link	mds/mdmd.c	/^mdmdserventry* mdmd_find_link(char* path){$/;"	f
+mdmd_getattr	mds/mdmd.c	/^void mdmd_getattr(mdmdserventry* eptr,char* path,int id){$/;"	f
+mdmd_gotpacket	mds/mdmd.c	/^void mdmd_gotpacket(mdmdserventry* eptr,ppacket* p){$/;"	f
+mdmd_heuristic_decay	mds/mdmd.c	/^void mdmd_heuristic_decay(void) {$/;"	f
+mdmd_init	mds/mdmd.c	/^int mdmd_init(void){$/;"	f
+mdmd_path_st	mds/mdmd.h	/^typedef struct mdmd_path_st{$/;"	s
+mdmd_path_st	mds/mdmd.h	/^} mdmd_path_st;$/;"	t	typeref:struct:mdmd_path_st
+mdmd_path_st_hash	mds/mdmd.c	/^int mdmd_path_st_hash(mdmd_path_st* mps){$/;"	f
+mdmd_read	mds/mdmd.c	/^void mdmd_read(mdmdserventry *eptr){$/;"	f
+mdmd_read_chunk_info	mds/mdmd.c	/^void mdmd_read_chunk_info(mdmdserventry* eptr,char* path,int id){$/;"	f
+mdmd_s2c_getattr	mds/mdmd.c	/^void mdmd_s2c_getattr(mdmdserventry* eptr,ppacket* inp){$/;"	f
+mdmd_s2c_read_chunk_info	mds/mdmd.c	/^void mdmd_s2c_read_chunk_info(mdmdserventry* eptr,ppacket* inp){$/;"	f
+mdmd_serve	mds/mdmd.c	/^void mdmd_serve(struct pollfd *pdesc) {$/;"	f
+mdmd_stat_add_entry	mds/mdmd_stat.c	/^void mdmd_stat_add_entry(int key,char* desc,int c0){$/;"	f
+mdmd_stat_count	mds/mdmd_stat.c	/^void mdmd_stat_count(int key){$/;"	f
+mdmd_stat_countm	mds/mdmd_stat.c	/^void mdmd_stat_countm(int key,int c){$/;"	f
+mdmd_stat_dump	mds/mdmd_stat.c	/^void mdmd_stat_dump(){$/;"	f
+mdmd_stat_entry	mds/mdmd_stat.c	/^typedef struct mdmd_stat_entry{$/;"	s	file:
+mdmd_stat_entry	mds/mdmd_stat.c	/^} mdmd_stat_entry;$/;"	t	typeref:struct:mdmd_stat_entry	file:
+mdmd_stat_init	mds/mdmd_stat.c	/^int mdmd_stat_init(void){$/;"	f
+mdmd_stat_term	mds/mdmd_stat.c	/^void mdmd_stat_term(void){$/;"	f
+mdmd_term	mds/mdmd.c	/^void mdmd_term(void) {$/;"	f
+mdmd_write	mds/mdmd.c	/^void mdmd_write(mdmdserventry *eptr){$/;"	f
+mdmdserventry	mds/mdmd.h	/^} mdmdserventry;$/;"	t	typeref:struct:_mdmdserventry
+mdmdserventry_add_entry	mds/mdmd.c	/^void mdmdserventry_add_entry(mdmdserventry* eptr,mdmd_path_st* mps){$/;"	f
+mdmdserventry_find_dir	mds/mdmd.c	/^mdmd_path_st* mdmdserventry_find_dir(mdmdserventry* eptr,char* dir){$/;"	f
+mdmdserventry_free	mds/mdmd.c	/^void mdmdserventry_free(mdmdserventry* eptr){$/;"	f
+mdmdserventry_from_ip	mds/mdmd.c	/^mdmdserventry* mdmdserventry_from_ip(uint32_t ip){$/;"	f
+mdmdserventry_has_path	mds/mdmd.c	/^int mdmdserventry_has_path(mdmdserventry* eptr,char* path){$/;"	f
+mdmdserventry_purge_cache	mds/mdmd.c	/^void mdmdserventry_purge_cache(void){$/;"	f
+mdmdservhead	mds/mdmd.c	/^static mdmdserventry* mdmdservhead = NULL;$/;"	v	file:
+mdmdstathead	mds/mdmd_stat.c	/^mdmd_stat_entry* mdmdstathead = NULL;$/;"	v
+mds_add_user	mds/mds.c	/^void mds_add_user(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_chmod	mds/mds.c	/^void mds_chmod(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_chown	mds/mds.c	/^void mds_chown(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_cl_add_user	mds/mds.c	/^void mds_cl_add_user(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_cl_append_chunk	mds/mds.c	/^void mds_cl_append_chunk(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_cl_chmod	mds/mds.c	/^void mds_cl_chmod(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_cl_chown	mds/mds.c	/^void mds_cl_chown(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_cl_create	mds/mds.c	/^void mds_cl_create(mdsserventry* eptr,ppacket* inp){ \/\/yjy$/;"	f
+mds_cl_del_user	mds/mds.c	/^void mds_cl_del_user(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_cl_getattr	mds/mds.c	/^void mds_cl_getattr(mdsserventry* eptr,ppacket* p){ \/\/p->id? | Msg returned from MIS$/;"	f
+mds_cl_login	mds/mds.c	/^void mds_cl_login(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_cl_lookup_chunk	mds/mds.c	/^void mds_cl_lookup_chunk(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_cl_mkdir	mds/mds.c	/^void mds_cl_mkdir(mdsserventry* eptr,ppacket* inp){$/;"	f
+mds_cl_open	mds/mds.c	/^void mds_cl_open(mdsserventry* eptr,ppacket* inp){$/;"	f
+mds_cl_pop_chunk	mds/mds.c	/^void mds_cl_pop_chunk(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_cl_read_chunk_info	mds/mds.c	/^void mds_cl_read_chunk_info(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_cl_readdir	mds/mds.c	/^void mds_cl_readdir(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_cl_rmdir	mds/mds.c	/^void mds_cl_rmdir(mdsserventry* eptr,ppacket* inp){$/;"	f
+mds_cl_unlink	mds/mds.c	/^void mds_cl_unlink(mdsserventry* eptr,ppacket* inp){$/;"	f
+mds_cl_utimens	mds/mds.c	/^void mds_cl_utimens(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_cl_write	mds/mds.c	/^void mds_cl_write(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_create	mds/mds.c	/^void mds_create(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_del_user	mds/mds.c	/^void mds_del_user(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_desc	mds/mds.c	/^void mds_desc(struct pollfd *pdesc,uint32_t *ndesc) {$/;"	f
+mds_direct_pass_cl	mds/mds.c	/^static void mds_direct_pass_cl(mdsserventry* eptr,ppacket* p,int cmd){$/;"	f	file:
+mds_direct_pass_mi	mds/mds.c	/^void mds_direct_pass_mi(ppacket* p,int cmd){$/;"	f
+mds_entry_from_id	mds/mds.c	/^mdsserventry* mds_entry_from_id(int id){ \/\/maybe add a hash?$/;"	f
+mds_fw_read_chunk_info	mds/mds.c	/^void mds_fw_read_chunk_info(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_getattr	mds/mds.c	/^void mds_getattr(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_gotpacket	mds/mds.c	/^void mds_gotpacket(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_init	mds/mds.c	/^int mds_init(void){$/;"	f
+mds_login	mds/mds.c	/^void mds_login(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_mkdir	mds/mds.c	/^void mds_mkdir(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_open	mds/mds.c	/^void mds_open(mdsserventry* eptr,ppacket* inp){$/;"	f
+mds_read	mds/mds.c	/^void mds_read(mdsserventry *eptr) {$/;"	f
+mds_readdir	mds/mds.c	/^void mds_readdir(mdsserventry* eptr,ppacket* p){ \/\/all fwd to MIS$/;"	f
+mds_rmdir	mds/mds.c	/^void mds_rmdir(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_serve	mds/mds.c	/^void mds_serve(struct pollfd *pdesc) {$/;"	f
+mds_term	mds/mds.c	/^void mds_term(void) {$/;"	f
+mds_unlink	mds/mds.c	/^void mds_unlink(mdsserventry* eptr,ppacket* inp){$/;"	f
+mds_utimens	mds/mds.c	/^void mds_utimens(mdsserventry* eptr,ppacket* p){$/;"	f
+mds_write	mds/mds.c	/^void mds_write(mdsserventry *eptr) {$/;"	f
+mdschunk	mds/chunks.h	/^typedef struct mdschunk{$/;"	s
+mdschunk	mds/chunks.h	/^} mdschunk;$/;"	t	typeref:struct:mdschunk
+mdscs_append_chunk	mds/mdscs.c	/^int mdscs_append_chunk(ppfile* f,mdschunk* c){$/;"	f
+mdscs_delete_chunk	mds/mdscs.c	/^void mdscs_delete_chunk(uint64_t chunkid){$/;"	f
+mdscs_desc	mds/mdscs.c	/^void mdscs_desc(struct pollfd *pdesc,uint32_t *ndesc) {$/;"	f
+mdscs_find_serventry	mds/mdscs.c	/^mdscsserventry* mdscs_find_serventry(uint64_t chunkid){$/;"	f
+mdscs_gotpacket	mds/mdscs.c	/^void mdscs_gotpacket(mdscsserventry* eptr,ppacket* p){$/;"	f
+mdscs_init	mds/mdscs.c	/^int mdscs_init(void){$/;"	f
+mdscs_new_chunk	mds/mdscs.c	/^void mdscs_new_chunk(mdschunk** c){$/;"	f
+mdscs_pop_chunk	mds/mdscs.c	/^int mdscs_pop_chunk(ppfile* f,uint64_t* id){$/;"	f
+mdscs_read	mds/mdscs.c	/^void mdscs_read(mdscsserventry *eptr) {$/;"	f
+mdscs_register	mds/mdscs.c	/^void mdscs_register(mdscsserventry* eptr,ppacket* p){$/;"	f
+mdscs_serve	mds/mdscs.c	/^void mdscs_serve(struct pollfd *pdesc) {$/;"	f
+mdscs_term	mds/mdscs.c	/^void mdscs_term(void) {$/;"	f
+mdscs_update_status	mds/mdscs.c	/^void mdscs_update_status(mdscsserventry* eptr,ppacket* p){$/;"	f
+mdscs_write	mds/mdscs.c	/^void mdscs_write(mdscsserventry *eptr) {$/;"	f
+mdscsserventry	mds/mdscs.h	/^} mdscsserventry;$/;"	t	typeref:struct:_mdscsserventry
+mdscsservhead	mds/mdscs.c	/^static mdscsserventry* mdscsservhead = NULL;$/;"	v	file:
+mdshash	mds/chunks.c	/^typedef struct mdshash{$/;"	s	file:
+mdshash	mds/chunks.c	/^} mdshash;$/;"	t	typeref:struct:mdshash	file:
+mdshostip	common/ppcomm.h	/^static char* mdshostip = "127.0.0.1";$/;"	v
+mdsid	client/cache.h	/^  uint32_t mdsid;$/;"	m	struct:chunk_cache
+mdsip	common/ppfile.h	/^    int mdsip;$/;"	m	struct:heuristic
+mdsserventry	mds/mds.h	/^} mdsserventry;$/;"	t	typeref:struct:_mdsserventry
+mdsservhead	mds/mds.c	/^static mdsserventry* mdsservhead = NULL;$/;"	v	file:
+mdtomi	mds/mds.c	/^static mdsserventry* mdtomi = NULL;$/;"	v	file:
+mfs_arg_errlog	common/slogger.h	27;"	d
+mfs_arg_errlog_silent	common/slogger.h	34;"	d
+mfs_arg_syslog	common/slogger.h	16;"	d
+mfs_errlog	common/slogger.h	21;"	d
+mfs_errlog_silent	common/slogger.h	33;"	d
+mfs_syslog	common/slogger.h	11;"	d
+min	client/client.c	/^int min(int a,int b){$/;"	f
+min	cs/chunks.c	5;"	d	file:
+min_queue_size	trace_related/replay.py	/^min_queue_size = 1000$/;"	v
+mis_add_user	mis/mis.c	/^void mis_add_user(misserventry* eptr,ppacket* p){$/;"	f
+mis_chmod	mis/mis.c	/^void mis_chmod(misserventry* eptr,ppacket* inp){$/;"	f
+mis_chown	mis/mis.c	/^void mis_chown(misserventry* eptr,ppacket* inp){$/;"	f
+mis_create	mis/mis.c	/^void mis_create(misserventry* eptr,ppacket* inp){ \/\/create file, supposed to add entry to table$/;"	f
+mis_del_user	mis/mis.c	/^void mis_del_user(misserventry* eptr,ppacket* p){$/;"	f
+mis_desc	mis/mis.c	/^void mis_desc(struct pollfd *pdesc,uint32_t *ndesc) {$/;"	f
+mis_entry_from_ip	mis/mis.c	/^misserventry* mis_entry_from_ip(int ip){$/;"	f
+mis_fs_demo_init	mis/mis.c	/^void mis_fs_demo_init(void){$/;"	f
+mis_fw_read_chunk_info	mis/mis.c	/^void mis_fw_read_chunk_info(misserventry* eptr,ppacket* p){$/;"	f
+mis_getattr	mis/mis.c	/^void mis_getattr(misserventry* eptr,ppacket* inp){$/;"	f
+mis_gotpacket	mis/mis.c	/^void mis_gotpacket(misserventry* eptr,ppacket* p){$/;"	f
+mis_init	mis/mis.c	/^int mis_init(void){$/;"	f
+mis_login	mis/mis.c	/^void mis_login(misserventry* eptr,ppacket* p){$/;"	f
+mis_mkdir	mis/mis.c	/^void mis_mkdir(misserventry* eptr,ppacket* inp){ \/\/mkdir, add entry to table$/;"	f
+mis_open	mis/mis.c	/^void mis_open(misserventry* eptr,ppacket* inp){$/;"	f
+mis_read	mis/mis.c	/^void mis_read(misserventry *eptr) {$/;"	f
+mis_readdir	mis/mis.c	/^void mis_readdir(misserventry* eptr,ppacket* inp){$/;"	f
+mis_rfw_read_chunk_info	mis/mis.c	/^void mis_rfw_read_chunk_info(misserventry* eptr,ppacket* p){$/;"	f
+mis_rmdir	mis/mis.c	/^void mis_rmdir(misserventry* eptr,ppacket* inp){$/;"	f
+mis_serve	mis/mis.c	/^void mis_serve(struct pollfd *pdesc) {$/;"	f
+mis_term	mis/mis.c	/^void mis_term(void) {$/;"	f
+mis_unlink	mis/mis.c	/^void mis_unlink(misserventry* eptr,ppacket* inp){$/;"	f
+mis_update_attr	mds/mds.c	/^static void mis_update_attr(ppfile* f){$/;"	f	file:
+mis_update_attr	mis/mis.c	/^void mis_update_attr(misserventry* eptr,ppacket* inp){ \/\/no need to send back$/;"	f
+mis_utimens	mis/mis.c	/^void mis_utimens(misserventry* eptr,ppacket* inp){$/;"	f
+mis_visit_decay	mis/mis.c	/^void mis_visit_decay(void) {$/;"	f
+mis_write	mis/mis.c	/^void mis_write(misserventry *eptr) {$/;"	f
+mishostip	common/ppcomm.h	/^static char* mishostip = "127.0.0.1";$/;"	v
+misserventry	mis/mis.h	/^} misserventry;$/;"	t	typeref:struct:_misserventry
+misservhead	mis/mis.c	/^static misserventry* misservhead = NULL;$/;"	v	file:
+mode	common/main.c	/^	int mode;$/;"	m	struct:timeentry	file:
+mode	common/ppfile.h	/^  int mode;$/;"	m	struct:_attr
+mode	cs/cscl.h	/^  uint8_t mode; \/\/0 - not active, 1 - read header, 2 - read packet$/;"	m	struct:_csclserventry
+mode	cs/csmds.h	/^  uint8_t mode; \/\/0 - not active, 1 - read header, 2 - read packet$/;"	m	struct:_csmdsserventry
+mode	echo/echo.h	/^  uint8_t mode;$/;"	m	struct:_echoserventry
+mode	mds/mdmd.h	/^  uint8_t mode; \/\/0 - not active, 1 - read header, 2 - read packet$/;"	m	struct:_mdmdserventry
+mode	mds/mds.h	/^  uint8_t mode; \/\/0 - not active, 1 - read header, 2 - read packet$/;"	m	struct:_mdsserventry
+mode	mds/mdscs.h	/^  uint8_t mode; \/\/0 - not active, 1 - read header, 2 - read packet$/;"	m	struct:_mdscsserventry
+mode	mis/mis.h	/^  uint8_t mode; \/\/0 - not active, 1 - read header, 2 - read packet$/;"	m	struct:_misserventry
+mount	trace_related/replay.py	/^mount = ".\/mt_"$/;"	v
+mt	postmark/postmark-1.51.c	/^static unsigned long mt[N]; \/* the array for the state vector  *\/$/;"	v	file:
+mt_hid	trace_related/replay.py	/^            mt_hid = int(b)$/;"	v
+mt_hid	trace_related/replay.py	/^mt_hid = 1$/;"	v
+mti	postmark/postmark-1.51.c	/^static int mti=N+1; \/* mti==N+1 means mt[N] is not initialized *\/$/;"	v	file:
+mtime	common/ppfile.h	/^  int atime,ctime,mtime;$/;"	m	struct:_attr
+n	client/cache.h	/^  int n;$/;"	m	struct:dir_cache
+name	common/ppfile.h	/^  char* name;$/;"	m	struct:ppfile
+name	cs/init.h	/^	char *name;$/;"	m	struct:__anon1
+name	mds/init.h	/^	char *name;$/;"	m	struct:__anon10
+name	mis/init.h	/^	char *name;$/;"	m	struct:__anon5
+name	postmark/postmark-1.51.c	/^   char *name;    \/* name of command *\/$/;"	m	struct:__anon7	file:
+name	postmark/postmark-1.51.c	/^   char name[MAX_FILENAME+1]; \/* name of individual file *\/$/;"	m	struct:__anon8	file:
+new_chunk	cs/chunks.c	/^cschunk* new_chunk(uint64_t chunkid){$/;"	f
+new_chunk	mds/chunks.c	/^mdschunk* new_chunk(uint64_t chunkid,int ip,int occupy){$/;"	f
+new_file	common/ppfile.c	/^ppfile* new_file(char* path,attr a){$/;"	f
+next	client/cache.h	/^  struct attr_cache *next,*prev;$/;"	m	struct:attr_cache	typeref:struct:attr_cache::attr_cache
+next	client/cache.h	/^  struct chunk_cache *next,*prev;$/;"	m	struct:chunk_cache	typeref:struct:chunk_cache::chunk_cache
+next	client/cache.h	/^  struct dir_cache *next,*prev;$/;"	m	struct:dir_cache	typeref:struct:dir_cache::dir_cache
+next	common/main.c	/^	struct deentry *next;$/;"	m	struct:deentry	typeref:struct:deentry::deentry	file:
+next	common/main.c	/^	struct pollentry *next;$/;"	m	struct:pollentry	typeref:struct:pollentry::pollentry	file:
+next	common/main.c	/^	struct timeentry *next;$/;"	m	struct:timeentry	typeref:struct:timeentry::timeentry	file:
+next	common/pcqueue.c	/^	struct _qentry *next;$/;"	m	struct:_qentry	typeref:struct:_qentry::_qentry	file:
+next	common/ppcomm.h	/^  struct ppacket* next;$/;"	m	struct:ppacket	typeref:struct:ppacket::ppacket
+next	common/ppds.h	/^  struct hashnode* next;$/;"	m	struct:hashnode	typeref:struct:hashnode::hashnode
+next	common/ppds.h	/^  struct linklist* next;$/;"	m	struct:linklist	typeref:struct:linklist::linklist
+next	common/ppfile.h	/^      struct _rep* next;$/;"	m	struct:_rep	typeref:struct:_rep::_rep
+next	common/ppfile.h	/^  struct ppfile* next;$/;"	m	struct:ppfile	typeref:struct:ppfile::ppfile
+next	cs/chunks.c	/^  struct cshash* next;$/;"	m	struct:cshash	typeref:struct:cshash::cshash	file:
+next	cs/cscl.h	/^  struct _csclserventry* next;$/;"	m	struct:_csclserventry	typeref:struct:_csclserventry::_csclserventry
+next	cs/csmds.h	/^  struct _csmdsserventry* next;$/;"	m	struct:_csmdsserventry	typeref:struct:_csmdsserventry::_csmdsserventry
+next	echo/echo.h	/^  struct _echoserventry* next;$/;"	m	struct:_echoserventry	typeref:struct:_echoserventry::_echoserventry
+next	mds/chunks.c	/^  struct mdshash* next;$/;"	m	struct:mdshash	typeref:struct:mdshash::mdshash	file:
+next	mds/mdmd.h	/^  struct _mdmdserventry* next;$/;"	m	struct:_mdmdserventry	typeref:struct:_mdmdserventry::_mdmdserventry
+next	mds/mdmd_stat.c	/^  struct mdmd_stat_entry* next;$/;"	m	struct:mdmd_stat_entry	typeref:struct:mdmd_stat_entry::mdmd_stat_entry	file:
+next	mds/mds.h	/^  struct _mdsserventry* next;$/;"	m	struct:_mdsserventry	typeref:struct:_mdsserventry::_mdsserventry
+next	mds/mdscs.h	/^  struct _mdscsserventry* next;$/;"	m	struct:_mdscsserventry	typeref:struct:_mdscsserventry::_mdscsserventry
+next	mis/mis.h	/^  struct _misserventry* next;$/;"	m	struct:_misserventry	typeref:struct:_misserventry::_misserventry
+next	mis/mis_fs.c	/^  struct queue_* next;$/;"	m	struct:queue_	typeref:struct:queue_::queue_	file:
+next	postmark/postmark-1.51.c	/^   struct file_system_struct *next,*prev;$/;"	m	struct:file_system_struct	typeref:struct:file_system_struct::file_system_struct	file:
+nextevent	common/main.c	/^	uint32_t nextevent;$/;"	m	struct:timeentry	file:
+node_free	mds/mds_fs.c	/^static void node_free(hashnode* n){$/;"	f	file:
+node_free	mis/mis_fs.c	/^static void node_free(hashnode* n){$/;"	f	file:
+node_new	mds/mds_fs.c	/^static hashnode* node_new(ppfile* f){$/;"	f	file:
+node_new	mis/mis_fs.c	/^static hashnode* node_new(ppfile* f){$/;"	f	file:
+now	common/main.c	/^static uint32_t now;$/;"	v	file:
+num	common/strerr.c	/^	int num;$/;"	m	struct:errent	file:
+occupy	cs/chunks.h	/^  int occupy;$/;"	m	struct:cschunk
+occupy	mds/chunks.h	/^  int occupy;$/;"	m	struct:mdschunk
+offset	common/main.c	/^	uint32_t offset;$/;"	m	struct:timeentry	file:
+os	trace_related/replay.py	/^import os,sys$/;"	i
+outpacket	cs/cscl.h	/^  ppacket* outpacket;$/;"	m	struct:_csclserventry
+outpacket	cs/csmds.h	/^  ppacket* outpacket;$/;"	m	struct:_csmdsserventry
+outpacket	mds/mdmd.h	/^  ppacket* outpacket;$/;"	m	struct:_mdmdserventry
+outpacket	mds/mds.h	/^  ppacket* outpacket;$/;"	m	struct:_mdsserventry
+outpacket	mds/mdscs.h	/^  ppacket* outpacket;$/;"	m	struct:_mdscsserventry
+outpacket	mis/mis.h	/^  ppacket* outpacket;$/;"	m	struct:_misserventry
+p	common/random.c	/^static uint8_t p[256];$/;"	v	file:
+padding	common/md5.c	/^static const uint8_t padding[64] = {$/;"	v	file:
+parent_path	client/client.c	/^char* parent_path(const char* path){$/;"	f
+parentdir	common/ppfile.c	/^char* parentdir(const char* path){$/;"	f
+parse_call	trace_related/call_stat.py	/^def parse_call(line):$/;"	f
+parse_call	trace_related/replay.py	/^def parse_call(line):$/;"	f
+parse_weight	postmark/postmark-1.51.c	/^int parse_weight(params)$/;"	f
+passert	common/massert.h	29;"	d
+path	client/cache.h	/^  char* path;$/;"	m	struct:attr_cache
+path	client/cache.h	/^  char* path;$/;"	m	struct:chunk_cache
+path	client/cache.h	/^  char* path;$/;"	m	struct:dir_cache
+path	common/ppfile.h	/^    char *path;$/;"	m	struct:heuristic
+path	common/ppfile.h	/^  char* path;$/;"	m	struct:ppfile
+path	mds/mdmd.h	/^  char* path;$/;"	m	struct:mdmd_path_st
+pcq_conn	mds/mdmd.c	/^static void* pcq_conn = NULL;$/;"	v	file:
+pcq_fin	mds/mdmd.c	/^static void* pcq_fin = NULL;$/;"	v	file:
+pdescpos	cs/cscl.h	/^  int pdescpos;$/;"	m	struct:_csclserventry
+pdescpos	cs/csmds.h	/^  int pdescpos;$/;"	m	struct:_csmdsserventry
+pdescpos	echo/echo.h	/^  int pdescpos;$/;"	m	struct:_echoserventry
+pdescpos	mds/mdmd.h	/^  int pdescpos;$/;"	m	struct:_mdmdserventry
+pdescpos	mds/mds.h	/^  int pdescpos;$/;"	m	struct:_mdsserventry
+pdescpos	mds/mdscs.h	/^  int pdescpos;$/;"	m	struct:_mdscsserventry
+pdescpos	mis/mis.h	/^  int pdescpos;$/;"	m	struct:_misserventry
+peerip	client/client.c	/^  int peerip;$/;"	m	struct:ppfs_conn_entry	file:
+peerip	cs/cscl.h	/^	uint32_t peerip;$/;"	m	struct:_csclserventry
+peerip	cs/csmds.h	/^	uint32_t peerip;$/;"	m	struct:_csmdsserventry
+peerip	echo/echo.h	/^	uint32_t peerip;$/;"	m	struct:_echoserventry
+peerip	mds/mdmd.h	/^	uint32_t peerip;$/;"	m	struct:_mdmdserventry
+peerip	mds/mds.h	/^	uint32_t peerip;$/;"	m	struct:_mdsserventry
+peerip	mds/mdscs.h	/^	uint32_t peerip;$/;"	m	struct:_mdscsserventry
+peerip	mis/mis.h	/^	uint32_t peerip;$/;"	m	struct:_misserventry
+pickle	mds/mds_fs.c	/^void pickle(char* path){$/;"	f
+pickle	mis/mis_fs.c	/^void pickle(char* path){$/;"	f
+pickle_attr	mds/mds_fs.c	/^static void pickle_attr(FILE* fp,attr a){$/;"	f	file:
+pickle_attr	mis/mis_fs.c	/^static void pickle_attr(FILE* fp,attr a){$/;"	f	file:
+play_call	trace_related/replay.py	/^def play_call(param):$/;"	f
+pollentry	common/main.c	/^typedef struct pollentry {$/;"	s	file:
+pollentry	common/main.c	/^} pollentry;$/;"	t	typeref:struct:pollentry	file:
+pollhead	common/main.c	/^static pollentry *pollhead=NULL;$/;"	v	file:
+pop_queue	client/cache.c	34;"	d	file:
+port	client/client.c	/^char *port = "8224";$/;"	v
+ppacket	common/ppcomm.h	/^typedef struct ppacket{$/;"	s
+ppacket	common/ppcomm.h	/^} ppacket;$/;"	t	typeref:struct:ppacket
+ppfile	common/ppfile.h	/^typedef struct ppfile{$/;"	s
+ppfile	common/ppfile.h	/^} ppfile;$/;"	t	typeref:struct:ppfile
+ppfs_access	client/client.c	/^int ppfs_access (const char *path, int amode){$/;"	f
+ppfs_chmod	client/client.c	/^int	ppfs_chmod (const char *path, mode_t mt){$/;"	f
+ppfs_chown	client/client.c	/^int	ppfs_chown (const char *path, uid_t uid, gid_t gid){$/;"	f
+ppfs_conn_entry	client/client.c	/^typedef struct ppfs_conn_entry{$/;"	s	file:
+ppfs_conn_entry	client/client.c	/^} ppfs_conn_entry;$/;"	t	typeref:struct:ppfs_conn_entry	file:
+ppfs_create	client/client.c	/^int	ppfs_create(const char *path, mode_t mt, struct fuse_file_info *fi){$/;"	f
+ppfs_fsinit	client/client.c	/^void* ppfs_fsinit( struct fuse_conn_info* conn ) { \/\/connect to MDS$/;"	f
+ppfs_getattr	client/client.c	/^int ppfs_getattr(const char* path, struct stat* stbuf){$/;"	f
+ppfs_mkdir	client/client.c	/^int ppfs_mkdir(const char* path, mode_t mt){$/;"	f
+ppfs_open	client/client.c	/^int ppfs_open(const char* path, struct fuse_file_info* fi){$/;"	f
+ppfs_oper	client/client.c	/^static struct fuse_operations ppfs_oper = {$/;"	v	typeref:struct:fuse_operations	file:
+ppfs_read	client/client.c	/^int	ppfs_read(const char * path, char * buf, size_t st, off_t off, struct fuse_file_info *fi){$/;"	f
+ppfs_readdir	client/client.c	/^int	ppfs_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi){$/;"	f
+ppfs_release	client/client.c	/^int ppfs_release(const char* path,struct fuse_file_info* fi){$/;"	f
+ppfs_rmdir	client/client.c	/^int	ppfs_rmdir (const char *path){$/;"	f
+ppfs_truncate	client/client.c	/^int ppfs_truncate(const char* path,off_t off){$/;"	f
+ppfs_unlink	client/client.c	/^int	ppfs_unlink (const char *path){$/;"	f
+ppfs_utimens	client/client.c	/^int ppfs_utimens(const char* path,const struct timespec tv[2]){ \/\/tv[0]: atime, tv[1] mtime$/;"	f
+ppfs_write	client/client.c	/^int	ppfs_write (const char *path, const char *buf, size_t st, off_t off, struct fuse_file_info *fi){$/;"	f
+prev	client/cache.h	/^  struct attr_cache *next,*prev;$/;"	m	struct:attr_cache	typeref:struct:attr_cache::
+prev	client/cache.h	/^  struct chunk_cache *next,*prev;$/;"	m	struct:chunk_cache	typeref:struct:chunk_cache::
+prev	client/cache.h	/^  struct dir_cache *next,*prev;$/;"	m	struct:dir_cache	typeref:struct:dir_cache::
+prev	common/ppds.h	/^  struct linklist* prev;$/;"	m	struct:linklist	typeref:struct:linklist::linklist
+prev	postmark/postmark-1.51.c	/^   struct file_system_struct *next,*prev;$/;"	m	struct:file_system_struct	typeref:struct:file_system_struct::	file:
+print_attr	api_test/api_test.c	/^void print_attr(const attr* a){$/;"	f
+print_attr	client/client.c	/^void print_attr(const attr* a){$/;"	f
+print_param	trace_related/call_stat.py	/^def print_param(param):$/;"	f
+push_queue	client/cache.c	7;"	d	file:
+put16bit	common/datapack.h	/^static inline void put16bit(uint8_t **ptr,uint16_t val) {$/;"	f
+put32bit	common/datapack.h	/^static inline void put32bit(uint8_t **ptr,uint32_t val) {$/;"	f
+put64bit	common/datapack.h	/^static inline void put64bit(uint8_t **ptr,uint64_t val) {$/;"	f
+put8bit	common/datapack.h	/^static inline void put8bit(uint8_t **ptr,uint8_t val) {$/;"	f
+q	trace_related/replay.py	/^q = deque([])$/;"	v
+qentry	common/pcqueue.c	/^} qentry;$/;"	t	typeref:struct:_qentry	file:
+query_dir	trace_related/call_stat.py	/^import query_dir$/;"	i
+query_dir	trace_related/replay.py	/^import query_dir$/;"	i
+queue	common/pcqueue.c	/^} queue;$/;"	t	typeref:struct:_queue	file:
+queue	mis/mis_fs.c	/^} queue;$/;"	t	typeref:struct:queue_	file:
+queue_	mis/mis_fs.c	/^typedef struct queue_{$/;"	s	file:
+queue_delete	common/pcqueue.c	/^void queue_delete(void *que) {$/;"	f
+queue_elements	common/pcqueue.c	/^uint32_t queue_elements(void *que) {$/;"	f
+queue_get	common/pcqueue.c	/^int queue_get(void *que,uint32_t *id,void** data){$/;"	f
+queue_isempty	common/pcqueue.c	/^int queue_isempty(void *que) {$/;"	f
+queue_new	common/pcqueue.c	/^void* queue_new(){$/;"	f
+queue_put	common/pcqueue.c	/^int queue_put(void *que,uint32_t id,void* data){$/;"	f
+re	trace_related/call_stat.py	/^import re$/;"	i
+re	trace_related/query_dir.py	/^import re$/;"	i
+re	trace_related/replay.py	/^import re$/;"	i
+read_block_size	postmark/postmark-1.51.c	/^int read_block_size=512;        \/* I\/O block sizes *\/$/;"	v
+read_buffer	postmark/postmark-1.51.c	/^char *read_buffer; \/* temporary space for reading file data into *\/$/;"	v
+read_chunk	cs/chunks.c	/^int read_chunk(cschunk* c,uint8_t* buf,int offset,int len){$/;"	f
+read_config_file	postmark/postmark-1.51.c	/^int read_config_file(filename,buffer,ignore)$/;"	f
+read_file	postmark/postmark-1.51.c	/^void read_file(number,buffered)$/;"	f
+receivepacket	api_test/api_test.c	/^ppacket* receivepacket(int sockfd){$/;"	f
+receivepacket	client/client.c	/^ppacket* receivepacket(int sockfd){$/;"	f
+ref	common/ppfile.h	/^  int ref;$/;"	m	struct:ppfile
+remote_mds	client/client.c	/^ppfs_conn_entry local_mds,remote_mds;$/;"	v
+remove_attr_cache	client/cache.c	/^void remove_attr_cache(attr_cache* c){$/;"	f
+remove_child	mis/mis_fs.c	/^void remove_child(ppfile* pf,ppfile* f){$/;"	f
+remove_chunk	cs/chunks.c	/^void remove_chunk(uint64_t chunkid){$/;"	f
+remove_chunk	mds/chunks.c	/^void remove_chunk(uint64_t chunkid){$/;"	f
+remove_chunk_cache	client/cache.c	/^void remove_chunk_cache(chunk_cache* c){$/;"	f
+remove_dir_cache	client/cache.c	/^void remove_dir_cache(dir_cache* c){$/;"	f
+remove_file	mds/mds_fs.c	/^void remove_file(ppfile* f){$/;"	f
+remove_file	mis/mis_fs.c	/^void remove_file(ppfile* f){$/;"	f
+remove_from_queue	client/cache.c	19;"	d	file:
+rep	common/ppfile.h	/^} rep;$/;"	t	typeref:struct:_rep
+rep_cnt	common/ppfile.h	/^  int rep_cnt;$/;"	m	struct:ppfile
+rep_ip	common/ppfile.h	/^      int rep_ip;$/;"	m	struct:_rep
+rep_list	common/ppfile.h	/^  rep* rep_list;$/;"	m	struct:ppfile
+report	postmark/postmark-1.51.c	/^int report=0;                   \/* 0=verbose, 1=terse report format *\/$/;"	v
+reports	postmark/postmark-1.51.c	/^void (*reports[])()={verbose_report,terse_report};$/;"	v
+reserved	cs/chunks.h	/^  void* reserved;$/;"	m	struct:cschunk
+reset_counters	postmark/postmark-1.51.c	/^void reset_counters()$/;"	f
+ret	trace_related/replay.py	/^        ret = arg.split("=")$/;"	v
+rnd_init	common/random.c	/^int rnd_init(void) {$/;"	f
+rndu32	common/random.c	/^uint32_t rndu32() {$/;"	f
+rndu32_ranged	common/random.c	/^uint32_t rndu32_ranged(uint32_t range) {$/;"	f
+rndu64	common/random.c	/^uint64_t rndu64() {$/;"	f
+rndu64_ranged	common/random.c	/^uint64_t rndu64_ranged(uint64_t range) {$/;"	f
+rndu8	common/random.c	/^uint8_t rndu8() {$/;"	f
+root	mis/mis.c	/^static ppfile* root;$/;"	v	file:
+run_transactions	postmark/postmark-1.51.c	/^int run_transactions(buffered)$/;"	f
+runfn	cs/init.h	/^typedef int (*runfn)(void);$/;"	t
+runfn	mds/init.h	/^typedef int (*runfn)(void);$/;"	t
+runfn	mis/init.h	/^typedef int (*runfn)(void);$/;"	t
+sassert	common/massert.h	30;"	d
+scale	postmark/postmark-1.51.c	/^char *scale(i)$/;"	f
+scalef	postmark/postmark-1.51.c	/^char *scalef(i)$/;"	f
+seconds	common/main.c	/^	uint32_t seconds;$/;"	m	struct:timeentry	file:
+seed	postmark/postmark-1.51.c	/^int seed=42;                    \/* random number generator seed *\/$/;"	v
+send_and_receive	api_test/api_test.c	/^static void send_and_receive(int sockfd,int ip,char* path,int cmd){$/;"	f	file:
+sendpacket	api_test/api_test.c	/^void sendpacket(int sockfd,ppacket* p){$/;"	f
+sendpacket	client/client.c	/^void sendpacket(int sockfd,ppacket* p){$/;"	f
+serv_connect	client/client.c	/^int serv_connect(ppfs_conn_entry* e,int ip,int port){$/;"	f
+serve	common/main.c	/^	void (*serve)(struct pollfd *);$/;"	m	struct:pollentry	file:
+set_signal_handlers	common/main.c	/^void set_signal_handlers(){$/;"	f
+set_trace	trace_related/call_stat.py	/^from pdb import set_trace$/;"	i
+set_trace	trace_related/query_dir.py	/^from pdb import set_trace$/;"	i
+set_trace	trace_related/replay.py	/^from pdb import set_trace$/;"	i
+sgenrand	postmark/postmark-1.51.c	/^sgenrand(seed)$/;"	f
+simultaneous	postmark/postmark-1.51.c	/^int simultaneous=500;           \/* simultaneous files *\/$/;"	v
+size	common/pcqueue.c	/^	uint32_t size;$/;"	m	struct:_queue	file:
+size	common/ppcomm.h	/^  int size;$/;"	m	struct:ppacket
+size	common/ppfile.h	/^  int size;$/;"	m	struct:_attr
+size	postmark/postmark-1.51.c	/^   int size;                  \/* current size of file, 0 = unused file slot *\/$/;"	m	struct:__anon8	file:
+sock	cs/cscl.h	/^  int sock; $/;"	m	struct:_csclserventry
+sock	cs/csmds.h	/^  int sock; $/;"	m	struct:_csmdsserventry
+sock	echo/echo.h	/^  int sock; \/\/0 - not active, 1 - read header, 2 - read packet$/;"	m	struct:_echoserventry
+sock	mds/mdmd.h	/^  int sock;$/;"	m	struct:_mdmdserventry
+sock	mds/mds.h	/^  int sock; $/;"	m	struct:_mdsserventry
+sock	mds/mdscs.h	/^  int sock; $/;"	m	struct:_mdscsserventry
+sock	mis/mis.h	/^  int sock; $/;"	m	struct:_misserventry
+sockaddrfill	common/sockets.c	/^static inline int sockaddrfill(struct sockaddr_in *sa,const char *hostname,const char *service,int family,int socktype,int passive) {$/;"	f	file:
+sockaddrnumfill	common/sockets.c	/^static inline int sockaddrnumfill(struct sockaddr_in *sa,uint32_t ip,uint16_t port) {$/;"	f	file:
+sockfd	client/client.c	/^  int sockfd;$/;"	m	struct:ppfs_conn_entry	file:
+socknonblock	common/sockets.c	/^static inline int socknonblock(int sock) {$/;"	f	file:
+sockresolve	common/sockets.c	/^static inline int sockresolve(const char *hostname,const char *service,uint32_t *ip,uint16_t *port,int family,int socktype,int passive) {$/;"	f	file:
+space	cs/chunks.c	/^static int space,availspace,chunks;$/;"	v	file:
+space	mds/mdscs.h	/^  int space,availspace,chunks;$/;"	m	struct:_mdscsserventry
+srcip	common/ppfile.h	/^  int srcip; \/\/the ip of the mds on which this file is located , primary$/;"	m	struct:ppfile
+startptr	common/ppcomm.h	/^  char* startptr;$/;"	m	struct:ppacket
+startptr	cs/cscl.h	/^  uint8_t* startptr;$/;"	m	struct:_csclserventry
+startptr	cs/csmds.h	/^  uint8_t* startptr;$/;"	m	struct:_csmdsserventry
+startptr	mds/mdmd.h	/^  uint8_t* startptr;$/;"	m	struct:_mdmdserventry
+startptr	mds/mds.h	/^  uint8_t* startptr;$/;"	m	struct:_mdsserventry
+startptr	mds/mdscs.h	/^  uint8_t* startptr;$/;"	m	struct:_mdscsserventry
+startptr	mis/mis.h	/^  uint8_t* startptr;$/;"	m	struct:_misserventry
+stat	trace_related/replay.py	/^import stat$/;"	i
+stat_path	mds/mdmd_stat.c	/^char* stat_path = ".";$/;"	v
+state	common/md5.h	/^	uint32_t state[4];$/;"	m	struct:_md5ctx
+str	common/strerr.c	/^	const char* str;$/;"	m	struct:errent	file:
+strdup	common/ppds.c	/^char* strdup(const char*s){$/;"	f
+strerr	common/strerr.c	/^const char* strerr(int error) {$/;"	f
+strerr_init	common/strerr.c	/^void strerr_init(void) {$/;"	f
+strerr_term	common/strerr.c	/^void strerr_term(void) {$/;"	f
+strhash	common/ppds.h	/^static unsigned int strhash(char* s){$/;"	f
+subdirectories	postmark/postmark-1.51.c	/^int subdirectories=0;  	\/* Number of subdirectories *\/$/;"	v
+sys	trace_related/query_dir.py	/^import sys$/;"	i
+sys	trace_related/replay.py	/^import os,sys$/;"	i
+sys_types	trace_related/call_stat.py	/^    sys_types = ['STAT','FSTAT','LSTAT','READ','SREAD','SWRITE','WRITEV','READV']$/;"	v
+system	postmark/postmark-1.51.c	/^   file_entry system;$/;"	m	struct:file_system_struct	file:
+t	trace_related/replay.py	/^t = 0 #current time$/;"	v
+tab	cs/chunks.c	/^static cshash* tab[CHUNKTABSIZE];$/;"	v	file:
+tab	mds/chunks.c	/^static mdshash* tab[CHUNKTABSIZE];$/;"	v	file:
+tab	mds/mds_fs.c	/^static hashnode* tab[HASHSIZE];$/;"	v	file:
+tab	mis/mis_fs.c	/^static hashnode* tab[HASHSIZE];$/;"	v	file:
+tail	common/pcqueue.c	/^	qentry *head,**tail;$/;"	m	struct:_queue	file:
+tcpaccept	common/sockets.c	/^int tcpaccept(int lsock) {$/;"	f
+tcpaccfdata	common/sockets.c	/^int tcpaccfdata(int sock) {$/;"	f
+tcpaccfhttp	common/sockets.c	/^int tcpaccfhttp(int sock) {$/;"	f
+tcpclose	common/sockets.c	/^int tcpclose(int sock) {$/;"	f
+tcpgetmyaddr	common/sockets.c	/^int tcpgetmyaddr(int sock,uint32_t *ip,uint16_t *port) {$/;"	f
+tcpgetpeer	common/sockets.c	/^int tcpgetpeer(int sock,uint32_t *ip,uint16_t *port) {$/;"	f
+tcpgetstatus	common/sockets.c	/^int tcpgetstatus(int sock) {$/;"	f
+tcpnodelay	common/sockets.c	/^int tcpnodelay(int sock) {$/;"	f
+tcpnonblock	common/sockets.c	/^int tcpnonblock(int sock) {$/;"	f
+tcpnumbind	common/sockets.c	/^int tcpnumbind(int sock,uint32_t ip,uint16_t port) {$/;"	f
+tcpnumconnect	common/sockets.c	/^int tcpnumconnect(int sock,uint32_t ip,uint16_t port) {$/;"	f
+tcpnumlisten	common/sockets.c	/^int tcpnumlisten(int sock,uint32_t ip,uint16_t port,uint16_t queue) {$/;"	f
+tcpnumtoconnect	common/sockets.c	/^int tcpnumtoconnect(int sock,uint32_t ip,uint16_t port,uint32_t msecto) {$/;"	f
+tcpresolve	common/sockets.c	/^int tcpresolve(const char *hostname,const char *service,uint32_t *ip,uint16_t *port,int passive) {$/;"	f
+tcpreuseaddr	common/sockets.c	/^int tcpreuseaddr(int sock) {$/;"	f
+tcpsetacceptfilter	common/sockets.c	/^int tcpsetacceptfilter(int sock) {$/;"	f
+tcpsocket	common/sockets.c	/^int tcpsocket(void) {$/;"	f
+tcpstrbind	common/sockets.c	/^int tcpstrbind(int sock,const char *hostname,const char *service) {$/;"	f
+tcpstrconnect	common/sockets.c	/^int tcpstrconnect(int sock,const char *hostname,const char *service) {$/;"	f
+tcpstrlisten	common/sockets.c	/^int tcpstrlisten(int sock,const char *hostname,const char *service,uint16_t queue) {$/;"	f
+tcpstrtoconnect	common/sockets.c	/^int tcpstrtoconnect(int sock,const char *hostname,const char *service,uint32_t msecto) {$/;"	f
+tcptoaccept	common/sockets.c	/^int tcptoaccept(int sock,uint32_t msecto) {$/;"	f
+tcptoread	common/sockets.c	/^int32_t tcptoread(int sock,void *buff,uint32_t leng,uint32_t msecto) {$/;"	f
+tcptowrite	common/sockets.c	/^int32_t tcptowrite(int sock,const void *buff,uint32_t leng,uint32_t msecto) {$/;"	f
+term_fs	mds/mds_fs.c	/^void term_fs(){$/;"	f
+term_fs	mis/mis_fs.c	/^void term_fs(){$/;"	f
+termhandle	common/main.c	/^void termhandle(int signo){$/;"	f
+termsignal	common/main.c	/^static int termsignal[]={$/;"	v	file:
+terse_report	postmark/postmark-1.51.c	/^void terse_report(fp,end_time,start_time,t_end_time,t_start_time,deleted)$/;"	f
+test1	trace_related/query_dir.py	/^def test1():$/;"	f
+test2	trace_related/query_dir.py	/^def test2(dev,fid):$/;"	f
+test_call_file_uids	trace_related/call_stat.py	/^def test_call_file_uids(dates,apis):$/;"	f
+test_call_hid	trace_related/call_stat.py	/^def test_call_hid(dates,apis):$/;"	f
+test_call_hid_uid	trace_related/call_stat.py	/^def test_call_hid_uid(apis):$/;"	f
+test_call_path	trace_related/call_stat.py	/^def test_call_path():$/;"	f
+test_call_types	trace_related/call_stat.py	/^def test_call_types():$/;"	f
+test_call_uids	trace_related/call_stat.py	/^def test_call_uids(apis):$/;"	f
+test_get_instance	trace_related/call_stat.py	/^def test_get_instance(items):$/;"	f
+test_inspect	trace_related/call_stat.py	/^def test_inspect():$/;"	f
+thread_count	trace_related/replay.py	/^thread_count = 10$/;"	v
+time	trace_related/replay.py	/^import time$/;"	i
+time_scale	trace_related/replay.py	/^time_scale = 100$/;"	v
+timeentry	common/main.c	/^typedef struct timeentry {$/;"	s	file:
+timeentry	common/main.c	/^} timeentry;$/;"	t	typeref:struct:timeentry	file:
+timeentry_test	mis/mis.c	/^static void timeentry_test(void){$/;"	f	file:
+timehead	common/main.c	/^static timeentry *timehead=NULL;$/;"	v	file:
+trace_prefix	trace_related/call_stat.py	/^trace_prefix = ".\/traces\/trace"$/;"	v
+trace_prefix	trace_related/replay.py	/^trace_prefix = ".\/traces\/trace"$/;"	v
+transactions	postmark/postmark-1.51.c	/^int transactions=500;           \/* number of transactions *\/$/;"	v
+type	mds/mdmd.h	/^  int type; \/\/1:incoming; 2:outgoing$/;"	m	struct:_mdmdserventry
+type	mds/mdmd.h	/^  int type;$/;"	m	struct:mdmd_path_st
+udpclose	common/sockets.c	/^int udpclose(int sock) {$/;"	f
+udpnonblock	common/sockets.c	/^int udpnonblock(int sock) {$/;"	f
+udpnumlisten	common/sockets.c	/^int udpnumlisten(int sock,uint32_t ip,uint16_t port) {$/;"	f
+udpread	common/sockets.c	/^int udpread(int sock,uint32_t *ip,uint16_t *port,void *buff,uint16_t leng) {$/;"	f
+udpresolve	common/sockets.c	/^int udpresolve(const char *hostname,const char *service,uint32_t *ip,uint16_t *port,int passive) {$/;"	f
+udpsocket	common/sockets.c	/^int udpsocket(void) {$/;"	f
+udpstrlisten	common/sockets.c	/^int udpstrlisten(int sock,const char *hostname,const char *service) {$/;"	f
+udpwrite	common/sockets.c	/^int udpwrite(int sock,uint32_t ip,uint16_t port,const void *buff,uint16_t leng) {$/;"	f
+uid	common/ppfile.h	/^  int uid,gid;$/;"	m	struct:_attr
+unpickle	mds/mds_fs.c	/^void unpickle(char* path){$/;"	f
+unpickle	mis/mis_fs.c	/^void unpickle(char* path){$/;"	f
+unpickle_attr	mds/mds_fs.c	/^static void unpickle_attr(FILE* fp,attr* a){$/;"	f	file:
+unpickle_attr	mis/mis_fs.c	/^static void unpickle_attr(FILE* fp,attr* a){$/;"	f	file:
+update_visit	mis/mis_fs.c	/^void update_visit(ppfile* f) {$/;"	f
+update_visit_all	mis/mis_fs.c	/^void update_visit_all(void) {$/;"	f
+usecnow	common/main.c	/^static uint64_t usecnow;$/;"	v	file:
+verbose_report	postmark/postmark-1.51.c	/^void verbose_report(fp,end_time,start_time,t_end_time,t_start_time,deleted)$/;"	f
+visit	common/ppfile.h	/^    int visit;$/;"	m	struct:heuristic
+visit	mds/mdmd.h	/^  int visit;$/;"	m	struct:mdmd_path_st
+visit_time	common/ppfile.h	/^      int visit_time;$/;"	m	struct:_rep
+waitfree	common/pcqueue.c	/^	pthread_cond_t waitfree;$/;"	m	struct:_queue	file:
+write_block_size	postmark/postmark-1.51.c	/^int write_block_size=512;$/;"	v
+write_blocks	postmark/postmark-1.51.c	/^void write_blocks(fd,size)$/;"	f
+write_chunk	cs/chunks.c	/^int write_chunk(cschunk* c,const uint8_t* buf,int offset,int len){$/;"	f
+writelen	echo/echo.h	/^  int writelen;$/;"	m	struct:_echoserventry
+zassert	common/massert.h	37;"	d

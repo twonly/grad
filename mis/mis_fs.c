@@ -1,8 +1,6 @@
 #include "mis_fs.h"
 #include <stdio.h>
 
-static hashnode* tab[HASHSIZE];
-
 int init_fs(){
   memset(tab,0,sizeof(tab));
   struct stat st;
@@ -90,6 +88,7 @@ ppfile* lookup_file(char* p){
 
   return NULL;
 }
+
 void remove_child(ppfile* pf,ppfile* f){
   ppfile* c = pf->child;
 
@@ -108,10 +107,36 @@ void remove_child(ppfile* pf,ppfile* f){
   remove_file(f);
 }
 
+void update_visit(ppfile* f) {
+    rep* r = f->rep_list;
+    syslog(LOG_WARNING, "update %s replica info", f->path);
+    while(r) {
+        r->history = r->history/2 + r->visit_time;
+        r->visit_time = 0;
+        syslog(LOG_WARNING, "after update %s: ip:%X, history:%d, visit_time:%d", f->path, r->rep_ip, r->history, r->visit_time);
+        r = r->next;
+    }
+    return;
+}
+
+void update_visit_all(void) {
+    syslog(LOG_WARNING, "update all replica info");
+  int i;
+  for(i=0; i<HASHSIZE; ++i) { //HASHSIZE/2?
+      hashnode* n = tab[i];
+      while(n) {
+          ppfile* f = (ppfile*)(n->data);
+          update_visit(f);      
+          n = n->next;
+      }
+  }
+  return;
+}
+
 #define MAX_QUEUE_SIZE 1000
 
 typedef struct queue_{
-  ppfile* f;
+      ppfile* f;
   struct queue_* next;
 } queue;
 

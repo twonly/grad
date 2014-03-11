@@ -4,6 +4,7 @@
 #include "ppfile.h"
 #include "ppds.h"
 
+#include <syslog.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -11,11 +12,16 @@
 
 #define DUMP_FILE "./mds_fs.dump"
 
+hashnode* tab[HASHSIZE];
+
 int init_fs();
 void term_fs();
 
 void add_file(ppfile*);
 void remove_file(ppfile*);
+
+void update_visit(ppfile* f);
+void update_visit_all();
 
 ppfile* lookup_file(char*);
 

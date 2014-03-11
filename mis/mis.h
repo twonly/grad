@@ -20,6 +20,9 @@
 enum {KILL,HEADER,DATA};
 
 #define MAXBUFSIZE 512
+//#define HASHSIZE 3571
+
+#define MIS_DECAY_TIME 30 //in seconds
 
 typedef struct _misserventry{
   int sock; 
@@ -82,5 +85,11 @@ void mis_rfw_append_chunk(misserventry* eptr,ppacket* p);
 void mis_login(misserventry* eptr,ppacket* p);
 void mis_add_user(misserventry* eptr,ppacket* p);
 void mis_del_user(misserventry* eptr,ppacket* p);
+
+//visit info decay
+void mis_visit_decay(void);
+void mis_update_visit_all(void);
+void mis_create_replica(ppfile *f);
+
 
 #endif

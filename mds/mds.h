@@ -56,6 +56,9 @@ mdsserventry* mds_entry_from_id(int id);
 void mds_getattr(mdsserventry* eptr,ppacket* p);
 void mds_cl_getattr(mdsserventry* eptr,ppacket* p);
 
+void mds_create_replica(mdsserventry* eptr,ppacket* p);
+void mds_mi_create_replica(mdsserventry* eptr,ppacket* p);
+
 void mds_readdir(mdsserventry* eptr,ppacket* p);
 void mds_cl_readdir(mdsserventry* eptr,ppacket* p);
 

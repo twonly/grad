@@ -209,24 +209,24 @@ int ppfs_getattr(const char* path, struct stat* stbuf){
   fprintf(stderr, "ppfs_getattr path : %s\n", path);
 
   attr_cache* ac;
-  if(lookup_attr_cache(path,&ac) == 0){
-    stbuf->st_mode = ac->a.mode; //S_IFREG | 0755;
-    stbuf->st_nlink = ac->a.link;
-    if(stbuf->st_mode & S_IFDIR )
-      stbuf->st_size = 4096;
-    else
-      stbuf->st_size = ac->a.size;
+  //if(lookup_attr_cache(path,&ac) == 0){
+  //  stbuf->st_mode = ac->a.mode; //S_IFREG | 0755;
+  //  stbuf->st_nlink = ac->a.link;
+  //  if(stbuf->st_mode & S_IFDIR )
+  //    stbuf->st_size = 4096;
+  //  else
+  //    stbuf->st_size = ac->a.size;
 
-    stbuf->st_ctime = ac->a.ctime;
-    stbuf->st_atime = ac->a.atime;
-    stbuf->st_mtime = ac->a.mtime;
+  //  stbuf->st_ctime = ac->a.ctime;
+  //  stbuf->st_atime = ac->a.atime;
+  //  stbuf->st_mtime = ac->a.mtime;
 
-    stbuf->st_uid = ac->a.uid;
-    stbuf->st_gid = ac->a.gid;
-    stbuf->st_blocks = 0;
+  //  stbuf->st_uid = ac->a.uid;
+  //  stbuf->st_gid = ac->a.gid;
+  //  stbuf->st_blocks = 0;
 
-    return 0;
-  }
+  //  return 0;
+  //}
 
   ppacket *s = createpacket_s(4+strlen(path), CLTOMD_GETATTR,-1);
   fprintf(stderr, "createpacket_s packet size:%u, cmd:%X\n", s->size, s->cmd); //5,4096
@@ -266,7 +266,7 @@ int ppfs_getattr(const char* path, struct stat* stbuf){
 
     stbuf->st_blocks = 0;
 
-    attr_cache_add(path,*a);
+    //attr_cache_add(path,*a);
   }
 
   free(s);

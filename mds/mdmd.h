@@ -58,14 +58,18 @@ typedef struct _mdmdserventry{
 //for both PATH_CACHE & DIR_HEURISTIC
 #define MDMD_PATH_EXPIRE 3600 //in seconds
 
+#define MDMD_DECAY_TIME 60 //in seconds
+
 #define MDMD_FREQ_FACTOR 0.5
 #define MDMD_TIME_FACTOR 0.5
 
 typedef struct mdmd_path_st{
   char* path;
   int type;
+  int ip;
 
   int visit;
+  int history;
   uint32_t atime;
   uint32_t ctime;
 } mdmd_path_st;
@@ -94,11 +98,17 @@ void mdmd_getattr(mdmdserventry* eptr,char* path,int id);
 void mdmd_s2c_getattr(mdmdserventry* eptr,ppacket* p);
 void mdmd_c2s_getattr(mdmdserventry* eptr,ppacket* p);
 
+//yjy
+void mdmd_send_attr( int ip, ppfile* f);
+void mdmd_get_attr(mdmdserventry* eptr, ppacket* inp);
+void mdmd_update_attr( int ip, ppfile* f);
+
 void mdmdserventry_add_entry(mdmdserventry* eptr,mdmd_path_st* mps);
 
 int mdmdserventry_has_path(mdmdserventry* eptr,char* path);
 mdmd_path_st* mdmdserventry_find_dir(mdmdserventry* eptr,char* dir);
 
+void mdmd_heuristic_decay(void);
 void mdmdserventry_purge_cache(void);
 
 void mdmdserventry_free(mdmdserventry* eptr);
