@@ -354,7 +354,7 @@ void mds_write(mdsserventry *eptr) {
 		}
 
     //debug
-    fprintf(stderr,"wrote %d from (ip:%u.%u.%u.%u)\n",i,(eptr->peerip>>24)&0xFF,(eptr->peerip>>16)&0xFF,(eptr->peerip>>8)&0xFF,eptr->peerip&0xFF);
+    fprintf(stderr,"wrote %d to (ip:%u.%u.%u.%u)\n",i,(eptr->peerip>>24)&0xFF,(eptr->peerip>>16)&0xFF,(eptr->peerip>>8)&0xFF,eptr->peerip&0xFF);
 
 		eptr->outpacket->startptr += i;
 		eptr->outpacket->bytesleft -=i;
@@ -498,7 +498,7 @@ mdsserventry* mds_entry_from_id(int id){ //maybe add a hash?
   return eptr;
 }
 
-static void mds_direct_pass_cl(mdsserventry* eptr,ppacket* p,int cmd){
+void mds_direct_pass_cl(mdsserventry* eptr,ppacket* p,int cmd){
   mdsserventry* ceptr = mds_entry_from_id(p->id);
   fprintf(stderr, "mds_direct_pass_cl entry id is %X\n", p->id);
 
@@ -513,6 +513,7 @@ static void mds_direct_pass_cl(mdsserventry* eptr,ppacket* p,int cmd){
 
 void mds_direct_pass_mi(ppacket* p,int cmd){
   const uint8_t* ptr = p->startptr;
+  fprintf(stderr, "mds_direct_pass_mi entry id is %X\n", p->id);
 
   ppacket* outp = createpacket_s(p->size,cmd,p->id);
   memcpy(outp->startptr+HEADER_LEN,p->startptr,p->size);
@@ -551,7 +552,7 @@ void mds_getattr(mdsserventry* eptr,ppacket* p){
 
   ppfile* f = lookup_file(path); //
   if(f == NULL){
-    syslog(LOG_WARNING,"mds_getattr: can not find path:%s",path);
+    fprintf(stderr,"not found path:%s\n",path);
     mdmdserventry* meptr;
    //     if((meptr=mdmd_find_link(path)) != NULL){//use inter-mds connections, this process may be passed later.
    //       fprintf(stderr,"+using conns between mds and mds\n");
@@ -559,7 +560,7 @@ void mds_getattr(mdsserventry* eptr,ppacket* p){
    //     } else {
           mds_direct_pass_mi(p,MDTOMI_GETATTR);
    //     }
-  } else {
+  } else { //return directly
     syslog(LOG_WARNING,"mds_getattr: find path:%s",path);
     fprintf(stderr,"found path:%s\n",path);
 
@@ -578,52 +579,39 @@ void mds_getattr(mdsserventry* eptr,ppacket* p){
 
 void mds_cl_getattr(mdsserventry* eptr,ppacket* p){ //p->id? | Msg returned from MIS
   fprintf(stderr,"+mds_cl_getattr\n");
-  //const uint8_t* ptr = p->startptr;
-  //int status = get32bit(&ptr);
-  //if(status == 0){
-  //  fprintf(stderr,"p->size=%d\n",p->size);
+  const uint8_t* ptr = p->startptr;
+  int flag = get32bit(&ptr);
+  if(flag <= 0){ //directory or error, return directly
+      mds_direct_pass_cl(eptr,p,MDTOCL_GETATTR);
+      return;
+  } else { //regular file, flag is plen
+      fprintf(stderr,"p->size=%d\n",p->size);
+      int plen = flag;
+      fprintf(stderr,"plen=%d\n",plen);
+      char* path = malloc(plen+1);
+      memcpy(path,ptr,plen);
+      path[plen] = 0;
+      ptr += plen;
+      uint32_t ip = get32bit(&ptr);
 
-  //  if(p->size - 4 - sizeof(attr) > 4){
-  //    attr a;
-  //    memcpy(&a,ptr,sizeof(attr));
-
-  //    if(S_ISREG(a.mode)){
-  //      ptr += sizeof(attr);
-
-  //      int plen = get32bit(&ptr);
-  //      fprintf(stderr,"plen=%d\n",plen);
-  //      char* path = malloc(plen+10);
-  //      memcpy(path,ptr,plen);
-  //      path[plen] = 0;
-
-  //      ptr += plen;
-
-  //      uint32_t ip = get32bit(&ptr);
-
-  //      //Record the returned MDS info
-  //      fprintf(stderr,"adding path:(%X,%s) to mdmd\n",ip,path);
-  //      mdmd_add_entry(ip,path,MDMD_PATH_CACHE);
-
-  //      char* dir = parentdir(path);
-  //      fprintf(stderr,"adding dir:(%X,%s) to mdmd\n",ip,dir);
-  //      mdmd_add_entry(ip,dir,MDMD_DIR_HEURISTIC);
-
-  //      //TODO
-  //      //Update the heuristic table, add 1 access (visited_cnt) && tell Primary MDS to add an access
-  //      //mdmd_connect(ip);
-  //      //mdmd_getattr(path)
-  //      //heuristic table
-  //      //
-
-  //      free(path);
-  //      free(dir);
-  //    } else {
-  //    	mdmd_stat_count(STAT_DIR_MISS);
-  //    }
-  //  }
-  //}
-
-  mds_direct_pass_cl(eptr,p,MDTOCL_GETATTR);
+      //connect to Primary MDS of metadata.
+      fprintf(stderr,"adding path:(%X,%s) to mdmd",ip,path);
+      mdmd_add_entry(ip,path,MDMD_PATH_CACHE); //connect to Primary, TODO
+      mdmdserventry* meptr = mdmdserventry_from_ip(ip); //get Primary entry
+      if(meptr) {
+          fprintf(stderr,"+retrieve eptr with Primary");
+          mdmd_getattr(meptr,path,p->id);
+          return;
+      } else {
+          fprintf(stderr,"+no eptr between Primary, return ENOENT\n");
+          ppacket* outp = createpacket_s(4,MDTOCL_GETATTR,p->id); //p->id = Client id
+          uint8_t *ptr2 = outp->startptr + HEADER_LEN;
+          put32bit(&ptr2,-ENOENT);
+          mds_direct_pass_cl(eptr, outp, MDTOCL_GETATTR); //potential bug TODO
+          return;
+      }
+  }
+  //mds_direct_pass_cl(eptr,p,MDTOCL_GETATTR);
 }
 
 void mds_create_replica(mdsserventry* eptr,ppacket* p){ //create replica of file entry
@@ -857,16 +845,17 @@ void mds_unlink(mdsserventry* eptr,ppacket* inp){
   printf("path=%s\n",path);
 
   ppfile* f = lookup_file(path);
+  //unlink locally
   if(f){
     for(i=0;i<f->chunks;i++){ //remove all chunks
       mdscs_delete_chunk(f->clist[i]);
     }
-
     remove_file(f);
     free_file(f);
   }
 
-  if(mdtomi != eptr)
+  //notify MIS
+  if(mdtomi != eptr) //msg is from CLIENT, not pretended by MIS
     mds_direct_pass_mi(inp,MDTOMI_UNLINK);
 
   free(path);
@@ -930,25 +919,28 @@ void mds_cl_create(mdsserventry* eptr,ppacket* inp){ //yjy
       ptr += plen;
       int mt = get32bit(&ptr);
 
-    attr a;
-    a.uid = a.gid = 0;
-    a.atime = a.ctime = a.mtime = time(NULL);
-    a.link = 1;
-    a.size = 0;
+      attr a;
+      a.uid = a.gid = 0;
+      a.atime = a.ctime = a.mtime = time(NULL);
+      a.link = 1;
+      a.size = 0;
 
-    a.mode = mt; //use mode from client
-    fprintf(stderr, "mds_mode : %o", mt);
+      a.mode = mt; //use mode from client
+      fprintf(stderr, "mds_mode : %o", mt);
 
-    ppfile* nf = new_file(path,a);
-    //nf->scrip = eptr->peerip;
-    nf->rep_list = NULL;
-    nf->rep_cnt = 0;
-    add_file(nf); //add to hash list
-    fprintf(stderr, "add new file %s to hash\n", path);
-    free(path);
-    mds_direct_pass_cl(eptr,inp,MDTOCL_CREATE);
+      ppfile* nf = new_file(path,a);
+      uint32_t ip2;
+      tcpgetmyaddr(eptr->sock, &ip2);
+      nf->srcip = ip; //how to retrieve local ip, workaround: MIS send eptr->ip back XDDDD
+      //fprintf(stderr,"primary (ip:%u.%u.%u.%u) \n",(*ip2>>24)&0xFF,(*ip2>>16)&0xFF,(*ip2>>8)&0xFF,*ip2&0xFF);
+      //fprintf(stderr, "local ip is %X\n", *ip2); 
+      nf->rep_list = NULL;
+      nf->rep_cnt = 0;
+      add_file(nf); //add to hash list
+      fprintf(stderr, "add new file %s to hash\n", path);
+      free(path);
+      mds_direct_pass_cl(eptr,inp,MDTOCL_CREATE);
   }
-  //ppacket* outp = NULL;
 }
 
 void mds_open(mdsserventry* eptr,ppacket* inp){

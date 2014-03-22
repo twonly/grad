@@ -17,6 +17,8 @@ hashnode* tab[HASHSIZE];
 int init_fs();
 void term_fs();
 
+void add_ppnode(ppnode*);
+void remove_ppnode(ppnode*);
 void add_file(ppfile*);
 void remove_file(ppfile*);
 
@@ -24,6 +26,7 @@ void update_visit(ppfile* f);
 void update_visit_all();
 
 ppfile* lookup_file(char*);
+ppnode* lookup_ppnode(char*);
 
 void pickle(char* path);
 void unpickle(char* path);

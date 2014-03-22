@@ -12,6 +12,30 @@ char* getbasename(char* path){
   return (path + pos + 1);
 }
 
+ppnode* new_ppnode(char* path) {
+    ppnode* ret = (ppnode*)malloc(sizeof(ppnode));
+    ret->path = strdup(path);
+    ret->primaryip = 0;
+    ret->repip = NULL;
+    ret->isdir = 0;
+    //ret->a = 0;
+    if(!strcmp(path,"/")){
+        ret->name = ret->path;
+        ret->isdir = 1;
+    } else {
+        ret->name = getbasename(ret->path);
+    }
+    ret->next = ret->child = NULL;
+    return ret;
+}
+
+void free_ppnode(ppnode* n) {
+    if(n) {
+        free(n->path);
+        free(n);
+    }
+}
+
 ppfile* new_file(char* path,attr a){
   ppfile* ret = (ppfile*)malloc(sizeof(ppfile));
   ret->path = strdup(path);

@@ -24,10 +24,21 @@ typedef struct _rep {
 
 #define FILE_MAXCHUNKS 10000
 
+typedef struct ppnode { //store namespace in MIS
+    char *path;
+    char *name;
+    int isdir;
+    attr a; //for directory
+    int primaryip; //support file
+    int *repip; //can be a list of replicas
+    struct ppnode* next;
+    struct ppnode* child;
+} ppnode;
+
 typedef struct ppfile{
   char* path;
   char* name;
-  attr a;
+  attr a; //attribute, metadata
 
   int ref;
 
@@ -48,6 +59,9 @@ typedef struct ppfile{
 
 ppfile* new_file(char* path,attr a);
 void free_file(ppfile*);
+
+ppnode* new_ppnode(char* path);
+void free_ppnode(ppnode*);
 
 int file_append_chunk(ppfile* f,uint64_t id);
 int file_pop_chunk(ppfile* f,uint64_t* id);

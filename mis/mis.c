@@ -9,6 +9,7 @@ static int lsock;
 static int lsockpdescpos;
 
 static ppfile* root;
+static ppnode* rootnode;
 
 void mis_fs_demo_init(void){
   attr a;
@@ -20,8 +21,13 @@ void mis_fs_demo_init(void){
   a.size = 1;
 
   a.mode = 0777 | S_IFDIR;
-  root = new_file("/",a);
-  add_file(root);
+  //root = new_file("/",a);
+  //add_file(root);
+  rootnode = new_ppnode("/");
+  rootnode->isdir = 1;
+  rootnode->a = a;
+  add_ppnode(rootnode);
+  fprintf(stderr, "add root node, path is %s\n", rootnode->path);
 
     //nf->srcip = eptr->peerip;
 
@@ -55,7 +61,7 @@ int mis_init(void){
 
 	main_destructregister(mis_term);
 	main_pollregister(mis_desc,mis_serve);
-    main_timeregister(TIMEMODE_RUN_LATE,MIS_DECAY_TIME,0,mis_visit_decay);
+    //main_timeregister(TIMEMODE_RUN_LATE,MIS_DECAY_TIME,0,mis_visit_decay);
   main_destructregister(term_fs);
 
   mis_fs_demo_init();
@@ -352,61 +358,91 @@ void mis_getattr(misserventry* eptr,ppacket* inp){
 
   printf("path=%s\n",path);
 
-  ppfile* f = lookup_file(path);
-  if(f == NULL){
+  //ppfile* f = lookup_file(path);
+  ppnode* n = lookup_ppnode(path);
+  if(n == NULL){
     p = createpacket_s(4,MITOMD_GETATTR,inp->id);
-
     uint8_t* ptr = p->startptr + HEADER_LEN;
     fprintf(stderr, "can not find the path, status=%d\n",-ENOENT);
-    put32bit(&ptr,-ENOENT);
+    put32bit(&ptr,-ENOENT); //-2
   } else {
-    fprintf(stderr, "found the path, status=%d\n", 0);
-    int totsize = 4+sizeof(attr);
-    if(S_ISREG(f->a.mode)) totsize += 4+plen+4;
+    fprintf(stderr, "found the path, n->isdir=%d\n", n->isdir);
+    int totsize = 4;//+sizeof(attr);
+    if(n->isdir!=1) totsize += 4+plen+4; //add path and len and ip
+    else totsize += sizeof(attr);
     fprintf(stderr,"p->size=%d\n",totsize);
 
     p = createpacket_s(totsize,MITOMD_GETATTR,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
-    put32bit(&ptr,0);
-    memcpy(ptr,&f->a,sizeof(attr));
-    ptr += sizeof(attr);
 
-    if(S_ISREG(f->a.mode)){
+    if(n->isdir!=1) { //regular file, return ip
       put32bit(&ptr,plen);
       memcpy(ptr,path,plen);
       ptr += plen;
-
-      put32bit(&ptr,f->srcip); //primary ip
-      
-      rep* riter = f->rep_list;
-      if( f->srcip != eptr->peerip ) { //if request is from primary, no need to update visit info
-          while(riter) {
-              if(riter->rep_ip == eptr->peerip) { //peer has been candidate
-                  riter->visit_time += 1;
-                  syslog(LOG_WARNING, "getattr: peer candidate exist, ip:%u.%u.%u.%u, visit_time:%d", 
-                          (riter->rep_ip)>>24&0xff, (riter->rep_ip)>>16&0xff, (riter->rep_ip)>>8&0xff, (riter->rep_ip)&0xff, riter->visit_time);
-                  break;
-              } 
-              riter = riter->next;
-          }
-          if(!riter) { //Not candidate yet
-              syslog(LOG_WARNING, "Can not find peer");
-              rep* candidate = (rep*)malloc(sizeof(rep));
-              candidate->rep_ip = eptr->peerip;
-              candidate->visit_time = 1;
-              candidate->history = 0;
-              candidate->is_rep = 0;
-              candidate->next = f->rep_list;
-              f->rep_list = candidate;
-              f->rep_cnt += 1;
-              syslog(LOG_WARNING, "getattr: new peer candidate, ip:%u.%u.%u.%u, visit_time:%d", 
-                  (candidate->rep_ip)>>24&0xff, (candidate->rep_ip)>>16&0xff, (candidate->rep_ip)>>8&0xff, (candidate->rep_ip)&0xff, candidate->visit_time);
-          }
-      }
-
-      fprintf(stderr,"srcip=%X\n",f->srcip); //src MDS ip
+      put32bit(&ptr,n->primaryip); //primary ip
+      fprintf(stderr,"primaryip=%X\n",n->primaryip); //src MDS ip
+      put32bit(&ptr,0); //status
+    } else { //directory, return status 0 and mode
+      put32bit(&ptr,0); 
+      memcpy(ptr, &n->a, sizeof(attr));
+      ptr+=sizeof(attr);
     }
   }
+
+  //if(f == NULL){
+  //  p = createpacket_s(4,MITOMD_GETATTR,inp->id);
+
+  //  uint8_t* ptr = p->startptr + HEADER_LEN;
+  //  fprintf(stderr, "can not find the path, status=%d\n",-ENOENT);
+  //  put32bit(&ptr,-ENOENT);
+  //} else {
+  //  fprintf(stderr, "found the path, status=%d\n", 0);
+  //  int totsize = 4+sizeof(attr);
+  //  if(S_ISREG(f->a.mode)) totsize += 4+plen+4; //add path and len, not necessary
+  //  fprintf(stderr,"p->size=%d\n",totsize);
+
+  //  p = createpacket_s(totsize,MITOMD_GETATTR,inp->id);
+  //  uint8_t* ptr = p->startptr + HEADER_LEN;
+  //  put32bit(&ptr,0);
+  //  memcpy(ptr,&f->a,sizeof(attr));
+  //  ptr += sizeof(attr);
+
+  //  if(S_ISREG(f->a.mode)){
+  //    put32bit(&ptr,plen);
+  //    memcpy(ptr,path,plen);
+  //    ptr += plen;
+
+  //    put32bit(&ptr,f->srcip); //primary ip
+  //    
+  //    rep* riter = f->rep_list;
+  //    if( f->srcip != eptr->peerip ) { //if request is from primary, no need to update visit info
+  //        while(riter) {
+  //            if(riter->rep_ip == eptr->peerip) { //peer has been candidate
+  //                riter->visit_time += 1;
+  //                syslog(LOG_WARNING, "getattr: peer candidate exist, ip:%u.%u.%u.%u, visit_time:%d", 
+  //                        (riter->rep_ip)>>24&0xff, (riter->rep_ip)>>16&0xff, (riter->rep_ip)>>8&0xff, (riter->rep_ip)&0xff, riter->visit_time);
+  //                break;
+  //            } 
+  //            riter = riter->next;
+  //        }
+  //        if(!riter) { //Not candidate yet
+  //            syslog(LOG_WARNING, "Can not find peer");
+  //            rep* candidate = (rep*)malloc(sizeof(rep));
+  //            candidate->rep_ip = eptr->peerip;
+  //            candidate->visit_time = 1;
+  //            candidate->history = 0;
+  //            candidate->is_rep = 0;
+  //            candidate->next = f->rep_list;
+  //            f->rep_list = candidate;
+  //            f->rep_cnt += 1;
+  //            syslog(LOG_WARNING, "getattr: new peer candidate, ip:%u.%u.%u.%u, visit_time:%d", 
+  //                (candidate->rep_ip)>>24&0xff, (candidate->rep_ip)>>16&0xff, (candidate->rep_ip)>>8&0xff, (candidate->rep_ip)&0xff, candidate->visit_time);
+  //        }
+  //    }
+
+  //    fprintf(stderr,"srcip=%X\n",f->srcip); //src MDS ip
+  //  }
+  //}
 
   free(path);
   p->next = eptr->outpacket;
@@ -430,20 +466,21 @@ void mis_readdir(misserventry* eptr,ppacket* inp){
 
   printf("path=%s\n",path);
 
-  ppfile* f = lookup_file(path);
-  if(f == NULL){
+  //ppfile* f = lookup_file(path);
+  ppnode* n = lookup_ppnode(path);
+  if(n == NULL){
     printf("mis readdir path=%s, not exist\n",path);
     p = createpacket_s(4,MITOMD_READDIR,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr,-ENOENT);
   } else {
-    if(S_ISDIR(f->a.mode)){
-      ppfile* cf;
+    if(n->isdir==1) {
+      ppnode* it;
       int totsize = 8;
       int nfiles = 0;
 
-      for(cf = f->child;cf;cf = cf->next){
-        totsize += 4 + strlen(cf->name);
+      for(it = n->child;it;it = it->next){
+        totsize += 4 + strlen(it->name);
         nfiles++;
       }
       fprintf(stderr, "mis readdir %d files\n",nfiles);
@@ -453,11 +490,10 @@ void mis_readdir(misserventry* eptr,ppacket* inp){
       put32bit(&ptr,0); //status
       put32bit(&ptr,nfiles);
 
-      for(cf = f->child;cf;cf = cf->next){
-        int len = strlen(cf->name);
-
+      for(it = n->child;it;it = it->next){
+        int len = strlen(it->name);
         put32bit(&ptr,len);
-        memcpy(ptr,cf->name,len);
+        memcpy(ptr,it->name,len);
         ptr += len;
       }
     } else {
@@ -466,6 +502,45 @@ void mis_readdir(misserventry* eptr,ppacket* inp){
       put32bit(&ptr,-ENOTDIR);
     }
   }
+
+  //if(f == NULL){
+  //  printf("mis readdir path=%s, not exist\n",path);
+  //  p = createpacket_s(4,MITOMD_READDIR,inp->id);
+  //  uint8_t* ptr = p->startptr + HEADER_LEN;
+  //  put32bit(&ptr,-ENOENT);
+  //} else {
+  //  if(S_ISDIR(f->a.mode)){
+  //  //if(n->child) {
+  //  //  ppnode* it;
+  //  //}
+  //    ppfile* cf;
+  //    int totsize = 8;
+  //    int nfiles = 0;
+
+  //    for(cf = f->child;cf;cf = cf->next){
+  //      totsize += 4 + strlen(cf->name);
+  //      nfiles++;
+  //    }
+  //    fprintf(stderr, "mis readdir %d files\n",nfiles);
+
+  //    p = createpacket_s(totsize,MITOMD_READDIR,inp->id);
+  //    uint8_t* ptr = p->startptr + HEADER_LEN;
+  //    put32bit(&ptr,0); //status
+  //    put32bit(&ptr,nfiles);
+
+  //    for(cf = f->child;cf;cf = cf->next){
+  //      int len = strlen(cf->name);
+
+  //      put32bit(&ptr,len);
+  //      memcpy(ptr,cf->name,len);
+  //      ptr += len;
+  //    }
+  //  } else {
+  //    p = createpacket_s(4,MITOMD_READDIR,inp->id);
+  //    uint8_t* ptr = p->startptr + HEADER_LEN;
+  //    put32bit(&ptr,-ENOTDIR);
+  //  }
+  //}
 
   free(path);
   p->next = eptr->outpacket;
@@ -493,14 +568,13 @@ void mis_mkdir(misserventry* eptr,ppacket* inp){ //mkdir, add entry to table
 
   printf("path=%s\n",path);
 
-  ppfile* f = lookup_file(path);
-  if(f){
+  //ppfile* f = lookup_file(path);
+  ppnode* n = lookup_ppnode(path);
+  if(n){
     fprintf(stderr,"directory exists\n");
-
     p = createpacket_s(4,MITOMD_MKDIR,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr,-EEXIST);
-
     goto end;
   } else { //find the parent directory
     char* dir;
@@ -515,12 +589,10 @@ void mis_mkdir(misserventry* eptr,ppacket* inp){ //mkdir, add entry to table
     } else {
       dir = strdup("/");
     }
-
-
     printf("parent dir=%s\n",dir); //parent dir
 
-    f = lookup_file(dir);
-    if(!f){
+    n = lookup_ppnode(dir);
+    if(!n){
       p = createpacket_s(4,MITOMD_MKDIR,inp->id);
       uint8_t* ptr = p->startptr + HEADER_LEN;
       put32bit(&ptr,-ENOENT);
@@ -528,32 +600,28 @@ void mis_mkdir(misserventry* eptr,ppacket* inp){ //mkdir, add entry to table
       free(dir);
       goto end;
     } else {
-      if(!S_ISDIR(f->a.mode)){ //exist but not directory
+      if(n->isdir!=1) {
         p = createpacket_s(4,MITOMD_MKDIR,inp->id);
         uint8_t* ptr = p->startptr + HEADER_LEN;
         put32bit(&ptr,-ENOTDIR);
-
         free(dir);
         goto end;
       }
     }
 
+    ppnode* nn = new_ppnode(path);
+    add_ppnode(nn); //  like "/dir"
+    nn->next = n->child;
+    n->child = nn;
+    nn->primaryip = eptr->peerip; //not necessary for dir
+    nn->isdir = 1; //set as directory
     attr a;
-
     a.uid = a.gid = 0;
     a.atime = a.ctime = a.mtime = time(NULL);
     a.link = 1;
     a.size = 0;
-
-    a.mode = mt; //| S_IFREG; //use mode from client
-    syslog(LOG_WARNING, "mis_mode : %o", mt);
-
-    ppfile* nf = new_file(path,a);
-    add_file(nf); //  like "/dir"
-    nf->next = f->child;
-    f->child = nf;
-
-    nf->srcip = eptr->peerip; //not necessary for dir
+    a.mode = mt;   
+    nn->a = a;
 
     //add dir entry to table, record it as PRIMARY? --yjy
 
@@ -569,6 +637,82 @@ void mis_mkdir(misserventry* eptr,ppacket* inp){ //mkdir, add entry to table
 
     free(dir);
   }
+
+ // if(f){
+ //   fprintf(stderr,"directory exists\n");
+
+ //   p = createpacket_s(4,MITOMD_MKDIR,inp->id);
+ //   uint8_t* ptr = p->startptr + HEADER_LEN;
+ //   put32bit(&ptr,-EEXIST);
+
+ //   goto end;
+ // } else { //find the parent directory
+ //   char* dir;
+ //   if(len > 1){
+ //     dir = &path[len-1];
+ //     while(dir >= path && *dir != '/') dir--;
+
+ //     int dirlen = dir - path;
+ //     if( dirlen==0 ) dirlen+=1; //for /dir
+ //     dir = strdup(path);
+ //     dir[dirlen] = 0;
+ //   } else {
+ //     dir = strdup("/");
+ //   }
+
+
+ //   printf("parent dir=%s\n",dir); //parent dir
+
+ //   f = lookup_file(dir);
+ //   if(!f){
+ //     p = createpacket_s(4,MITOMD_MKDIR,inp->id);
+ //     uint8_t* ptr = p->startptr + HEADER_LEN;
+ //     put32bit(&ptr,-ENOENT);
+ //     
+ //     free(dir);
+ //     goto end;
+ //   } else {
+ //     if(!S_ISDIR(f->a.mode)){ //exist but not directory
+ //       p = createpacket_s(4,MITOMD_MKDIR,inp->id);
+ //       uint8_t* ptr = p->startptr + HEADER_LEN;
+ //       put32bit(&ptr,-ENOTDIR);
+
+ //       free(dir);
+ //       goto end;
+ //     }
+ //   }
+
+ //   attr a;
+
+ //   a.uid = a.gid = 0;
+ //   a.atime = a.ctime = a.mtime = time(NULL);
+ //   a.link = 1;
+ //   a.size = 0;
+
+ //   a.mode = mt; //| S_IFREG; //use mode from client
+ //   syslog(LOG_WARNING, "mis_mode : %o", mt);
+
+ //   ppfile* nf = new_file(path,a);
+ //   add_file(nf); //  like "/dir"
+ //   nf->next = f->child;
+ //   f->child = nf;
+
+ //   nf->srcip = eptr->peerip; //not necessary for dir
+
+ //   //add dir entry to table, record it as PRIMARY? --yjy
+
+ //   p = createpacket_s(4+strlen(path)+4+4,MITOMD_MKDIR,inp->id);
+ //   uint8_t* ptr = p->startptr + HEADER_LEN;
+ //   put32bit(&ptr,0);
+ //   put32bit(&ptr,strlen(path));
+ //   memcpy(ptr, path, strlen(path));
+ //   ptr += strlen(path);
+
+ //   syslog(LOG_WARNING, "mis_mode sent to mds: %o", mt);
+ //   put32bit(&ptr, mt);
+
+ //   free(dir);
+ // }
 
 end:
   free(path);
@@ -596,23 +740,22 @@ void mis_rmdir(misserventry* eptr,ppacket* inp){
 
   printf("path=%s\n",path);
 
-  ppfile* f = lookup_file(path);
-  if(f){
-    if(!S_ISDIR(f->a.mode)) {
+  ppnode* n = lookup_ppnode(path);
+  if(n){
+    //if(!S_ISDIR(f->a.mode)) {
+    if(n->isdir!=1){
       p = createpacket_s(4,MITOMD_RMDIR,inp->id);
       uint8_t* ptr = p->startptr + HEADER_LEN;
       put32bit(&ptr,-ENOTDIR);
       goto end;
     }
-
-    if( f->child != NULL ) {
+    if( n->child != NULL ) {
         p = createpacket_s(4,MITOMD_RMDIR,inp->id);
         uint8_t* ptr = p->startptr + HEADER_LEN;
         put32bit(&ptr,-ENOTEMPTY);
         fprintf(stderr,"dir is not empty\n");
         goto end;
     }
-
     char* dir;
     if(len > 1){
       dir = &path[len-1];
@@ -627,14 +770,15 @@ void mis_rmdir(misserventry* eptr,ppacket* inp){
     }
 
     printf("dir=%s\n",dir);
-    ppfile* pf = lookup_file(dir);
-    if(!pf){
+    ppnode* pn = lookup_ppnode(dir); //get parent dir, supposed to exist
+    if(!pn){
       p = createpacket_s(4,MITOMD_RMDIR,inp->id);
       uint8_t* ptr = p->startptr + HEADER_LEN;
       put32bit(&ptr,-ENOENT);
       free(dir);
       goto end;
-    } else if(!S_ISDIR(pf->a.mode)){ //exist but not directory
+    //} else if(!S_ISDIR(pf->a.mode)){ //exist but not directory
+    } else if(pn->isdir!=1) {
       p = createpacket_s(4,MITOMD_RMDIR,inp->id);
       uint8_t* ptr = p->startptr + HEADER_LEN;
       put32bit(&ptr,-ENOTDIR);
@@ -646,14 +790,13 @@ void mis_rmdir(misserventry* eptr,ppacket* inp){
 
     p = createpacket_s(4+strlen(path)+4+4,MITOMD_RMDIR,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
-
-    put32bit(&ptr, 0);
+    put32bit(&ptr, 0); //status
     put32bit(&ptr, strlen(path));
     memcpy(ptr, path, strlen(path));
     ptr += strlen(path);
 
-    remove_child(pf,f);
-    free_file(f);
+    remove_childnode(pn,n);
+    free_ppnode(n);
     free(dir);
   } else { //not exist
     fprintf(stderr,"file not exists\n");
@@ -668,7 +811,7 @@ end:
   eptr->outpacket = p;
 }
 
-void mis_unlink(misserventry* eptr,ppacket* inp){
+void mis_unlink(misserventry* eptr,ppacket* inp){ //TODO Delete Replica
   fprintf(stderr,"+mis_unlink\n");
 
   ppacket* p;
@@ -689,8 +832,9 @@ void mis_unlink(misserventry* eptr,ppacket* inp){
   printf("path=%s\n",path);
 
   ppfile* f = lookup_file(path);
-  if(f){
-    if(S_ISDIR(f->a.mode)) {
+  ppnode* n = lookup_ppnode(path);
+  if(n){
+    if(n->isdir==1) {
         fprintf(stderr,"path is DIR\n");
         p = createpacket_s(4,MITOMD_UNLINK,inp->id);
         uint8_t* ptr = p->startptr + HEADER_LEN;
@@ -712,43 +856,39 @@ void mis_unlink(misserventry* eptr,ppacket* inp){
     }
 
     printf("dir=%s\n",dir);
-    ppfile* pf = lookup_file(dir); //must always exist as a directory
+    ppnode* pn = lookup_ppnode(dir);//must always exist as a directory
 
-    if(!pf){ //parent dir not exist
+    if(!pn){ //parent dir not exist
       p = createpacket_s(4,MITOMD_UNLINK,inp->id);
       uint8_t* ptr = p->startptr + HEADER_LEN;
       put32bit(&ptr,-ENOENT);
       free(dir);
       goto end;
     }
-
-    if(f->srcip != eptr->peerip){
-      misserventry* ceptr = mis_entry_from_ip(f->srcip);
-
-      if(ceptr){
+    //delete metadata in Primary MDS
+    if(n->primaryip != eptr->peerip){ //Request from other MDS, send to Primary MDS TODO
+      misserventry* ceptr = mis_entry_from_ip(n->primaryip);
+      if(ceptr){ //pretend as a client, another method is send back a message with MITOMD_* type
         p = createpacket_s(4+4+len,CLTOMD_UNLINK,0); //no client will use ip address 0.0.0.0
-        uint8_t* ptr = p->startptr + HEADER_LEN;
-
+        uint8_t* ptr = p->startptr + HEADER_LEN; //handle in MDS
         put32bit(&ptr,0);
         put32bit(&ptr,len);
         memcpy(ptr,path,len);
         ptr += len;
-
         p->next = ceptr->outpacket;
         ceptr->outpacket = p;
       }
     }
-
     p = createpacket_s(4+len+4,MITOMD_UNLINK,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
 
-    put32bit(&ptr, 0);
+    put32bit(&ptr, 0); //status
     put32bit(&ptr, len);
     memcpy(ptr, path, len);
     ptr += len;
 
-    remove_child(pf, f);
-    free_file(f);
+    remove_childnode(pn, n);
+    free_ppnode(n);
     free(dir);
   } else { //not exist
     fprintf(stderr,"file not exists\n");
@@ -756,6 +896,140 @@ void mis_unlink(misserventry* eptr,ppacket* inp){
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr, -ENOENT);
   }
+  ///if(f){
+  ///  if(S_ISDIR(f->a.mode)) {
+  ///      fprintf(stderr,"path is DIR\n");
+  ///      p = createpacket_s(4,MITOMD_UNLINK,inp->id);
+  ///      uint8_t* ptr = p->startptr + HEADER_LEN;
+  ///      put32bit(&ptr,-EISDIR);
+  ///      goto end;
+  ///  }
+
+  ///  char* dir;
+  ///  if(len > 1){
+  ///    dir = &path[len-1];
+  ///    while(dir >= path && *dir != '/') dir--;
+
+  ///    int dirlen = dir - path;
+  ///    if(dirlen==0) dirlen+=1;
+  ///    dir = strdup(path);
+  ///    dir[dirlen] = 0;
+  ///  } else {
+  ///    dir = strdup("/");
+  ///  }
+
+  ///  printf("dir=%s\n",dir);
+  ///  ppfile* pf = lookup_file(dir); //must always exist as a directory
+
+  ///  if(!pf){ //parent dir not exist
+  ///    p = createpacket_s(4,MITOMD_UNLINK,inp->id);
+  ///    uint8_t* ptr = p->startptr + HEADER_LEN;
+  ///    put32bit(&ptr,-ENOENT);
+  ///    free(dir);
+  ///    goto end;
+  ///  }
+
+  ///  if(f->srcip != eptr->peerip){
+  ///    misserventry* ceptr = mis_entry_from_ip(f->srcip);
+
+  ///    if(ceptr){
+  ///      p = createpacket_s(4+4+len,CLTOMD_UNLINK,0); //no client will use ip address 0.0.0.0
+  ///      uint8_t* ptr = p->startptr + HEADER_LEN;
+
+  ///      put32bit(&ptr,0);
+  ///      put32bit(&ptr,len);
+  ///      memcpy(ptr,path,len);
+  ///      ptr += len;
+
+  ///      p->next = ceptr->outpacket;
+  ///      ceptr->outpacket = p;
+  ///    }
+  ///  }
+
+  ///  p = createpacket_s(4+len+4,MITOMD_UNLINK,inp->id);
+  ///  uint8_t* ptr = p->startptr + HEADER_LEN;
+
+  ///  put32bit(&ptr, 0);
+  ///  put32bit(&ptr, len);
+  ///  memcpy(ptr, path, len);
+  ///  ptr += len;
+
+  ///  remove_child(pf, f);
+  ///  free_file(f);
+  ///  free(dir);
+  ///} else { //not exist
+  ///  fprintf(stderr,"file not exists\n");
+  ///  p = createpacket_s(4,MITOMD_UNLINK,inp->id);
+  ///  uint8_t* ptr = p->startptr + HEADER_LEN;
+  ///  put32bit(&ptr, -ENOENT);
+  ///}
+  ///if(f){
+  ///  if(S_ISDIR(f->a.mode)) {
+  ///      fprintf(stderr,"path is DIR\n");
+  ///      p = createpacket_s(4,MITOMD_UNLINK,inp->id);
+  ///      uint8_t* ptr = p->startptr + HEADER_LEN;
+  ///      put32bit(&ptr,-EISDIR);
+  ///      goto end;
+  ///  }
+
+  ///  char* dir;
+  ///  if(len > 1){
+  ///    dir = &path[len-1];
+  ///    while(dir >= path && *dir != '/') dir--;
+
+  ///    int dirlen = dir - path;
+  ///    if(dirlen==0) dirlen+=1;
+  ///    dir = strdup(path);
+  ///    dir[dirlen] = 0;
+  ///  } else {
+  ///    dir = strdup("/");
+  ///  }
+
+  ///  printf("dir=%s\n",dir);
+  ///  ppfile* pf = lookup_file(dir); //must always exist as a directory
+
+  ///  if(!pf){ //parent dir not exist
+  ///    p = createpacket_s(4,MITOMD_UNLINK,inp->id);
+  ///    uint8_t* ptr = p->startptr + HEADER_LEN;
+  ///    put32bit(&ptr,-ENOENT);
+  ///    free(dir);
+  ///    goto end;
+  ///  }
+
+  ///  if(f->srcip != eptr->peerip){
+  ///    misserventry* ceptr = mis_entry_from_ip(f->srcip);
+
+  ///    if(ceptr){
+  ///      p = createpacket_s(4+4+len,CLTOMD_UNLINK,0); //no client will use ip address 0.0.0.0
+  ///      uint8_t* ptr = p->startptr + HEADER_LEN;
+
+  ///      put32bit(&ptr,0);
+  ///      put32bit(&ptr,len);
+  ///      memcpy(ptr,path,len);
+  ///      ptr += len;
+
+  ///      p->next = ceptr->outpacket;
+  ///      ceptr->outpacket = p;
+  ///    }
+  ///  }
+
+  ///  p = createpacket_s(4+len+4,MITOMD_UNLINK,inp->id);
+  ///  uint8_t* ptr = p->startptr + HEADER_LEN;
+
+  ///  put32bit(&ptr, 0);
+  ///  put32bit(&ptr, len);
+  ///  memcpy(ptr, path, len);
+  ///  ptr += len;
+
+  ///  remove_child(pf, f);
+  ///  free_file(f);
+  ///  free(dir);
+  ///} else { //not exist
+  ///  fprintf(stderr,"file not exists\n");
+  ///  p = createpacket_s(4,MITOMD_UNLINK,inp->id);
+  ///  uint8_t* ptr = p->startptr + HEADER_LEN;
+  ///  put32bit(&ptr, -ENOENT);
+  ///}
 
 end:
   free(path);
@@ -784,18 +1058,17 @@ void mis_create(misserventry* eptr,ppacket* inp){ //create file, supposed to add
 
   printf("path=%s\n",path);
 
-  ppfile* f = lookup_file(path);
-  if(f){
+  //ppfile* f = lookup_file(path);
+  ppnode* n = lookup_ppnode(path);
+  if(n){
     fprintf(stderr,"file exists\n");
-
     p = createpacket_s(4,MITOMD_CREATE,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr,-EEXIST);
-
     goto end;
-  } else { //find the parent directory
+  } else {
     char* dir;
-    if(len > 1){
+    if(len > 1){ //parent dir
       dir = &path[len-1];
       while(dir >= path && *dir != '/') dir--;
 
@@ -806,47 +1079,33 @@ void mis_create(misserventry* eptr,ppacket* inp){ //create file, supposed to add
     } else {
       dir = strdup("/");
     }
-
-
     printf("dir=%s\n",dir);
-    f = lookup_file(dir);
-    if(!f){ //always can't find f
+    n = lookup_ppnode(dir);
+    if(!n){ //always can't find f
       p = createpacket_s(4,MITOMD_CREATE,inp->id);
       uint8_t* ptr = p->startptr + HEADER_LEN;
       put32bit(&ptr,-ENOENT);
-
       free(dir);
       goto end;
     } else {
-      if(!S_ISDIR(f->a.mode)){ //exist but not directory
+      if(n->isdir!=1) { //parent not directory
         p = createpacket_s(4,MITOMD_CREATE,inp->id);
         uint8_t* ptr = p->startptr + HEADER_LEN;
         put32bit(&ptr,-ENOTDIR);
-
         free(dir);
         goto end;
       }
     }
-
-    attr a;
-
-    a.uid = a.gid = 0;
-    a.atime = a.ctime = a.mtime = time(NULL);
-    a.link = 1;
-    a.size = 0;
-
-    a.mode = mt; //use mode from client
-    fprintf(stderr, "mis_mode : %o\n", mt);
-
-    ppfile* nf = new_file(path,a);
-    nf->srcip = eptr->peerip;
+  }
+  //add to namespace tree
+    ppnode* nn = new_ppnode(path);
+    nn->primaryip = eptr->peerip;
     //rep* candidate = (rep*)malloc(sizeof(rep));
-    fprintf(stderr, "nf->srcip is %X, eptr->peerip is %X\n", nf->srcip, eptr->peerip);
-    add_file(nf); //add to hash list
-    nf->next = f->child; //f is the parent dir
-    f->child = nf;
-
-    //add entry to table, record the MDS as PRIMARY --yjy
+    add_ppnode(nn);
+    nn->next = n->child; //add to namespace
+    n->child = nn;
+    
+    //add entry to table, record the MDS as PRIMARY --TODO
 
     p = createpacket_s(4+strlen(path)+4+4,MITOMD_CREATE,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
@@ -855,9 +1114,6 @@ void mis_create(misserventry* eptr,ppacket* inp){ //create file, supposed to add
     memcpy(ptr, path, strlen(path));
     ptr += strlen(path);
     put32bit(&ptr, mt);
-
-    free(dir);
-  }
 
 end:
   free(path);
@@ -883,16 +1139,16 @@ void mis_open(misserventry* eptr,ppacket* inp){
 
   printf("path=%s\n",path);
 
-  ppfile* f = lookup_file(path);
-  if(!f){
-    p = createpacket_s(4,MITOMD_OPEN,inp->id);
-    uint8_t* ptr = p->startptr + HEADER_LEN;
-    put32bit(&ptr,-ENOENT);
-  } else {
+  //ppfile* f = lookup_file(path);
+  //if(!f){
+  //  p = createpacket_s(4,MITOMD_OPEN,inp->id);
+  //  uint8_t* ptr = p->startptr + HEADER_LEN;
+  //  put32bit(&ptr,-ENOENT);
+  //} else {
     p = createpacket_s(4,MITOMD_OPEN,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr,0);
-  }
+  //}
 
 end:
   free(path);
@@ -1208,7 +1464,7 @@ void mis_inform_primary(void) {
     //retrieve eptr by ip
     //send packet to corresponding mds
     //including path, replica ip, visit info?
-    syslog(LOG_WARNING, "retrieve candidate");
+    //syslog(LOG_WARNING, "retrieve candidate");
     int i;
     for(i=0; i<HASHSIZE; ++i) { //HASHSIZE/2?
         hashnode* n = tab[i];
@@ -1223,12 +1479,12 @@ void mis_inform_primary(void) {
 
 void mis_create_replica(ppfile* f) {
     rep* r = f->rep_list;
-    syslog(LOG_WARNING, "update %s replica info", f->path);
+    //syslog(LOG_WARNING, "update %s replica info", f->path);
     ppacket* outp = NULL;
     while(r) {
         r->history = r->history/2 + r->visit_time;
         r->visit_time = 0;
-        syslog(LOG_WARNING, "after update %s: ip:%X, history:%d, visit_time:%d", f->path, r->rep_ip, r->history, r->visit_time);
+        //syslog(LOG_WARNING, "after update %s: ip:%X, history:%d, visit_time:%d", f->path, r->rep_ip, r->history, r->visit_time);
         if(r->history>2 && r->is_rep==0) {
             //misserventry peptr = mis_entry_from_ip(r->rep_ip);
             misserventry* peptr = mis_entry_from_ip(f->srcip); //send to primary, not replica
@@ -1248,7 +1504,7 @@ void mis_create_replica(ppfile* f) {
                 fprintf(stderr,"size=%d\n",outp->size);
             } else {
                 fprintf(stderr, "can not retrieve primary eptr");
-                syslog(LOG_WARNING, "update_visit can not retrieve primary eptr");
+                //syslog(LOG_WARNING, "update_visit can not retrieve primary eptr");
             }
         }
         r = r->next;
@@ -1257,7 +1513,7 @@ void mis_create_replica(ppfile* f) {
 }
 
 void mis_update_visit_all(void) {
-  syslog(LOG_WARNING, "update all replica info");
+ // syslog(LOG_WARNING, "update all replica info");
   int i;
   for(i=0; i<HASHSIZE; ++i) {
       hashnode* n = tab[i];

@@ -267,7 +267,15 @@ int ppfs_getattr(const char* path, struct stat* stbuf){
     stbuf->st_blocks = 0;
 
     //attr_cache_add(path,*a);
-  }
+  } 
+ // else {
+ //     int test = get32bit(&ptr2);
+ //     fprintf(stderr,"error test:%d\n",test);
+ //     int id2 = get32bit(&ptr2);
+ //     fprintf(stderr,"id %d\n", id2);
+ //     int status2 = get32bit(&ptr2);
+ //     fprintf(stderr,"status %d, supposed to be 0\n", status2);
+ // }
 
   free(s);
 

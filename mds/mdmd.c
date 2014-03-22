@@ -451,7 +451,7 @@ void mdmd_add_entry(uint32_t ip,char* path,int type){
   }
 
   if(eptr != NULL){ //connection already exists
-    mdmd_create_access_entry(eptr,path,type); //??
+    mdmd_create_access_entry(eptr,path,type); //create or update an visit info entry
     return;
   }
     
@@ -490,7 +490,7 @@ void mdmd_add_entry(uint32_t ip,char* path,int type){
       fprintf(stderr,"\n\n\n\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!cannot connect to %d\n\n\n",ip);
       tcpclose(fd);
     } else {
-      fprintf(stderr,"\n\n\n\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!connect to %X\n\n\n",ip);
+      fprintf(stderr,"\n\n\n\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!connect to Primary MDS %X\n\n\n",ip);
         mdmdserventry* neptr = (mdmdserventry*)malloc(sizeof(mdmdserventry));
         neptr->next = mdmdservhead;
         mdmdservhead = neptr;
@@ -1006,102 +1006,91 @@ void mdmd_getattr(mdmdserventry* eptr,char* path,int id){ //triggered by MDS
   eptr->atime = main_time();
 }
 
-void mdmd_s2c_getattr(mdmdserventry* eptr,ppacket* inp){
-  fprintf(stderr,"+mdmd_s2c_getattr\n");
+void mdmd_s2c_getattr(mdmdserventry* eptr,ppacket* inp){ //receive from Primary MDS
+  fprintf(stderr,"+mdmd_s2c_getattr!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
   mdsserventry* mds_eptr = mds_entry_from_id(inp->id);
 
   const uint8_t* inptr = inp->startptr;
+  int status = get32bit(&inptr);
   int plen = get32bit(&inptr);
-  char* path = malloc(plen+10);
+  char* path = (char*)malloc(plen+1);
   memcpy(path,inptr,plen);
-  inptr += plen;
   path[plen] = 0;
+  inptr += plen;
+  fprintf(stderr,"status is %d\n", status);
 
   //rest: inp->size - 4 - plen
-  int status = get32bit(&inptr);
   ppacket* p = NULL;
 
-  if(mds_eptr){
-    if(status != 0){ //forward to mis
-      p = createpacket_r(4+plen,MDTOMI_GETATTR,inp->id);
-      uint8_t* ptr = p->startptr;
-      put32bit(&ptr,plen);
-      memcpy(ptr,path,plen);
-      ptr += plen;
-
-      mds_direct_pass_mi(p,MDTOMI_GETATTR);
-
-      mdmd_stat_count(STAT_EVENTUAL_MISS);
-    } else {
-      p = createpacket_r(4+sizeof(attr),MITOMD_GETATTR,inp->id);
-      uint8_t* ptr = p->startptr;
+  if(status != 0){ //return errno to Client
+      fprintf(stderr,"Not found in Primary, fail\n");
+      p = createpacket_s(4,MDTOCL_GETATTR,inp->id);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
+      put32bit(&ptr,status);
+      mds_direct_pass_cl(eptr,p,MDTOCL_GETATTR);
+  } else {
+      fprintf(stderr,"Found in Primary, success\n");
+      p = createpacket_s(4+sizeof(attr),MDTOCL_GETATTR,inp->id);
+      uint8_t* ptr = p->startptr + HEADER_LEN;
       put32bit(&ptr,0);
-      //put32bit(&ptr,eptr->peerip);
+      fprintf(stderr,"sizeof(attr) is %d\n", sizeof(attr));
       memcpy(ptr,inptr,sizeof(attr));
 
-      mds_cl_getattr(mds_eptr,p); //redundant?
+      //can not use mds_direct_pass_cl function directly. Format not matched cuz not processed by mds_read().
+      mdsserventry* ceptr = mds_entry_from_id(p->id);
+      fprintf(stderr, "mds_direct_pass_cl entry id is %X\n", p->id);
+      if(ceptr){
+          ppacket* outp = createpacket_s(p->size,MDTOCL_GETATTR,p->id);
+          memcpy(outp->startptr+HEADER_LEN,p->startptr+HEADER_LEN,p->size);
 
-      //cache hit
-    }
-
-  } else {
-    if(status == 0){
-      //cache hit
-    } else{
-      mdmd_stat_count(STAT_EVENTUAL_MISS);
-    }
+          outp->next = ceptr->outpacket;
+          ceptr->outpacket = outp;
+      }
+      //mds_direct_pass_cl(eptr,p,MDTOCL_GETATTR);
+      //TODO
+      //Update visit info
   }
-
-  free(p);
   free(path);
 }
 
 void mdmd_c2s_getattr(mdmdserventry* eptr,ppacket* inp){
-  fprintf(stderr,"+mdmd_c2s_getattr\n");
+  fprintf(stderr,"+mdmd_c2s_getattr!!!!!!!!!!!!!!!!!!\n");
 
   int plen,mdsid,i;
   const uint8_t* ptr = inp->startptr;
   ppacket* outp = NULL;
 
-  char* path = (char*)malloc(plen+10);
+  char* path = (char*)malloc(plen+1);
   plen = get32bit(&ptr);
   memcpy(path,ptr,plen);
+  path[plen] = 0;
   ptr += plen;
 
-  path[plen] = 0;
-  fprintf(stderr,"plen=%d,path=%s\n",plen,path);
+  fprintf(stderr,"plen=%d,path=%s   ",plen,path);
 
   ppfile* f = lookup_file(path);
   if(f == NULL){
+    fprintf(stderr,"not found!!!!!!!!!!!!!!!!!!\n");
     outp = createpacket_s(4+plen+4,MDTOMD_S2C_GETATTR,inp->id);
-    uint8_t* ptr = outp->startptr + HEADER_LEN;
+    uint8_t* ptr2 = outp->startptr + HEADER_LEN;
 
-    put32bit(&ptr,plen);
-    memcpy(ptr,path,plen);
-    ptr += plen;
-    put32bit(&ptr,-ENOENT);
+    put32bit(&ptr2,-ENOENT);
+    put32bit(&ptr2,plen);
+    memcpy(ptr2,path,plen);
+    ptr2 += plen;
   } else {
+    fprintf(stderr,"found!!!!!!!!!!!!!!!!!1\n");
     int totsize = 4+plen + 4 + sizeof(attr);
-
     outp = createpacket_s(totsize,MDTOMD_S2C_GETATTR,inp->id);
-    uint8_t* ptr = outp->startptr + HEADER_LEN;
-
-    put32bit(&ptr,plen);
-    memcpy(ptr,path,plen);
-    ptr += plen;
-    put32bit(&ptr,0);
-    //no address here
-    memcpy(ptr,&f->a,sizeof(attr));
-    //update heuristic table for this entry
-    //path, mds_ip, visited_cnt+1
-    //check if path exist in table
-    //check if path and mds_ip pair exist in table
-    //if yes, update
-    //if not, create
+    uint8_t* ptr2 = outp->startptr + HEADER_LEN;
+    put32bit(&ptr2,0);//status
+    put32bit(&ptr2,plen);
+    memcpy(ptr2,path,plen);
+    ptr2 += plen;
+    memcpy(ptr2,&f->a,sizeof(attr));
   }
 
-  if(outp){
-    outp->next = eptr->outpacket;
-    eptr->outpacket = outp;
-  }
+  outp->next = eptr->outpacket;
+  eptr->outpacket = outp;
+  free(path);
 }
