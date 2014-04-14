@@ -62,3 +62,4 @@ if __name__ == "__main__":
     fid = int(sys.argv[2])
 
     test2(dev,fid)
+    #test1()

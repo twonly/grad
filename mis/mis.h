@@ -89,7 +89,11 @@ void mis_del_user(misserventry* eptr,ppacket* p);
 //visit info decay
 void mis_visit_decay(void);
 void mis_update_visit_all(void);
-void mis_create_replica(ppfile *f);
+
+//replica related
+void mis_create_replica(misserventry* eptr, ppacket* p);
+void mis_delete_replica(misserventry* eptr, ppacket* p);
+void mis_log(void);
 
 
 #endif

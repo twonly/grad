@@ -24,6 +24,18 @@
 
 #define MAXBUFSIZE 512
 
+#define MDS_DECAY_TIME 60 //second
+#define MDS_REPLICA_SLOT 10 //second
+
+int create_count;
+int delete_count;
+int total_create;
+int total_delete;
+int local_hit;
+int replica_hit;
+int miss_count;
+int forward_count;
+
 typedef struct _mdsserventry{
   int sock; 
 	uint32_t peerip;
@@ -107,6 +119,11 @@ void mds_add_user(mdsserventry* eptr,ppacket* p);
 void mds_cl_add_user(mdsserventry* eptr,ppacket* p);
 void mds_del_user(mdsserventry* eptr,ppacket* p);
 void mds_cl_del_user(mdsserventry* eptr,ppacket* p);
+
+//replica related
+void mds_visit_decay(void);
+void mds_check_replica(void);
+void mds_log_replica(void);
 
 void mds_direct_pass_mi(ppacket* p,int cmd);
 #endif

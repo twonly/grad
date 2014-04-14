@@ -5,6 +5,7 @@
 enum {KILL,HEADER,DATA};
 
 static mdmdserventry* mdmdservhead = NULL;
+extern mdsserventry* mdtomi;
 
 static int lsock;
 static int lsockpdescpos;
@@ -15,6 +16,10 @@ static void* pcq_fin = NULL;
 static volatile int exiting;
 
 static int conns;
+extern int create_count;
+extern int delete_count;
+extern int total_create;
+extern int total_delete;
 
 #define STAT_QUERY 0x100
 #define STAT_PCACHE_HIT 0x101
@@ -60,14 +65,14 @@ int mdmd_init(void){
 
 	main_destructregister(mdmd_term);
 	main_pollregister(mdmd_desc,mdmd_serve);
-  main_timeregister(TIMEMODE_RUN_LATE,MDMD_PATH_EXPIRE,0,mdmdserventry_purge_cache);
-  main_timeregister(TIMEMODE_RUN_LATE,MDMD_DECAY_TIME,0,mdmd_heuristic_decay);
+  //main_timeregister(TIMEMODE_RUN_LATE,MDMD_PATH_EXPIRE,0,mdmdserventry_purge_cache);
+  //main_timeregister(TIMEMODE_RUN_LATE,MDMD_DECAY_TIME,0,mdmd_heuristic_decay);
 
-  mdmd_stat_add_entry(STAT_QUERY,STAT_QUERY_STR,0);
-  mdmd_stat_add_entry(STAT_PCACHE_HIT,STAT_PCACHE_HIT_STR,0);
-  mdmd_stat_add_entry(STAT_DCACHE_HIT,STAT_DCACHE_HIT_STR,0);
-  mdmd_stat_add_entry(STAT_MISS,STAT_MISS_STR,0);
-  mdmd_stat_add_entry(STAT_EVENTUAL_MISS,STAT_EVENTUAL_MISS_STR,0);
+ // mdmd_stat_add_entry(STAT_QUERY,STAT_QUERY_STR,0);
+ // mdmd_stat_add_entry(STAT_PCACHE_HIT,STAT_PCACHE_HIT_STR,0);
+ // mdmd_stat_add_entry(STAT_DCACHE_HIT,STAT_DCACHE_HIT_STR,0);
+ // mdmd_stat_add_entry(STAT_MISS,STAT_MISS_STR,0);
+ // mdmd_stat_add_entry(STAT_EVENTUAL_MISS,STAT_EVENTUAL_MISS_STR,0);
 
   return 0;
 }
@@ -155,7 +160,7 @@ void mdmd_serve(struct pollfd *pdesc) {
 
       eptr->type = 1;
       eptr->atime = main_time();
-      memset(eptr->htab,0,sizeof(eptr->htab));
+      //memset(eptr->htab,0,sizeof(eptr->htab));
 
       fprintf(stderr,"another mds(ip:%u.%u.%u.%u) connected\n",(eptr->peerip>>24)&0xFF,(eptr->peerip>>16)&0xFF,(eptr->peerip>>8)&0xFF,eptr->peerip&0xFF);
 
@@ -204,7 +209,7 @@ void mdmd_serve(struct pollfd *pdesc) {
 
       eptr->atime = main_time();
       eptr->type = 1;
-      memset(eptr->htab,0,sizeof(eptr->htab));
+      //memset(eptr->htab,0,sizeof(eptr->htab));
       mdmdserventry_add_entry(eptr,mps);
 
       fprintf(stderr,"connected to another mds(ip:%u.%u.%u.%u)\n",(eptr->peerip>>24)&0xFF,(eptr->peerip>>16)&0xFF,(eptr->peerip>>8)&0xFF,eptr->peerip&0xFF);
@@ -417,27 +422,27 @@ void mdmd_create_access_entry(mdmdserventry* eptr,char* path,int type){
     k += (MDMD_HASHSIZE/2);
   }
 
-  hashnode* n = eptr->htab[k];
+  //hashnode* n = eptr->htab[k];
 
-  while(n){
-    if(!strcmp(n->key,path)){ //access
-      mdmd_path_st* mps = n->data;
-      mps->visit++;
-      mps->atime = main_time();
+ // while(n){
+ //   if(!strcmp(n->key,path)){ //access
+ //     mdmd_path_st* mps = n->data;
+ //     mps->visit++;
+ //     mps->atime = main_time();
 
-      return;
-    }
+ //     return;
+ //   }
 
-    n = n->next;
-  }
+ //   n = n->next;
+ // }
 
-  mdmd_path_st* mps = malloc(sizeof(mdmd_path_st));
-  mps->path = strdup(path);
-  mps->ip = eptr->peerip;
-  mps->type = type;
-  mps->visit = 1;
-  mps->ctime = mps->atime = main_time();
-  mdmdserventry_add_entry(eptr,mps);
+//  mdmd_path_st* mps = malloc(sizeof(mdmd_path_st));
+//  mps->path = strdup(path);
+//  mps->ip = eptr->peerip;
+//  mps->type = type;
+//  mps->visit = 1;
+//  mps->ctime = mps->atime = main_time();
+//  //mdmdserventry_add_entry(eptr,mps);
 }
 
 void mdmd_add_entry(uint32_t ip,char* path,int type){
@@ -451,7 +456,7 @@ void mdmd_add_entry(uint32_t ip,char* path,int type){
   }
 
   if(eptr != NULL){ //connection already exists
-    mdmd_create_access_entry(eptr,path,type); //create or update an visit info entry
+    //mdmd_create_access_entry(eptr,path,type); //create or update an visit info entry
     return;
   }
     
@@ -508,19 +513,19 @@ void mdmd_add_entry(uint32_t ip,char* path,int type){
 
         neptr->type = 1;
         neptr->atime = main_time();
-        memset(neptr->htab,0,sizeof(neptr->htab));
+        //memset(neptr->htab,0,sizeof(neptr->htab));
     }
     return;
 
-  mdmd_path_st* mps = malloc(sizeof(mdmd_path_st));
-  mps->path = strdup(path);
-  mps->ip = ip;
-  mps->type = type;
-  mps->visit = 1;
-  mps->atime = mps->ctime = main_time();
+  //mdmd_path_st* mps = malloc(sizeof(mdmd_path_st));
+  //mps->path = strdup(path);
+  //mps->ip = ip;
+  //mps->type = type;
+  //mps->visit = 1;
+  //mps->atime = mps->ctime = main_time();
 
-  fprintf(stderr,"queue_put:%X,%s\n",ip,mps->path);
-  queue_put(pcq_conn,ip,mps); //use to connect to new Replica MDS
+  //fprintf(stderr,"queue_put:%X,%s\n",ip,mps->path);
+  //queue_put(pcq_conn,ip,mps); //use to connect to new Replica MDS
 }
 
 mdmdserventry* mdmd_find_link(char* path){
@@ -540,7 +545,7 @@ mdmdserventry* mdmd_find_link(char* path){
         //mps->type = type;
         //mps->visit = 1;
         //mdmdserventry_add_entry(eptr, mps);
-      mdmd_stat_count(STAT_PCACHE_HIT);
+      //mdmd_stat_count(STAT_PCACHE_HIT);
       return eptr;
     }
 
@@ -551,9 +556,9 @@ mdmdserventry* mdmd_find_link(char* path){
   eptr = mdmd_find_dir(dir);
   free(dir);
   if(eptr != NULL){
-    mdmd_stat_count(STAT_DCACHE_HIT);
+    //mdmd_stat_count(STAT_DCACHE_HIT);
   } else {
-    mdmd_stat_count(STAT_MISS);
+    //mdmd_stat_count(STAT_MISS);
   }
 
   return eptr;
@@ -643,6 +648,9 @@ void mdmd_gotpacket(mdmdserventry* eptr,ppacket* p){
     case MDTOMD_C2S_GETATTR:
       mdmd_c2s_getattr(eptr,p);
       break;
+    case MDTOMD_DELETE:
+      mdmd_delete(eptr,p);
+      break;
   }
 }
 
@@ -690,7 +698,7 @@ void mdmd_s2c_read_chunk_info(mdmdserventry* eptr,ppacket* inp){
 
       mds_direct_pass_mi(p,MDTOMI_READ_CHUNK_INFO);
       
-      mdmd_stat_count(STAT_EVENTUAL_MISS);
+      //mdmd_stat_count(STAT_EVENTUAL_MISS);
     } else {
       p = createpacket_r(inp->size-4-plen+4,MITOMD_READ_CHUNK_INFO,inp->id);
       uint8_t* ptr = p->startptr;
@@ -705,7 +713,7 @@ void mdmd_s2c_read_chunk_info(mdmdserventry* eptr,ppacket* inp){
 
   } else {
     if(status!=0){
-      mdmd_stat_count(STAT_EVENTUAL_MISS);
+      //mdmd_stat_count(STAT_EVENTUAL_MISS);
     }
     else{
       //cache hit
@@ -775,65 +783,65 @@ int mdmd_path_st_hash(mdmd_path_st* mps){
 }
 
 void mdmdserventry_add_entry(mdmdserventry* eptr,mdmd_path_st* mps){
-  int k = mdmd_path_st_hash(mps);
+ // int k = mdmd_path_st_hash(mps);
 
-  hashnode* n = malloc(sizeof(hashnode));
-  n->key = mps->path;
-  n->data = mps;
+ // hashnode* n = malloc(sizeof(hashnode));
+ // n->key = mps->path;
+ // n->data = mps;
 
-  n->next = eptr->htab[k];
-  eptr->htab[k] = n;
+  //n->next = eptr->htab[k];
+  //eptr->htab[k] = n;
 }
 
 int mdmdserventry_has_path(mdmdserventry* eptr,char* path){
   int k = strhash(path) % (MDMD_HASHSIZE/2);
-  hashnode* n = eptr->htab[k];
+  //hashnode* n = eptr->htab[k];
 
-  while(n){
-    if(!strcmp(n->key,path)){
-      return 1;
-    }
-
-    n = n->next;
-  }
+//  while(n){
+//    if(!strcmp(n->key,path)){
+//      return 1;
+//    }
+//
+//    n = n->next;
+//  }
 
   return 0;
 }
 
 void mdmdserventry_free(mdmdserventry* eptr){
   int i;
-  for(i=0;i<MDMD_HASHSIZE;i++){
-    hashnode *n,*nn;
-    nn = NULL;
-    n = eptr->htab[i];
+  //for(i=0;i<MDMD_HASHSIZE;i++){
+  //  hashnode *n,*nn;
+  //  nn = NULL;
+  //  //n = eptr->htab[i];
 
-    while(n){
-      nn = n->next;
+  //  while(n){
+  //    nn = n->next;
 
-      mdmd_path_st* mps = n->data;
-      free(mps->path);
-      free(mps);
+  //    mdmd_path_st* mps = n->data;
+  //    free(mps->path);
+  //    free(mps);
 
-      free(n);
+  //    free(n);
 
-      n = nn;
-    }
-  }
+  //    n = nn;
+  //  }
+  //}
 
   free(eptr);
 }
 
 mdmd_path_st* mdmdserventry_find_dir(mdmdserventry* eptr,char* dir){
   int k = strhash(dir) % (MDMD_HASHSIZE/2) + (MDMD_HASHSIZE/2);
-  hashnode* n = eptr->htab[k];
+  //hashnode* n = eptr->htab[k];
 
-  while(n){
-    if(!strcmp(n->key,dir)){
-      return n->data;
-    }
+ // while(n){
+ //   if(!strcmp(n->key,dir)){
+ //     return n->data;
+ //   }
 
-    n = n->next;
-  }
+ //   n = n->next;
+ // }
 
   return NULL;
 }
@@ -851,64 +859,100 @@ mdmdserventry* mdmdserventry_from_ip(uint32_t ip){
   return NULL;
 }
 
-void mdmd_heuristic_decay(void) {
-  mdmdserventry *eptr = mdmdservhead;
-  while (eptr) {
-      int i;
-      for(i=0;i<MDMD_HASHSIZE/2;i++) {
-          hashnode * n = eptr->htab[i];
-          while(n) {
-              mdmd_path_st * mps = n->data;
-              mps->history = mps->history/2+mps->visit;
-              mps->visit = 0;
-              syslog(LOG_WARNING, "path: %s, visit:%d, history:%d", mps->path, mps->visit, mps->history);
-              n = n->next;
-          }
-      }
-      eptr = eptr->next;
-  }
-  return;
-}
-
 void mdmdserventry_purge_cache(void){
-  mdmdserventry* eptr = mdmdservhead;
-  uint32_t now = main_time();
+ // mdmdserventry* eptr = mdmdservhead;
+ // uint32_t now = main_time();
 
-  while(eptr){
-    int i;
-    for(i=0;i<MDMD_HASHSIZE;i++){
-      hashnode* n = eptr->htab[i];
-      hashnode* pn = NULL;
+ // while(eptr){
+ //   int i;
+ //   for(i=0;i<MDMD_HASHSIZE;i++){
+ //     //hashnode* n = eptr->htab[i];
+ //     //hashnode* pn = NULL;
 
-      while(n){
-        mdmd_path_st* mps = n->data;
+ //     while(n){
+ //       mdmd_path_st* mps = n->data;
 
-        if(now - mps->ctime > MDMD_PATH_EXPIRE){ //not tested
-          if(pn == NULL){
-            eptr->htab[i] = n->next;
-          } else {
-            pn->next = n->next;
-          }
+ //       if(now - mps->ctime > MDMD_PATH_EXPIRE){ //not tested
+ //         if(pn == NULL){
+ //           //eptr->htab[i] = n->next;
+ //         } else {
+ //      //     pn->next = n->next;
+ //         }
 
-          free(mps->path);
-          free(mps);
-          free(n);
+ //         free(mps->path);
+ //         free(mps);
+ //         free(n);
 
-          if(pn == NULL){
-            n = eptr->htab[i];
-          } else {
-            n = pn->next;
-          }
-        } else {
-          pn = n;
-          n = n->next;
-        }
-      }
+ //         if(pn == NULL){
+ //           //n = eptr->htab[i];
+ //         } else {
+ //       //    n = pn->next;
+ //         }
+ //       } else {
+ //        // pn = n;
+ //        // n = n->next;
+ //       }
+ //     }
 
-    }
-    eptr = eptr->next;
-  }
+ //   }
+ //   eptr = eptr->next;
+ // }
 }
+
+void mdmd_send_delete(mdmdserventry* eptr, char* path) { //replica MDS -> Primary MDS
+    fprintf(stderr, "\n\n\n\n+mdmd_send_delete\n");
+    int plen = strlen(path);
+    ppacket* p = createpacket_s(4+plen,MDTOMD_DELETE,-1);
+    uint8_t* ptr = p->startptr + HEADER_LEN;
+    fprintf(stderr,"+path:%s,plen=%d\n",path,plen);
+    put32bit(&ptr,plen);
+    memcpy(ptr,path,plen);
+    ptr += plen;
+    p->next = eptr->outpacket;
+    eptr->outpacket = p;
+
+    return;
+}
+
+void mdmd_delete(mdmdserventry* eptr, ppacket* inp) { //Primary receive delete msg
+  fprintf(stderr,"\n\n\n\n+mdmd_delete\n");
+  //mdsserventry* mds_eptr = mds_entry_from_id(inp->id);
+
+  const uint8_t* inptr = inp->startptr;
+  int plen = get32bit(&inptr);
+  char* path = malloc(plen+1);
+  memcpy(path,inptr,plen);
+  inptr += plen;
+  path[plen] = 0;
+  ppfile* f = lookup_file(path);
+  if(f) { //file exist, delete replica ip
+    //fprintf(stderr, "file exist, update attr");
+    uint32_t ip = eptr->peerip;
+    rep *it = f->rep_list;
+    rep *tmp = NULL;
+    while(it) {
+        if(it->rep_ip == ip && it->is_rep) { //delete REPLICA record
+            if(tmp==NULL) {
+                f->rep_list = it->next;
+                free(it);
+            } else {
+                tmp->next = it->next;
+                free(it);
+            }
+            f->rep_cnt -= 1;
+            break;
+            //alternative: not delete but reset the count 
+            //it->is_rep = 0;
+        }
+        tmp = it;
+        it = it->next;
+    }
+  } else { //file not exist, create new file
+    fprintf(stderr, "replica not exist");
+  }
+  free(path);
+}
+
 
 void mdmd_send_attr( int repip, ppfile* f) { //Primary MDS send attr to Replica when first created
   fprintf(stderr,"+mdmd_send_attr\n");
@@ -988,7 +1032,7 @@ void mdmd_update_attr(int repip, ppfile* f){
 }
 
 void mdmd_getattr(mdmdserventry* eptr,char* path,int id){ //triggered by MDS
-  fprintf(stderr,"+mdmd_getattr\n");
+  fprintf(stderr,"\n\n\n+mdmd_getattr\n");
 
   int plen = strlen(path);
   ppacket* p = createpacket_s(4+plen,MDTOMD_C2S_GETATTR,id);
@@ -1004,72 +1048,80 @@ void mdmd_getattr(mdmdserventry* eptr,char* path,int id){ //triggered by MDS
   eptr->outpacket = p;
 
   eptr->atime = main_time();
+ // free(path); //freed in mds.c
 }
 
 void mdmd_s2c_getattr(mdmdserventry* eptr,ppacket* inp){ //receive from Primary MDS
-  fprintf(stderr,"+mdmd_s2c_getattr!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+  fprintf(stderr,"\n\n\n+mdmd_s2c_getattr!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
   mdsserventry* mds_eptr = mds_entry_from_id(inp->id);
 
   const uint8_t* inptr = inp->startptr;
   int status = get32bit(&inptr);
-  int plen = get32bit(&inptr);
-  char* path = (char*)malloc(plen+1);
-  memcpy(path,inptr,plen);
-  path[plen] = 0;
-  inptr += plen;
   fprintf(stderr,"status is %d\n", status);
 
   //rest: inp->size - 4 - plen
   ppacket* p = NULL;
 
-  if(status != 0){ //return errno to Client
+  if(status < 0){ //return errno to Client, should not happen actually
       fprintf(stderr,"Not found in Primary, fail\n");
       p = createpacket_s(4,MDTOCL_GETATTR,inp->id);
       uint8_t* ptr = p->startptr + HEADER_LEN;
       put32bit(&ptr,status);
       mds_direct_pass_cl(eptr,p,MDTOCL_GETATTR);
   } else {
+      //return to client
+    int plen = get32bit(&inptr);
+    char* path = (char*)malloc(plen+1); //path and plen can be eliminated
+    memcpy(path,inptr,plen);
+    path[plen] = 0;
+    inptr += plen;
+
       fprintf(stderr,"Found in Primary, success\n");
       p = createpacket_s(4+sizeof(attr),MDTOCL_GETATTR,inp->id);
       uint8_t* ptr = p->startptr + HEADER_LEN;
       put32bit(&ptr,0);
-      fprintf(stderr,"sizeof(attr) is %d\n", sizeof(attr));
+      //fprintf(stderr,"sizeof(attr) is %d\n", sizeof(attr));
       memcpy(ptr,inptr,sizeof(attr));
-
+      
+      //Update hash table
+      if( status == 1 ) { //create replica, insert into replica hashtable
+          attr a;
+          memcpy(&a, inptr, sizeof(attr)); //Is it right?
+          pprep* nr = new_pprep(path, a); //a is an internal var
+          nr->primaryip = eptr->peerip; //primary ip of the file
+          add_rep(nr); //add to hash list, no need to build a tree
+          fprintf(stderr, "add new replica %s to hash\n", path);
+          syslog(LOG_WARNING, "Replica MDS creates replica for %s", path);
+      }
+      free(path);
       //can not use mds_direct_pass_cl function directly. Format not matched cuz not processed by mds_read().
       mdsserventry* ceptr = mds_entry_from_id(p->id);
       fprintf(stderr, "mds_direct_pass_cl entry id is %X\n", p->id);
       if(ceptr){
-          ppacket* outp = createpacket_s(p->size,MDTOCL_GETATTR,p->id);
-          memcpy(outp->startptr+HEADER_LEN,p->startptr+HEADER_LEN,p->size);
+          //ppacket* outp = createpacket_s(p->size,MDTOCL_GETATTR,p->id);
+          //memcpy(outp->startptr+HEADER_LEN,p->startptr+HEADER_LEN,p->size);
 
-          outp->next = ceptr->outpacket;
-          ceptr->outpacket = outp;
+          p->next = ceptr->outpacket;
+          //outp->next = ceptr->outpacket;
+          ceptr->outpacket = p;
       }
-      //mds_direct_pass_cl(eptr,p,MDTOCL_GETATTR);
-      //TODO
-      //Update visit info
   }
-  free(path);
 }
 
-void mdmd_c2s_getattr(mdmdserventry* eptr,ppacket* inp){
-  fprintf(stderr,"+mdmd_c2s_getattr!!!!!!!!!!!!!!!!!!\n");
+void mdmd_c2s_getattr(mdmdserventry* eptr,ppacket* inp){ //handled by Primary MDS
+  fprintf(stderr,"\n\n\n\n+mdmd_c2s_getattr!!!!!!!!!!!!!!!!!!\n");
 
-  int plen,mdsid,i;
   const uint8_t* ptr = inp->startptr;
-  ppacket* outp = NULL;
-
-  char* path = (char*)malloc(plen+1);
-  plen = get32bit(&ptr);
+  int plen = get32bit(&ptr);
+  char* path = (char*)malloc(plen+10);
   memcpy(path,ptr,plen);
   path[plen] = 0;
   ptr += plen;
+  fprintf(stderr,"plen=%d,path=%s",plen,path);
 
-  fprintf(stderr,"plen=%d,path=%s   ",plen,path);
-
-  ppfile* f = lookup_file(path);
-  if(f == NULL){
+  ppacket* outp = NULL;
+  ppfile* f = lookup_file(path); //can scan replica table later
+  if(f == NULL){ //not supposed to happen, else there must be an error or inconsistency
     fprintf(stderr,"not found!!!!!!!!!!!!!!!!!!\n");
     outp = createpacket_s(4+plen+4,MDTOMD_S2C_GETATTR,inp->id);
     uint8_t* ptr2 = outp->startptr + HEADER_LEN;
@@ -1080,6 +1132,71 @@ void mdmd_c2s_getattr(mdmdserventry* eptr,ppacket* inp){
     ptr2 += plen;
   } else {
     fprintf(stderr,"found!!!!!!!!!!!!!!!!!1\n");
+    //record visit info, put the peer into candidate list
+    //if already exist, then update
+    //if exceed the replication threshold, create a replica in PEER MDS, then send another msg to notify MIS
+    rep* riter = f->rep_list;
+    //fprintf(stderr, "get riter\n");
+    if( f->srcip != eptr->peerip ) { //in case peer is Primary MDS, then it must be an error
+      while(riter) {
+        if(riter->rep_ip == eptr->peerip) { //peer has been candidate
+               riter->visit_time += 1;
+               if(riter->is_rep==0) { //test visit_time
+                   fprintf(stderr, "getattr: peer candidate exist, ip:%u.%u.%u.%u, visit_time:%d\n", 
+                       (riter->rep_ip)>>24&0xff, (riter->rep_ip)>>16&0xff, (riter->rep_ip)>>8&0xff, (riter->rep_ip)&0xff, riter->visit_time);
+                   if(riter->visit_time+riter->history > 5) { //threshold
+                       //create replica to candidate MDS, change candidate to replica MDS,
+                       //syslog(LOG_WARNING, "Primary MDS create relica for %s\n", f->path);
+                       create_count++;
+                       int plen = strlen(f->path);
+                       ppacket* p3 = createpacket_s(4+4+plen+sizeof(attr),MDTOMD_S2C_GETATTR,inp->id);
+                       uint8_t* ptr3 = p3->startptr + HEADER_LEN;
+                       fprintf(stderr,"+create replica path:%s,plen=%d\n",f->path,plen);
+                       put32bit(&ptr3,1); //status 1 indicates CREATE REPLICA
+                       put32bit(&ptr3,plen);
+                       memcpy(ptr3,f->path,plen);
+                       ptr3 += plen;
+                       memcpy(ptr3, &(f->a), sizeof(attr));
+                       p3->next = eptr->outpacket;
+                       eptr->outpacket = p3; 
+                       riter->is_rep = 1;
+                       //inform MIS;
+                       ppacket* p4 = createpacket_s(4+plen+4,MDTOMI_CREATE_REPLICA,inp->id);
+                       uint8_t* ptr4 = p4->startptr + HEADER_LEN;
+                       fprintf(stderr,"+inform MIS replica path:%s,plen=%d\n",f->path,plen);
+                       //put32bit(&ptr4,0);
+                       put32bit(&ptr4,plen);
+                       memcpy(ptr4,f->path,plen);
+                       ptr4 += plen;
+                       put32bit(&ptr4, eptr->peerip); //new replica MDS's ip
+                       p4->next = mdtomi->outpacket;
+                       mdtomi->outpacket = p4; 
+
+                       free(path);
+                       return;
+                   }
+               } else if(riter->is_rep==1){ //supposed not happen, cuz replica MDS has the replica itself
+                   fprintf(stderr, "getattr: peer is replica MDS, ip:%u.%u.%u.%u, visit_time:%d", 
+                           (riter->rep_ip)>>24&0xff, (riter->rep_ip)>>16&0xff, (riter->rep_ip)>>8&0xff, (riter->rep_ip)&0xff, riter->visit_time);
+               }
+               break;
+        } 
+        riter = riter->next;
+      }
+      if(!riter) { //Not candidate yet, add to rep_list
+         fprintf(stderr, "Can not find peer in rep_list\n");
+         rep* candidate = (rep*)malloc(sizeof(rep));
+         candidate->rep_ip = eptr->peerip;
+         candidate->visit_time = 1;
+         candidate->history = 0;
+         candidate->is_rep = 0;
+         candidate->next = f->rep_list;
+         f->rep_list = candidate;
+         f->rep_cnt += 1; //candidate and replica together?
+         fprintf(stderr, "getattr: new peer candidate, ip:%u.%u.%u.%u, visit_time:%d\n", 
+              (candidate->rep_ip)>>24&0xff, (candidate->rep_ip)>>16&0xff, (candidate->rep_ip)>>8&0xff, (candidate->rep_ip)&0xff, candidate->visit_time);
+      }
+    }
     int totsize = 4+plen + 4 + sizeof(attr);
     outp = createpacket_s(totsize,MDTOMD_S2C_GETATTR,inp->id);
     uint8_t* ptr2 = outp->startptr + HEADER_LEN;

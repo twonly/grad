@@ -3,6 +3,7 @@
 
 int init_fs(){
   memset(tab,0,sizeof(tab));
+  memset(nodetab,0,sizeof(nodetab));
   struct stat st;
   if(stat(DUMP_FILE,&st) != -1){
     //unpickle(DUMP_FILE);
@@ -50,7 +51,7 @@ static void ppnode_free(hashnode* n){
 void add_ppnode(ppnode* pn){
   unsigned int k = strhash(pn->path) % HASHSIZE;
 
-  hashnode *it = tab[k];
+  hashnode *it = nodetab[k];
   while (it != NULL) {
     if(!strcmp(pn->path,it->key))  // path as key
         return;
@@ -58,8 +59,8 @@ void add_ppnode(ppnode* pn){
   }
 
   hashnode* n = ppnode_new(pn); // f as data?
-  n->next = tab[k];
-  tab[k] = n; //add ppnode to hash table
+  n->next = nodetab[k];
+  nodetab[k] = n; //add ppnode to hash table
 }
 void add_file(ppfile* f){
   unsigned int k = strhash(f->path) % HASHSIZE;
@@ -78,13 +79,13 @@ void add_file(ppfile* f){
 
 void remove_ppnode(ppnode* pn){
   unsigned int k = strhash(pn->path) % HASHSIZE;
-  hashnode* n = tab[k];
+  hashnode* n = nodetab[k];
   hashnode* np = NULL;
 
   while(n){
     if(!strcmp(n->key,pn->path)){
       if(np == NULL){ //head of list
-        tab[k] = n->next;
+        nodetab[k] = n->next;
         free(n);
       } else {
         np->next = n->next;
@@ -95,6 +96,7 @@ void remove_ppnode(ppnode* pn){
     n = n->next;
   }
 }
+
 void remove_file(ppfile* f){
   unsigned int k = strhash(f->path) % HASHSIZE;
   hashnode* n = tab[k];
@@ -118,7 +120,7 @@ void remove_file(ppfile* f){
 
 ppnode* lookup_ppnode(char* p){
   unsigned int k = strhash(p) % HASHSIZE;
-  hashnode* n = tab[k];
+  hashnode* n = nodetab[k];
   while(n){
     ppnode* pn = (ppnode*)n->data;
     if(!strcmp(pn->path,p)){
@@ -161,6 +163,7 @@ void remove_childnode(ppnode* parent,ppnode* child){
 
   remove_ppnode(child);
 }
+
 void remove_child(ppfile* pf,ppfile* f){
   ppfile* c = pf->child;
 

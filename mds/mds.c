@@ -9,7 +9,7 @@ static mdsserventry* mdsservhead = NULL;
 static int lsock;
 static int lsockpdescpos;
 
-static mdsserventry* mdtomi = NULL;
+mdsserventry* mdtomi = NULL;
 
 int max(int a,int b){
   return a>b?a:b;
@@ -21,6 +21,14 @@ int max(int a,int b){
 int mds_init(void){
   int misip,misport;
   int msock;
+  create_count = 0;
+  delete_count = 0;
+  total_create = 0;
+  total_delete = 0;
+  local_hit = 0;
+  replica_hit = 0;
+  miss_count = 0;
+  forward_count = 0;
 
   lsock = tcpsocket();
   if (lsock<0) {
@@ -80,7 +88,10 @@ int mds_init(void){
   main_destructregister(term_fs);
 	main_pollregister(mds_desc,mds_serve);
 
-	mdmd_stat_add_entry(STAT_DIR_MISS,STAT_DIR_MISS_STR,0);
+    main_timeregister(TIMEMODE_RUN_LATE,MDS_DECAY_TIME,0,mds_visit_decay);
+    //main_timeregister(TIMEMODE_RUN_LATE,20,0,mds_check_replica);
+    main_timeregister(TIMEMODE_RUN_LATE,60,0,mds_log_replica);
+	//mdmd_stat_add_entry(STAT_DIR_MISS,STAT_DIR_MISS_STR,0);
 
   return 0;
 }
@@ -546,32 +557,47 @@ void mds_getattr(mdsserventry* eptr,ppacket* p){
   char* path = (char*)malloc(plen+10);
   memcpy(path,ptr,plen);
   path[plen] = 0;
-  syslog(LOG_WARNING, "mds_getattr: %s", path);
+  //syslog(LOG_WARNING, "mds_getattr: %s", path);
 
   fprintf(stderr,"path:%s\n",path);
 
-  ppfile* f = lookup_file(path); //
-  if(f == NULL){
-    fprintf(stderr,"not found path:%s\n",path);
-    mdmdserventry* meptr;
-   //     if((meptr=mdmd_find_link(path)) != NULL){//use inter-mds connections, this process may be passed later.
-   //       fprintf(stderr,"+using conns between mds and mds\n");
-   //       mdmd_getattr(meptr,path,p->id);
-   //     } else {
-          mds_direct_pass_mi(p,MDTOMI_GETATTR);
-   //     }
-  } else { //return directly
-    syslog(LOG_WARNING,"mds_getattr: find path:%s",path);
-    fprintf(stderr,"found path:%s\n",path);
+  if(strcmp(path,"/")==0) {
+      mds_direct_pass_mi(p,MDTOMI_GETATTR);
+  } else {
+    ppfile* f = lookup_file(path); //
+    if(f == NULL){
+      fprintf(stderr,"not found path:%s\n",path);
+      //scan replica table 
+      pprep* r = lookup_rep(path);
+      if(r) { //get replica in rep table
+        fprintf(stderr,"found path:%s in replica table\n", path);
+        replica_hit++;
+        r->visit_time += 1; //update visit info
+        ppacket* outp = createpacket_s(4+sizeof(attr),MDTOCL_GETATTR,p->id);
+        uint8_t *ptr2 = outp->startptr + HEADER_LEN;
 
-    ppacket* outp = createpacket_s(4+sizeof(attr),MDTOCL_GETATTR,p->id);
-    uint8_t *ptr2 = outp->startptr + HEADER_LEN;
+        put32bit(&ptr2,0); //status
+        memcpy(ptr2,&r->a,sizeof(attr));
 
-    put32bit(&ptr2,0); //status
-    memcpy(ptr2,&f->a,sizeof(attr));
+        outp->next = eptr->outpacket;
+        eptr->outpacket = outp;
+      } else { //ask MIS
+        mds_direct_pass_mi(p,MDTOMI_GETATTR);
+      }
+    } else { //return directly
+      //syslog(LOG_WARNING,"mds_getattr: find path:%s",path);
+      fprintf(stderr,"found path:%s\n",path);
+      local_hit++;
 
-    outp->next = eptr->outpacket;
-    eptr->outpacket = outp;
+      ppacket* outp = createpacket_s(4+sizeof(attr),MDTOCL_GETATTR,p->id);
+      uint8_t *ptr2 = outp->startptr + HEADER_LEN;
+
+      put32bit(&ptr2,0); //status
+      memcpy(ptr2,&f->a,sizeof(attr));
+
+      outp->next = eptr->outpacket;
+      eptr->outpacket = outp;
+    }
   }
 
   free(path);
@@ -583,16 +609,19 @@ void mds_cl_getattr(mdsserventry* eptr,ppacket* p){ //p->id? | Msg returned from
   int flag = get32bit(&ptr);
   if(flag <= 0){ //directory or error, return directly
       mds_direct_pass_cl(eptr,p,MDTOCL_GETATTR);
+      if(flag<0)
+        miss_count++;
       return;
   } else { //regular file, flag is plen
+      forward_count++;
       fprintf(stderr,"p->size=%d\n",p->size);
       int plen = flag;
       fprintf(stderr,"plen=%d\n",plen);
-      char* path = malloc(plen+1);
+      char* path = malloc(plen+1); //should be freed
       memcpy(path,ptr,plen);
       path[plen] = 0;
       ptr += plen;
-      uint32_t ip = get32bit(&ptr);
+      uint32_t ip = get32bit(&ptr); //primary ip 
 
       //connect to Primary MDS of metadata.
       fprintf(stderr,"adding path:(%X,%s) to mdmd",ip,path);
@@ -601,15 +630,15 @@ void mds_cl_getattr(mdsserventry* eptr,ppacket* p){ //p->id? | Msg returned from
       if(meptr) {
           fprintf(stderr,"+retrieve eptr with Primary");
           mdmd_getattr(meptr,path,p->id);
-          return;
       } else {
           fprintf(stderr,"+no eptr between Primary, return ENOENT\n");
           ppacket* outp = createpacket_s(4,MDTOCL_GETATTR,p->id); //p->id = Client id
           uint8_t *ptr2 = outp->startptr + HEADER_LEN;
           put32bit(&ptr2,-ENOENT);
           mds_direct_pass_cl(eptr, outp, MDTOCL_GETATTR); //potential bug TODO
-          return;
       }
+      free(path);
+      return;
   }
   //mds_direct_pass_cl(eptr,p,MDTOCL_GETATTR);
 }
@@ -624,7 +653,6 @@ void mds_create_replica(mdsserventry* eptr,ppacket* p){ //create replica of file
   path[plen] = 0;
   ptr+=plen;
   int repip = get32bit(&ptr);
-  syslog(LOG_WARNING, "mds_create_replica: %s on %X", path, repip);
   fprintf(stderr,"mds_create_replica path:%s replica ip:%X\n",path, repip);
   //use mdmd* function
   //primary connects to replica
@@ -656,31 +684,6 @@ void mds_create_replica(mdsserventry* eptr,ppacket* p){ //create replica of file
 
   free(path);
   return;
-
-  //ppfile* f = lookup_file(path); //
-  //if(f == NULL){
-  //  syslog(LOG_WARNING,"mds_getattr: can not find path:%s",path);
-  //  mdmdserventry* meptr;
-  // //     if((meptr=mdmd_find_link(path)) != NULL){//use inter-mds connections, this process may be passed later.
-  // //       fprintf(stderr,"+using conns between mds and mds\n");
-  // //       mdmd_getattr(meptr,path,p->id);
-  // //     } else {
-  //        mds_direct_pass_mi(p,MDTOMI_GETATTR);
-  // //     }
-  //} else {
-  //  syslog(LOG_WARNING,"mds_getattr: find path:%s",path);
-  //  fprintf(stderr,"found path:%s\n",path);
-
-  //  ppacket* outp = createpacket_s(4+sizeof(attr),MDTOCL_GETATTR,p->id);
-  //  uint8_t *ptr2 = outp->startptr + HEADER_LEN;
-
-  //  put32bit(&ptr2,0); //status
-  //  memcpy(ptr2,&f->a,sizeof(attr));
-
-  //  outp->next = eptr->outpacket;
-  //  eptr->outpacket = outp;
-  //}
-
 }
 
 
@@ -734,9 +737,9 @@ void mds_chmod(mdsserventry* eptr,ppacket* p){
         riter = riter->next;
     }
   } else {
-    if(eptr != mdtomi){
+    if(eptr != mdtomi){ //from Client directly
       mds_direct_pass_mi(p,MDTOMI_CHMOD);
-    } else {
+    } else { //Asked MIS before, MIS pretends as Client, return ENOENT
       ppacket* outp = createpacket_s(4,MDTOCL_CHMOD,p->id);
       uint8_t* ptr2 = outp->startptr+HEADER_LEN;
 
@@ -853,6 +856,9 @@ void mds_unlink(mdsserventry* eptr,ppacket* inp){
     remove_file(f);
     free_file(f);
   }
+  //TODO
+  //Delete all replicas in other replica MDSs, if exists
+  //Scan the replica list in ppfile, rep_list
 
   //notify MIS
   if(mdtomi != eptr) //msg is from CLIENT, not pretended by MIS
@@ -931,7 +937,7 @@ void mds_cl_create(mdsserventry* eptr,ppacket* inp){ //yjy
       ppfile* nf = new_file(path,a);
       uint32_t ip2;
       tcpgetmyaddr(eptr->sock, &ip2);
-      nf->srcip = ip; //how to retrieve local ip, workaround: MIS send eptr->ip back XDDDD
+      nf->srcip = ip2; //how to retrieve local ip, workaround: MIS send eptr->ip back XDDDD
       //fprintf(stderr,"primary (ip:%u.%u.%u.%u) \n",(*ip2>>24)&0xFF,(*ip2>>16)&0xFF,(*ip2>>8)&0xFF,*ip2&0xFF);
       //fprintf(stderr, "local ip is %X\n", *ip2); 
       nf->rep_list = NULL;
@@ -1042,6 +1048,7 @@ void mds_cl_append_chunk(mdsserventry* eptr,ppacket* p){
     outp->next = eptr->outpacket;
     eptr->outpacket = outp;
   }
+  free(path);
 }
 
 void mds_cl_read_chunk_info(mdsserventry* eptr,ppacket* p){
@@ -1111,6 +1118,7 @@ void mds_cl_read_chunk_info(mdsserventry* eptr,ppacket* p){
     outp->next = eptr->outpacket;
     eptr->outpacket = outp;
   }
+  free(path);
 }
 
 void mds_fw_read_chunk_info(mdsserventry* eptr,ppacket* p){
@@ -1194,6 +1202,7 @@ void mds_cl_pop_chunk(mdsserventry* eptr,ppacket* p){
     outp->next = eptr->outpacket;
     eptr->outpacket = outp;
   }
+  free(path);
 }
 
 void mds_utimens(mdsserventry* eptr,ppacket* p){
@@ -1285,6 +1294,7 @@ void mds_cl_write(mdsserventry* eptr,ppacket* p){
     if(oldsize != f->a.size)
       mis_update_attr(f);
   }
+  free(path);
 }
 
 void mds_login(mdsserventry* eptr,ppacket* p){
@@ -1311,3 +1321,90 @@ void mds_cl_del_user(mdsserventry* eptr,ppacket* p){
   //@TODO
 }
 
+////Replica-related
+void mds_visit_decay(void) {
+    fprintf(stderr, "+mds_visit_decay\n");
+    int i;
+    for(i=0; i<HASHSIZE; ++i) {
+        hashnode* n = tab[i];
+        while(n) {
+            ppfile* f = (ppfile*)(n->data);
+            rep* r = f->rep_list;
+            while(r) {
+                if(r->is_rep) {
+                    r=r->next;
+                    continue;
+                }
+                //fprintf(stderr, "before update %s: ip:%X, history:%d, visit_time:%d\n", f->path, r->rep_ip, r->history, r->visit_time);
+                r->history = r->history/2 + r->visit_time;
+                r->visit_time = 0;
+                //fprintf(stderr, "after update %s: ip:%X, history:%d, visit_time:%d\n", f->path, r->rep_ip, r->history, r->visit_time);
+                r = r->next;
+            }
+            n = n->next;
+        }
+    }
+    return;
+}
+    
+void mds_check_replica(void) { //execute every slot, for replica deletion
+    int i;
+    fprintf(stderr, "+mds_check_replica\n");
+    for(i=0; i<HASHSIZE; ++i) {
+        hashnode* n = reptab[i];
+        while(n) {
+            pprep* f = (pprep*)(n->data);
+            if(f->history+f->visit_time < 3 && f->age>=2) { //cold data, delete replica
+                //inform Primary MDS and MIS
+                fprintf(stderr, "delete cold replica %s\n", f->path);
+                uint32_t ip = f->primaryip;
+                //mdmd_add_entry(ip,path,MDMD_PATH_CACHE); //connect to Primary 
+                mdmdserventry* meptr = mdmdserventry_from_ip(ip); //get Primary entry
+                if(meptr) {
+                    fprintf(stderr,"+inform Primary MDS %X\n", ip);
+                    mdmd_send_delete(meptr,f->path);
+                }
+
+                //Replica MDS inform MIS the deletion. Alternative: MIS informed by Primary MDS
+                fprintf(stderr,"+inform MIS \n");
+                int plen = strlen(f->path);
+                ppacket* outp = createpacket_s(4+plen,MDTOMI_DELETE_REPLICA,-1); //plen, path, ip
+                delete_count++;
+                uint8_t *ptr2 = outp->startptr + HEADER_LEN;
+                put32bit(&ptr2,plen); //status
+                memcpy(ptr2, f->path, plen);
+                ptr2 += plen;
+                outp->next = mdtomi->outpacket;
+                mdtomi->outpacket = outp;               
+
+                //delete locally
+                fprintf(stderr,"delete locally \n");
+                remove_rep(f); //remove from rep hash table
+                n=n->next;
+                continue;
+            }
+            f->history = f->history/2 + f->visit_time;
+            f->age += 1;
+            f->visit_time = 0;
+            n = n->next;
+        }
+    }
+    syslog(LOG_WARNING, "delete %d replica in this slot\n", delete_count);
+    //fprintf(stderr, "delete %d replica in this slot\n", delete_count);
+    total_delete += delete_count;
+    //fprintf(stderr, "Totally delete %d replica\n", total_delete);
+    delete_count = 0;
+    return;
+}
+void mds_log_replica(void){
+  syslog(LOG_WARNING, "Creating %d replicas in this period\n", create_count);
+  //fprintf(stderr, "Creating %d replicas in this period\n", create_count);
+  total_create += create_count;
+  fprintf(stderr, "Totally created %d replicas\n", total_create);
+  fprintf(stderr, "Totally delete %d replica\n", total_delete);
+  fprintf(stderr, "Totally local_hit %d\n", local_hit);
+  fprintf(stderr, "Totally replica_hit %d\n", replica_hit);
+  fprintf(stderr, "Totally forward_count %d\n", forward_count);
+  fprintf(stderr, "Totally miss_count %d\n", miss_count);
+  create_count = 0;
+}

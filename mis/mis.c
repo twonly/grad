@@ -11,6 +11,23 @@ static int lsockpdescpos;
 static ppfile* root;
 static ppnode* rootnode;
 
+int create_cnt = 0;
+int delete_cnt = 0;
+
+typedef struct _filelist{
+  char* path;
+  struct _filelist* next;
+} filelist;
+
+typedef struct _list {
+    int id;//ip
+    int count;
+    filelist *fl;
+    int filecnt;
+    struct _list* next;
+  } list;
+list* visit_head = NULL;
+
 void mis_fs_demo_init(void){
   attr a;
   int i;
@@ -24,8 +41,9 @@ void mis_fs_demo_init(void){
   //root = new_file("/",a);
   //add_file(root);
   rootnode = new_ppnode("/");
-  rootnode->isdir = 1;
-  rootnode->a = a;
+  //rootnode->isdir = 1;
+  rootnode->a = malloc(sizeof(attr));
+  memcpy(rootnode->a, &a, sizeof(attr));
   add_ppnode(rootnode);
   fprintf(stderr, "add root node, path is %s\n", rootnode->path);
 
@@ -61,7 +79,7 @@ int mis_init(void){
 
 	main_destructregister(mis_term);
 	main_pollregister(mis_desc,mis_serve);
-    //main_timeregister(TIMEMODE_RUN_LATE,MIS_DECAY_TIME,0,mis_visit_decay);
+  main_timeregister(TIMEMODE_RUN_LATE,60,0,mis_log);
   main_destructregister(term_fs);
 
   mis_fs_demo_init();
@@ -315,6 +333,15 @@ void mis_gotpacket(misserventry* eptr,ppacket* p){
       mis_chown(eptr,p);
       break;
 
+    //REPLICA related
+    case MDTOMI_CREATE_REPLICA:
+      mis_create_replica(eptr,p);
+      break;
+
+    case MDTOMI_DELETE_REPLICA:
+      mis_delete_replica(eptr,p);
+      break;
+
     case MDTOMI_READ_CHUNK_INFO:
       mis_fw_read_chunk_info(eptr,p);
       break;
@@ -366,16 +393,19 @@ void mis_getattr(misserventry* eptr,ppacket* inp){
     fprintf(stderr, "can not find the path, status=%d\n",-ENOENT);
     put32bit(&ptr,-ENOENT); //-2
   } else {
-    fprintf(stderr, "found the path, n->isdir=%d\n", n->isdir);
+    //fprintf(stderr, "found the path, n->isdir=%d\n", n->isdir);
     int totsize = 4;//+sizeof(attr);
-    if(n->isdir!=1) totsize += 4+plen+4; //add path and len and ip
+    if(NULL==n->a)
+    //if(n->isdir!=1)
+      totsize += 4+plen+4; //add path and len and ip
     else totsize += sizeof(attr);
     fprintf(stderr,"p->size=%d\n",totsize);
 
     p = createpacket_s(totsize,MITOMD_GETATTR,inp->id);
     uint8_t* ptr = p->startptr + HEADER_LEN;
 
-    if(n->isdir!=1) { //regular file, return ip
+    if(NULL==n->a){
+    //if(n->isdir!=1) { //regular file, return ip
       put32bit(&ptr,plen);
       memcpy(ptr,path,plen);
       ptr += plen;
@@ -384,7 +414,7 @@ void mis_getattr(misserventry* eptr,ppacket* inp){
       put32bit(&ptr,0); //status
     } else { //directory, return status 0 and mode
       put32bit(&ptr,0); 
-      memcpy(ptr, &n->a, sizeof(attr));
+      memcpy(ptr, n->a, sizeof(attr));
       ptr+=sizeof(attr);
     }
   }
@@ -450,6 +480,7 @@ void mis_getattr(misserventry* eptr,ppacket* inp){
 }
 
 void mis_readdir(misserventry* eptr,ppacket* inp){
+  fprintf(stderr, "+mis_readdir\n");
   ppacket* p;
   char* path;
   int len;
@@ -474,13 +505,18 @@ void mis_readdir(misserventry* eptr,ppacket* inp){
     uint8_t* ptr = p->startptr + HEADER_LEN;
     put32bit(&ptr,-ENOENT);
   } else {
-    if(n->isdir==1) {
+    if(n->a){
+      //fprintf(stderr, "n->a==NULL\n");
+    //if(n->isdir==1) {
       ppnode* it;
       int totsize = 8;
       int nfiles = 0;
 
       for(it = n->child;it;it = it->next){
-        totsize += 4 + strlen(it->name);
+        char* name = getbasename(it->path);
+        fprintf(stderr, "strlen(name)=%d\n", strlen(name));
+        totsize += 4 + strlen(name);
+        //totsize += 4 + strlen(it->name);
         nfiles++;
       }
       fprintf(stderr, "mis readdir %d files\n",nfiles);
@@ -491,9 +527,12 @@ void mis_readdir(misserventry* eptr,ppacket* inp){
       put32bit(&ptr,nfiles);
 
       for(it = n->child;it;it = it->next){
-        int len = strlen(it->name);
+        char *name = getbasename(it->path);
+        fprintf(stderr, "relative name %s\n", name);
+        int len = strlen(name);
+        //int len = strlen(it->name);
         put32bit(&ptr,len);
-        memcpy(ptr,it->name,len);
+        memcpy(ptr,name,len);
         ptr += len;
       }
     } else {
@@ -600,7 +639,8 @@ void mis_mkdir(misserventry* eptr,ppacket* inp){ //mkdir, add entry to table
       free(dir);
       goto end;
     } else {
-      if(n->isdir!=1) {
+      if(NULL==n->a){
+      //if(n->isdir!=1) {
         p = createpacket_s(4,MITOMD_MKDIR,inp->id);
         uint8_t* ptr = p->startptr + HEADER_LEN;
         put32bit(&ptr,-ENOTDIR);
@@ -614,14 +654,16 @@ void mis_mkdir(misserventry* eptr,ppacket* inp){ //mkdir, add entry to table
     nn->next = n->child;
     n->child = nn;
     nn->primaryip = eptr->peerip; //not necessary for dir
-    nn->isdir = 1; //set as directory
+    //nn->isdir = 1; //set as directory
+    nn->a = malloc(sizeof(attr));
     attr a;
     a.uid = a.gid = 0;
     a.atime = a.ctime = a.mtime = time(NULL);
     a.link = 1;
     a.size = 0;
     a.mode = mt;   
-    nn->a = a;
+    //nn->a = a;
+    memcpy(nn->a, &a, sizeof(a));
 
     //add dir entry to table, record it as PRIMARY? --yjy
 
@@ -632,87 +674,11 @@ void mis_mkdir(misserventry* eptr,ppacket* inp){ //mkdir, add entry to table
     memcpy(ptr, path, strlen(path));
     ptr += strlen(path);
 
-    syslog(LOG_WARNING, "mis_mode sent to mds: %o", mt);
+    //syslog(LOG_WARNING, "mis_mode sent to mds: %o", mt);
     put32bit(&ptr, mt);
 
     free(dir);
   }
-
- // if(f){
- //   fprintf(stderr,"directory exists\n");
-
- //   p = createpacket_s(4,MITOMD_MKDIR,inp->id);
- //   uint8_t* ptr = p->startptr + HEADER_LEN;
- //   put32bit(&ptr,-EEXIST);
-
- //   goto end;
- // } else { //find the parent directory
- //   char* dir;
- //   if(len > 1){
- //     dir = &path[len-1];
- //     while(dir >= path && *dir != '/') dir--;
-
- //     int dirlen = dir - path;
- //     if( dirlen==0 ) dirlen+=1; //for /dir
- //     dir = strdup(path);
- //     dir[dirlen] = 0;
- //   } else {
- //     dir = strdup("/");
- //   }
-
-
- //   printf("parent dir=%s\n",dir); //parent dir
-
- //   f = lookup_file(dir);
- //   if(!f){
- //     p = createpacket_s(4,MITOMD_MKDIR,inp->id);
- //     uint8_t* ptr = p->startptr + HEADER_LEN;
- //     put32bit(&ptr,-ENOENT);
- //     
- //     free(dir);
- //     goto end;
- //   } else {
- //     if(!S_ISDIR(f->a.mode)){ //exist but not directory
- //       p = createpacket_s(4,MITOMD_MKDIR,inp->id);
- //       uint8_t* ptr = p->startptr + HEADER_LEN;
- //       put32bit(&ptr,-ENOTDIR);
-
- //       free(dir);
- //       goto end;
- //     }
- //   }
-
- //   attr a;
-
- //   a.uid = a.gid = 0;
- //   a.atime = a.ctime = a.mtime = time(NULL);
- //   a.link = 1;
- //   a.size = 0;
-
- //   a.mode = mt; //| S_IFREG; //use mode from client
- //   syslog(LOG_WARNING, "mis_mode : %o", mt);
-
- //   ppfile* nf = new_file(path,a);
- //   add_file(nf); //  like "/dir"
- //   nf->next = f->child;
- //   f->child = nf;
-
- //   nf->srcip = eptr->peerip; //not necessary for dir
-
- //   //add dir entry to table, record it as PRIMARY? --yjy
-
- //   p = createpacket_s(4+strlen(path)+4+4,MITOMD_MKDIR,inp->id);
- //   uint8_t* ptr = p->startptr + HEADER_LEN;
- //   put32bit(&ptr,0);
- //   put32bit(&ptr,strlen(path));
- //   memcpy(ptr, path, strlen(path));
- //   ptr += strlen(path);
-
- //   syslog(LOG_WARNING, "mis_mode sent to mds: %o", mt);
- //   put32bit(&ptr, mt);
-
- //   free(dir);
- // }
 
 end:
   free(path);
@@ -743,7 +709,8 @@ void mis_rmdir(misserventry* eptr,ppacket* inp){
   ppnode* n = lookup_ppnode(path);
   if(n){
     //if(!S_ISDIR(f->a.mode)) {
-    if(n->isdir!=1){
+    if(NULL==n->a){
+    //if(n->isdir!=1){
       p = createpacket_s(4,MITOMD_RMDIR,inp->id);
       uint8_t* ptr = p->startptr + HEADER_LEN;
       put32bit(&ptr,-ENOTDIR);
@@ -778,7 +745,7 @@ void mis_rmdir(misserventry* eptr,ppacket* inp){
       free(dir);
       goto end;
     //} else if(!S_ISDIR(pf->a.mode)){ //exist but not directory
-    } else if(pn->isdir!=1) {
+    } else if(NULL==pn->a) {  //if(pn->isdir!=1) {
       p = createpacket_s(4,MITOMD_RMDIR,inp->id);
       uint8_t* ptr = p->startptr + HEADER_LEN;
       put32bit(&ptr,-ENOTDIR);
@@ -834,7 +801,8 @@ void mis_unlink(misserventry* eptr,ppacket* inp){ //TODO Delete Replica
   ppfile* f = lookup_file(path);
   ppnode* n = lookup_ppnode(path);
   if(n){
-    if(n->isdir==1) {
+    if(n->a){
+    //if(n->isdir==1) {
         fprintf(stderr,"path is DIR\n");
         p = createpacket_s(4,MITOMD_UNLINK,inp->id);
         uint8_t* ptr = p->startptr + HEADER_LEN;
@@ -1088,7 +1056,8 @@ void mis_create(misserventry* eptr,ppacket* inp){ //create file, supposed to add
       free(dir);
       goto end;
     } else {
-      if(n->isdir!=1) { //parent not directory
+      if(NULL==n->a){
+      //if(n->isdir!=1) { //parent not directory
         p = createpacket_s(4,MITOMD_CREATE,inp->id);
         uint8_t* ptr = p->startptr + HEADER_LEN;
         put32bit(&ptr,-ENOTDIR);
@@ -1456,7 +1425,7 @@ void mis_del_user(misserventry* eptr,ppacket* p){
 
 void mis_visit_decay(void) {
   //traverse directories and update visit info
-    mis_update_visit_all();
+    //mis_update_visit_all();
 }
 
 void mis_inform_primary(void) {
@@ -1477,51 +1446,150 @@ void mis_inform_primary(void) {
     return;
 }
 
-void mis_create_replica(ppfile* f) {
-    rep* r = f->rep_list;
-    //syslog(LOG_WARNING, "update %s replica info", f->path);
-    ppacket* outp = NULL;
-    while(r) {
-        r->history = r->history/2 + r->visit_time;
-        r->visit_time = 0;
-        //syslog(LOG_WARNING, "after update %s: ip:%X, history:%d, visit_time:%d", f->path, r->rep_ip, r->history, r->visit_time);
-        if(r->history>2 && r->is_rep==0) {
-            //misserventry peptr = mis_entry_from_ip(r->rep_ip);
-            misserventry* peptr = mis_entry_from_ip(f->srcip); //send to primary, not replica
-            if(peptr) {
-                r->is_rep = 1; //TODO
-                outp = createpacket_s(4+sizeof(f->path)+4, MITOMD_CREATE_REPLICA,-1); //p->id?
-                uint8_t* ptr2 = outp->startptr + HEADER_LEN;
-                put32bit(&ptr2, sizeof(f->path));
-                memcpy(ptr2, f->path, sizeof(f->path));
-                ptr2 += sizeof(f->path);
-                put32bit(&ptr2,r->rep_ip);
+void mis_delete_replica(misserventry* eptr, ppacket* inp) {
+  fprintf(stderr, "+mis_delete_replica\n");
+  ppacket* p;
+  const uint8_t* inptr = inp->startptr;
+  int len = get32bit(&inptr);
+  printf("plen=%d\n",len);
 
-                outp->next = peptr->outpacket;
-                peptr->outpacket = outp;
+  char* path = (char*)malloc((len+1)*sizeof(char));
+  memcpy(path,inptr,len*sizeof(char));
+  path[len] = 0;
+  //inptr += len;
+  uint32_t ip = eptr->peerip;//get32bit(&inptr);
 
-                fprintf(stderr,"create replica from %X to %X\n",f->srcip, r->rep_ip);
-                fprintf(stderr,"size=%d\n",outp->size);
+  printf("path=%s\n",path);
+
+  ppnode* n = lookup_ppnode(path);
+  if(n){
+    fprintf(stderr,"path %s exists, delete replica ip %X\n", path, ip);
+    ip_struct *it = n->repip_list;
+    ip_struct *tmp = NULL;
+    while( it ) {
+        if(it->ip==ip){ //already exist, error handling?
+            fprintf(stderr, "delete successfully!\n");
+            if(tmp==NULL) {
+                n->repip_list = it->next;
             } else {
-                fprintf(stderr, "can not retrieve primary eptr");
-                //syslog(LOG_WARNING, "update_visit can not retrieve primary eptr");
+                tmp->next = it->next;
             }
+            delete_cnt++;
+            //syslog(LOG_WARNING, "Delete %d replicas", delete_cnt);
+            break;
         }
-        r = r->next;
+        tmp = it;
+        it = it->next;
     }
-    return;
+    if(!it) {
+        fprintf(stderr, "can not find replica ip, ooops!\n");
+    } else {
+        fprintf(stderr, "can find replica ip, delete!\n");
+        free(it);
+    }
+  } else { 
+      fprintf(stderr, "can not find %s, error\n", path);
+      //error handling
+  }
+  free(path);
 }
 
-void mis_update_visit_all(void) {
- // syslog(LOG_WARNING, "update all replica info");
+void mis_create_replica(misserventry* eptr, ppacket* inp) {
+  fprintf(stderr, "+mis_create_replica\n");
+  ppacket* p;
+  char* path;
+  int len;
+  const uint8_t* inptr;
   int i;
-  for(i=0; i<HASHSIZE; ++i) {
-      hashnode* n = tab[i];
-      while(n) {
-          ppfile* f = (ppfile*)(n->data);
-          mis_create_replica(f);      
-          n = n->next;
+  inptr = inp->startptr;
+  len = get32bit(&inptr);
+  printf("plen=%d\n",len);
+
+  path = (char*)malloc((len+1)*sizeof(char));
+  memcpy(path,inptr,len*sizeof(char));
+  path[len] = 0;
+  inptr += len;
+  uint32_t ip = get32bit(&inptr); //replica IP
+
+  printf("path=%s\n",path);
+
+  ppnode* n = lookup_ppnode(path);
+
+  list* iter = visit_head;
+  if(n){
+    while(iter) {
+      if(iter->id==n->primaryip) {
+        iter->count++;
+        filelist* fit = iter->fl;
+        while(fit) {
+          if( strcmp(fit->path, path)==0 ) {
+            break;
+          }
+          fit = fit->next;
+        }
+        //add file and count
+        if(!fit) {
+            fprintf(stderr, "add new file\n");
+            filelist* nfl = malloc(sizeof(filelist));
+            nfl->path = strdup(path);
+            nfl->next = iter->fl;
+            iter->fl = nfl;
+            iter->filecnt++;
+        }
+        fprintf(stderr,"primary MDS exist\n");
+        break;
       }
+      iter=iter->next;
+    }
+    if(!iter) {
+      fprintf(stderr,"primary MDS not exist, create entry\n");
+      list* ne = (list*)malloc(sizeof(list));
+      ne->id = n->primaryip;
+      ne->count = 1;
+      ne->fl = NULL;
+      filelist *nfl = malloc(sizeof(filelist));
+      nfl->path = strdup(path);
+      nfl->next = ne->fl;
+      ne->fl = nfl;
+      ne->filecnt = 1;
+      ne->next = visit_head;
+      visit_head = ne;
+    }
+
+    //create_all_add. list[primary ip]++
+    //list[primary ip][replica ip]++
+    fprintf(stderr,"path %s exists, add replica ip %X\n", path, ip);
+    create_cnt++;
+    //syslog(LOG_WARNING, "Create %d replicas", create_cnt);
+    ip_struct *it = n->repip_list;
+    
+    while( it ) {
+        if(it->ip==ip){ //already exist, error handling?
+            break;
+        }
+        it = it->next;
+    }
+    if(!it){ //not exist yet, insert
+        ip_struct *newip = malloc(sizeof(ip_struct));
+        newip->ip = ip;
+        newip->next = n->repip_list;
+        n->repip_list = newip;
+        fprintf(stderr,"add successfully\n");
+    }
+  } else { 
+      fprintf(stderr, "can not find %s, error\n", path);
+      //error handling
+  }
+  free(path);
+}
+void mis_log() {
+  list* iter = visit_head;
+  while(iter) {
+    int ip = iter->id;
+    int repcnt = iter->count;
+    int filecnt = iter->filecnt;
+    fprintf(stderr, "MDS %X create %d replicas for %d files\n", ip, repcnt, filecnt);
+    iter=iter->next;
   }
   return;
 }

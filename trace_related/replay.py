@@ -9,12 +9,12 @@ from collections import deque
 from pdb import set_trace
 
 dirdb_prefix = "./dirdb.res/dirgroup.19970430"
-trace_prefix = "./traces/trace"
+trace_prefix = "./traces/"
 
 dev_dirtab = {}
 
 do_init_entries = False
-mt_hid = 1
+mt_hid = 6
 
 for arg in sys.argv[1:]:
     if arg == '-p':
@@ -34,11 +34,14 @@ for arg in sys.argv[1:]:
             sys.exit(1)
 
 #mount = "./mt_%d" % mt_hid # point of mount
-mount = "./mt_"
+#mount = "./mt_"
+mount = "mnt"
 
 time_scale = 100
 thread_count = 10
 min_queue_size = 1000
+miss_count = 0
+stat_count = 0
 
 q = deque([])
 
@@ -58,14 +61,15 @@ dates = []
 #dates = [19960911]
 
 #dates += range(19961001,19961015+1)
-dates += [19961001]
+#dates += [19961001]
+dates += ["hid6.stat"]
 
 apis = ["STAT","FSTAT"]
 #apis += ["CHOWN","FCHOWN","CHMOD","FCHMOD"]
 #apis += ["LINK","UNLINK"]
-apis += ["UNLINK"]
+#apis += ["UNLINK"]
 #apis += ["FTRUNC",'TRUNC',"OPEN","CLOSE"]
-apis += ["GETDIRENTRIES",'UTIME']
+#apis += ["GETDIRENTRIES",'UTIME']
 #apis += ['SREAD','SWRITE','WRITEV']
 
 #hids = range(1,11+1)
@@ -77,7 +81,7 @@ def init_dev_dirtab(dev):
     if ret != None:
         dev_dirtab[dev] = ret
 
-def get_full_path(dev,fid):
+def get_full_path(dev,fid): #dev+fid = full_path
     global dev_dirtab
     dev = abs(int(dev))
 
@@ -107,7 +111,7 @@ def parse_call(line):
 def init(prefix,date,paths,apaths,npaths):
     global mt_hid
 
-    f = open(prefix + "." + str(date) + ".txt","r")
+    f = open(prefix + str(date),"r")
     L = f.readline()
 
     print("reading %s" % date)
@@ -189,10 +193,11 @@ def create_init_entries(apaths,npaths):
         create_file(path)
 
 def play_call(param):
-    if param.get("sys",None) == None:
+    if param.get("syscall",None) == None:
         return
 
-    sys = param["sys"]
+    sys = param["syscall"]
+    global miss_count, stat_count
 
     def get_dev_fid_path():
         try:
@@ -219,10 +224,21 @@ def play_call(param):
 
         dev,fid,path = ret
 
+        #if(path[:6]=="mnt/5/"):
         try:
             os.stat(path)
+            stat_count += 1
+            #if(path[:6]=="mnt/6/"):
+            if(path[:8]=="mnt/4044" or path[:8]=="mnt/4056"):
+              print path
         except OSError as e:
-            print("stat",str(e))
+            #print path
+            #if(path[:8]=="mnt/4043" or path[:8]=="mnt/4056"):
+            #  print path
+            print path
+            #print("stat",str(e))
+            #create_file(path)
+            miss_count += 1
             return
 
     elif sys == "UNLINK":
@@ -272,6 +288,7 @@ def play_call(param):
 if __name__ == "__main__":
     #initialize
     print("Initializing, hid=%d" % mt_hid)
+    global stat_count, miss_count
 
     if do_init_entries == True:
         print("Initializing paths")
@@ -280,11 +297,11 @@ if __name__ == "__main__":
         apaths = set([])
         npaths = set([])
         for date in dates:
-            paths,apaths,npaths = init(trace_prefix,date,paths,apaths,npaths)
+            paths,apaths,npaths = init(trace_prefix,date,paths,apaths,npaths)  #retrieve new file and dir
 
         print("Creating files and dirs")
 
-        create_init_entries(apaths,npaths)
+        create_init_entries(apaths,npaths) #create dir and file
 
         sys.exit(1)
 
@@ -302,7 +319,8 @@ if __name__ == "__main__":
             if fp == None:
                 if date_index == len(dates):
                     return None
-                fp = open(trace_prefix + "." + str(dates[date_index]) + ".txt")
+                print trace_prefix+str(dates[date_index])
+                fp = open(trace_prefix + str(dates[date_index]), "r")
                 line = 0
                 date_index += 1
 
@@ -314,17 +332,18 @@ if __name__ == "__main__":
                 if date_index == len(dates):
                     fp = None
                     return None
-                fp = open(trace_prefix + "." + str(dates[date_index]) + ".txt")
+                fp = open(trace_prefix + str(dates[date_index]), "r")
                 line = 0
                 date_index += 1
 
                 L = fp.readline()
                 line += 1
-
+            #print L
             L = L[:-1]
             param = parse_call(L)
+            #print param
             try:
-                sys = param["sys"]
+                sys = param["syscall"]
                 hid = int(param["hid"])
             except ValueError:
                 param = None
@@ -334,6 +353,7 @@ if __name__ == "__main__":
                 continue
 
             if (sys in apis) and (abs(hid) == mt_hid):
+                #print "find matched hid and api"
                 break
 
         return param
@@ -341,7 +361,7 @@ if __name__ == "__main__":
     #time.sleep(20)
 
     vt0 = 842425207 #time of the first traced call
-    t0 = time.time()
+    t0 = time.time() #begin time, physical time
 
     print("Initialization finished")
 
@@ -350,21 +370,21 @@ if __name__ == "__main__":
     calls = 0
     while True:
         while len(q) < min_queue_size:
-            param = get_call()
+            param = get_call() #read 1000 lines
 
             if param == None:
                 break
-
+            #push time value and command
             q.append((int(param["t"]),param))
-
+        #print("read 1000 lines")
         if len(q) == 0:
             break
 
         while len(q) > 0:
             x = q.popleft()
-            if x[0] - vt0 >= (time.time()-t0)*time_scale:
-                lat += (x[0] - vt0) - (time.time()-t0)*time_scale
-                play_call(x[1])
+            if x[0] - vt0 >= (time.time()-t0)*time_scale: #logical lag >= physical time* 100, orelse drop the cmd?
+                lat += (x[0] - vt0) - (time.time()-t0)*time_scale #lantency = 
+                play_call(x[1]) #actual play
                 calls += 1
                 if calls % 1000 == 0:
                     print(calls)
@@ -372,4 +392,5 @@ if __name__ == "__main__":
     print("="*10)
     print("Finished replay" + "\n" * 5)
     print("lat = %f" % lat)
+    print("stat_count:%d, miss_count:%d" % (stat_count, miss_count) )
 

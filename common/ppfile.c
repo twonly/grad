@@ -12,19 +12,37 @@ char* getbasename(char* path){
   return (path + pos + 1);
 }
 
+pprep* new_pprep(char* path, attr a) {
+    pprep* ret = (pprep*)malloc(sizeof(pprep));
+    ret->path = strdup(path);
+    ret->primaryip = 0;
+    ret->a = a;
+    ret->age = 0;
+    ret->visit_time = 0;
+    ret->history = 0;
+    return ret;
+}
+
+void free_pprep(pprep* r) {
+    if(r) {
+        free(r->path);
+        free(r);
+    }
+}
 ppnode* new_ppnode(char* path) {
     ppnode* ret = (ppnode*)malloc(sizeof(ppnode));
     ret->path = strdup(path);
     ret->primaryip = 0;
-    ret->repip = NULL;
-    ret->isdir = 0;
+    ret->repip_list = NULL;
+    //ret->isdir = 0;
+    ret->a = NULL;
     //ret->a = 0;
-    if(!strcmp(path,"/")){
-        ret->name = ret->path;
-        ret->isdir = 1;
-    } else {
-        ret->name = getbasename(ret->path);
-    }
+    //if(!strcmp(path,"/")){
+    //    //ret->name = ret->path;
+    //    //ret->isdir = 1;
+    //} else {
+    //    ret->name = getbasename(ret->path);
+    //}
     ret->next = ret->child = NULL;
     return ret;
 }

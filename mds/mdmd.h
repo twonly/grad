@@ -47,7 +47,7 @@ typedef struct _mdmdserventry{
   int atime;
   int type; //1:incoming; 2:outgoing
 
-  hashnode* htab[MDMD_HASHSIZE];
+  //hashnode* htab[MDMD_HASHSIZE];
 
   struct _mdmdserventry* next;
 } mdmdserventry;
@@ -98,7 +98,9 @@ void mdmd_getattr(mdmdserventry* eptr,char* path,int id);
 void mdmd_s2c_getattr(mdmdserventry* eptr,ppacket* p);
 void mdmd_c2s_getattr(mdmdserventry* eptr,ppacket* p);
 
-//yjy
+//replica
+void mdmd_send_delete(mdmdserventry* eptr, char* path);
+void mdmd_delete(mdmdserventry* eptr, ppacket* inp);
 void mdmd_send_attr( int ip, ppfile* f);
 void mdmd_get_attr(mdmdserventry* eptr, ppacket* inp);
 void mdmd_update_attr( int ip, ppfile* f);
